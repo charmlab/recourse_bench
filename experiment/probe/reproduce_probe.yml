@@ -1,0 +1,48 @@
+experiment:
+  name: "compas_probe_mlp_experiment"
+  seed: 42
+  num_factuals: 20
+  factual_selection: "negative_class"
+  output_dir: "./results/probe"
+  save_results: true
+  output_format: "both"
+  logger: "info"
+
+data:
+  - name: "compas_carla"
+    overrides:
+      train_split: 0.75
+      balance_classes: false
+      preprocessing_strategy: "normalize"
+
+model:
+  name: "mlp"
+  overrides:
+    epochs: 25
+    learning_rate: 0.002
+    optimizer: "rms"
+    batch_size: 25
+    hidden_layers: [[50]]
+    n_output: 2
+    output_activation: "softmax"
+
+method:
+  name: "PROBE"
+  overrides:
+    lr: 0.001
+    lambda_: 0.01
+    y_target: [0.45, 0.55]
+    n_iter: 200
+    t_max_min: 0.5
+    norm: 1
+    clamp: true
+    loss_type: "BCE"
+    binary_cat_features: true
+    noise_variance: 0.01
+    invalidation_target: 0.35
+    inval_target_eps: 0.01
+
+evaluation:
+  metrics:
+    - name: "Distance"
+    - name: "Validity"
