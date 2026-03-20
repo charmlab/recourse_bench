@@ -19,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from evaluation.evaluation_utils import resolve_evaluation_inputs
 from experiment import Experiment
 
-DEFAULT_CONFIG_PATH = Path(__file__).with_name("reproduce_probe.yml")
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("compas_mlp_probe_experiment.yaml")
 REFERENCE_FEATURE_ORDER = [
     "age",
     "two_year_recid",
@@ -67,9 +67,7 @@ def _resolve_layers(model_overrides: dict) -> list[int] | None:
 def _translate_reference_config(reference_config: dict, device: str) -> dict:
     experiment_cfg = deepcopy(reference_config.get("experiment", {}))
     seed = int(experiment_cfg.get("seed", 42))
-    experiment_name = str(
-        experiment_cfg.get("name", "compas_probe_mlp_experiment")
-    )
+    experiment_name = str(experiment_cfg.get("name", "compas_probe_mlp_experiment"))
 
     data_cfg = reference_config.get("data")
     if not isinstance(data_cfg, list) or len(data_cfg) != 1:
@@ -245,9 +243,11 @@ def _compute_model_metrics(model, testset) -> dict[str, float]:
     class_to_index = model.get_class_to_index()
     encoded_target = torch.tensor(
         [
-            class_to_index[int(value)]
-            if isinstance(value, float) and float(value).is_integer()
-            else class_to_index[value]
+            (
+                class_to_index[int(value)]
+                if isinstance(value, float) and float(value).is_integer()
+                else class_to_index[value]
+            )
             for value in y.tolist()
         ],
         dtype=torch.long,
@@ -365,7 +365,9 @@ def run_reproduction(config_path: str | Path = DEFAULT_CONFIG_PATH) -> dict:
     logger.info("Training PROBE")
     experiment._method.fit(trainset)
 
-    train_df = pd.concat([trainset.get(target=False), trainset.get(target=True)], axis=1)
+    train_df = pd.concat(
+        [trainset.get(target=False), trainset.get(target=True)], axis=1
+    )
     test_df = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
     combined_df = pd.concat([train_df, test_df], axis=0)
     combined = _build_frozen_dataset(trainset, combined_df, "combined_source")

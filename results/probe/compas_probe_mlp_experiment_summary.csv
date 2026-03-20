@@ -1,2 +1,0 @@
-device,num_factuals_selected,num_counterfactuals_evaluated,num_counterfactuals_successful,test_accuracy,test_auc
-cuda,20,20,20,0.8438107371330261,0.8520980049345599

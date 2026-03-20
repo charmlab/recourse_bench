@@ -1,8 +1,0 @@
-{
-  "device": "cuda",
-  "num_factuals_selected": 20,
-  "num_counterfactuals_evaluated": 20,
-  "num_counterfactuals_successful": 20,
-  "test_accuracy": 0.8438107371330261,
-  "test_auc": 0.8520980049345599
-}
