@@ -3,5 +3,5 @@
 Run the example experiment:
 
 ```bash
-python main.py -p experiment/greedy/toydata_linear_greedy_reproduce.yaml
+python main.py -p experiment/toy/toydata_linear_toy_reproduce.yaml
 ```

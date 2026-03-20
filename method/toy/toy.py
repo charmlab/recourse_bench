@@ -14,8 +14,8 @@ from utils.registry import register
 from utils.seed import seed_context
 
 
-@register("greedy")
-class GreedyMethod(MethodObject):
+@register("toy")
+class ToyMethod(MethodObject):
     def __init__(
         self,
         target_model: ModelObject,
@@ -46,11 +46,11 @@ class GreedyMethod(MethodObject):
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
         if not self._target_model._need_grad:
-            raise ValueError("GreedyMethod requires a gradient-enabled target model")
+            raise ValueError("ToyMethod requires a gradient-enabled target model")
 
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:
-            raise ValueError("trainset is required for GreedyMethod.fit()")
+            raise ValueError("trainset is required for ToyMethod.fit()")
 
         with seed_context(self._seed):
             features = trainset.get(target=False)
@@ -89,13 +89,13 @@ class GreedyMethod(MethodObject):
             )
             if not bool(self._mutable_mask.any()):
                 raise ValueError(
-                    "GreedyMethod could not find any mutable numerical features"
+                    "ToyMethod could not find any mutable numerical features"
                 )
 
             output = self._target_model.predict(trainset)
             if output.shape[1] < 2:
                 raise ValueError(
-                    "GreedyMethod requires a target model with at least two classes"
+                    "ToyMethod requires a target model with at least two classes"
                 )
             class_to_index = self._target_model.get_class_to_index()
             if (
@@ -227,4 +227,8 @@ class GreedyMethod(MethodObject):
                         pd.Series(np.nan, index=factuals.columns, dtype="float64")
                     )
 
-            return pd.DataFrame(counterfactual_rows, index=factuals.index)
+            return pd.DataFrame(
+                counterfactual_rows,
+                index=factuals.index,
+                columns=factuals.columns,
+            )

@@ -8,7 +8,6 @@ from method.dice.dice import DiceMethod
 from method.face.face import FaceMethod
 from method.feature_tweak.feature_tweak import FeatureTweakMethod
 from method.gravitational.gravitational import GravitationalMethod
-from method.greedy.greedy import GreedyMethod
 from method.gs.gs import GsMethod
 from method.larr.larr import LarrMethod
 from method.mace.mace import MaceMethod
@@ -17,4 +16,5 @@ from method.probe.probe import ProbeMethod
 from method.rbr.rbr import RbrMethod
 from method.revise.revise import ReviseMethod
 from method.roar.roar import RoarMethod
+from method.toy.toy import ToyMethod
 from method.wachter.wachter import WachterMethod

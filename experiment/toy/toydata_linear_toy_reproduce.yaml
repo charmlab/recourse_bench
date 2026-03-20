@@ -1,7 +1,7 @@
-name: toydata_linear_greedy_reproduce
+name: toydata_linear_toy_reproduce
 logger:
   level: INFO
-  path: ./logs/toydata_linear_greedy.log
+  path: ./logs/toydata_linear_toy.log
 caching:
   path: ./cache/
 dataset:
@@ -25,7 +25,7 @@ model:
   criterion: cross_entropy
   save_name: toydata_linear
 method:
-  name: greedy
+  name: toy
   seed: 7
   device: cpu
   desired_class: 1
