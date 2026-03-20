@@ -6,3 +6,4 @@ from preprocess.common import (
     SplitPreProcess,
 )
 from preprocess.preprocess_object import PreProcessObject
+from preprocess.rbr_german_aggregate import RbrGermanAggregatePreProcess

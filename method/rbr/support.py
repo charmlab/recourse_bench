@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Sequence
 
 import numpy as np
@@ -12,7 +11,6 @@ from model.linear.linear import LinearModel
 from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
 from model.randomforest.randomforest import RandomForestModel
-from preprocess.preprocess_utils import resolve_feature_metadata
 
 TorchModelTypes = (LinearModel, MlpModel)
 BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
@@ -50,149 +48,29 @@ def to_feature_dataframe(
     return pd.DataFrame(array, columns=list(feature_names))
 
 
-@dataclass
-class FeatureGroups:
-    feature_names: list[str]
-    continuous: list[str]
-    categorical: list[str]
-    binary: list[str]
-    immutable: list[str]
-    mutable: list[str]
-    mutable_mask: np.ndarray
-
-
-def resolve_feature_groups(dataset: DatasetObject) -> FeatureGroups:
-    feature_df = dataset.get(target=False)
-    feature_names = list(feature_df.columns)
-    feature_type, feature_mutability, feature_actionability = resolve_feature_metadata(
-        dataset
-    )
-
-    continuous: list[str] = []
-    categorical: list[str] = []
-    binary: list[str] = []
-    immutable: list[str] = []
-    mutable: list[str] = []
-
-    for feature_name in feature_names:
-        feature_kind = str(feature_type[feature_name]).lower()
-        is_mutable = bool(feature_mutability[feature_name])
-        actionability = str(feature_actionability[feature_name]).lower()
-
-        if feature_kind == "numerical":
-            continuous.append(feature_name)
-        else:
-            categorical.append(feature_name)
-            if feature_kind == "binary":
-                binary.append(feature_name)
-
-        if (not is_mutable) or actionability in {"none", "same"}:
-            immutable.append(feature_name)
-        else:
-            mutable.append(feature_name)
-
-    mutable_mask = np.array(
-        [feature_name in set(mutable) for feature_name in feature_names], dtype=bool
-    )
-    return FeatureGroups(
-        feature_names=feature_names,
-        continuous=continuous,
-        categorical=categorical,
-        binary=binary,
-        immutable=immutable,
-        mutable=mutable,
-        mutable_mask=mutable_mask,
-    )
-
-
 class RecourseModelAdapter:
     def __init__(self, target_model: ModelObject, feature_names: Sequence[str]):
         self._target_model = target_model
         self._feature_names = list(feature_names)
-        class_to_index = target_model.get_class_to_index()
-        self._index_to_class = {
-            index: class_value for class_value, index in class_to_index.items()
-        }
-        self.classes_ = np.array(
-            [self._index_to_class[index] for index in sorted(self._index_to_class)]
-        )
 
     def get_ordered_features(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
     ) -> pd.DataFrame:
         return to_feature_dataframe(X, self._feature_names)
 
-    def predict_proba(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            return differentiable_predict_proba(self._target_model, X)
-
-        features = self.get_ordered_features(X)
-        prediction = self._target_model.get_prediction(features, proba=True)
-        if isinstance(prediction, torch.Tensor):
-            return prediction.detach().cpu().numpy()
-        return np.asarray(prediction)
-
     def predict(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1)
-
+    ) -> torch.Tensor:
         features = self.get_ordered_features(X)
-        prediction = self._target_model.get_prediction(features, proba=False)
-        if isinstance(prediction, torch.Tensor):
-            label_indices = prediction.detach().cpu().numpy().argmax(axis=1)
-        else:
-            label_indices = np.asarray(prediction).argmax(axis=1)
-        return np.asarray([self._index_to_class[int(index)] for index in label_indices])
+        return self._target_model.get_prediction(features, proba=True)
 
     def predict_label_indices(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
     ) -> np.ndarray:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1).detach().cpu().numpy()
-
-        features = self.get_ordered_features(X)
-        probabilities = self._target_model.get_prediction(features, proba=True)
+        probabilities = self.predict(X)
         if isinstance(probabilities, torch.Tensor):
             return probabilities.detach().cpu().numpy().argmax(axis=1)
         return np.asarray(probabilities).argmax(axis=1)
-
-
-def differentiable_predict_proba(
-    target_model: ModelObject,
-    X: torch.Tensor,
-) -> torch.Tensor:
-    ensure_supported_target_model(
-        target_model,
-        TorchModelTypes,
-        "differentiable_predict_proba",
-    )
-    model = getattr(target_model, "_model", None)
-    if model is None:
-        raise RuntimeError("Target model has not been initialized")
-
-    device = target_model._device
-    logits = model(X.to(device))
-    output_activation = getattr(target_model, "_output_activation_name", "softmax")
-    output_activation = str(output_activation).lower()
-    if logits.ndim == 1:
-        logits = logits.unsqueeze(0)
-
-    if output_activation == "sigmoid":
-        positive_probability = torch.sigmoid(logits)
-        return torch.cat([1.0 - positive_probability, positive_probability], dim=1)
-    return torch.softmax(logits, dim=1)
 
 
 def resolve_target_indices(
@@ -250,3 +128,55 @@ def validate_counterfactuals(
     )
     candidates.loc[~success_mask, :] = np.nan
     return candidates
+
+
+def resolve_onehot_feature_indices(
+    dataset: DatasetObject,
+    feature_names: Sequence[str],
+) -> list[list[int]]:
+    if not hasattr(dataset, "encoding"):
+        return []
+
+    encoding = dataset.attr("encoding")
+    onehot_groups: list[list[int]] = []
+    for source_feature, encoded_columns in encoding.items():
+        if not isinstance(source_feature, str) or not isinstance(encoded_columns, list):
+            continue
+        expected_prefix = f"{source_feature}_cat_"
+        if len(encoded_columns) < 2:
+            continue
+        if not all(
+            isinstance(column, str) and column.startswith(expected_prefix)
+            for column in encoded_columns
+        ):
+            continue
+
+        group_indices = [
+            int(feature_names.index(column))
+            for column in encoded_columns
+            if column in feature_names
+        ]
+        if len(group_indices) == len(encoded_columns):
+            onehot_groups.append(group_indices)
+    return onehot_groups
+
+
+def apply_onehot_constraints(
+    values: np.ndarray | Sequence[float],
+    onehot_feature_indices: Sequence[Sequence[int]],
+) -> np.ndarray:
+    constrained = np.asarray(values, dtype=np.float32).copy()
+    for group in onehot_feature_indices:
+        group_indices = list(group)
+        if len(group_indices) == 0:
+            continue
+        if len(group_indices) == 1:
+            constrained[group_indices[0]] = np.float32(
+                np.round(constrained[group_indices[0]])
+            )
+            continue
+
+        best_local_index = int(np.argmax(constrained[group_indices]))
+        constrained[group_indices] = 0.0
+        constrained[group_indices[best_local_index]] = 1.0
+    return constrained
