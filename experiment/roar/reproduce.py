@@ -222,11 +222,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--current-config",
-        default="./experiment/roar/german_roar_current.yaml",
+        default="./experiment/roar/german_mlp_roar_reproduce_current.yaml",
     )
     parser.add_argument(
         "--future-config",
-        default="./experiment/roar/german_roar_future.yaml",
+        default="./experiment/roar/german_mlp_roar_reproduce_future.yaml",
     )
     args = parser.parse_args()
 

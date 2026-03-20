@@ -19,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from evaluation.evaluation_utils import resolve_evaluation_inputs
 from experiment import Experiment
 
-DEFAULT_CONFIG_PATH = Path(__file__).with_name("compas_mlp_probe_experiment.yaml")
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("compas_mlp_probe_reproduce.yaml")
 REFERENCE_FEATURE_ORDER = [
     "age",
     "two_year_recid",

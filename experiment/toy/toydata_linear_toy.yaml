@@ -1,4 +1,4 @@
-name: toydata_linear_toy_reproduce
+name: toydata_linear_toy
 logger:
   level: INFO
   path: ./logs/toydata_linear_toy.log

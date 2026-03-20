@@ -1,5 +1,5 @@
 experiment:
-  name: "compas_mlp_probe_experiment"
+  name: "compas_mlp_probe_reproduce"
   seed: 42
   num_factuals: 20
   factual_selection: "negative_class"

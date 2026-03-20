@@ -1,11 +1,11 @@
-name: german_roar_current
+name: german_mlp_roar_reproduce_future
 logger:
   level: INFO
-  path: ./logs/german_roar_current.log
+  path: ./logs/german_mlp_roar_reproduce_future.log
 caching:
   path: ./cache/
 dataset:
-  name: german
+  name: german_roar
 preprocess:
   - name: scale
     seed: 42
@@ -31,7 +31,7 @@ model:
   optimizer: adam
   criterion: bce
   output_activation: sigmoid
-  save_name: german_roar_current_mlp
+  save_name: german_roar_future_mlp
 method:
   name: roar
   seed: 0
