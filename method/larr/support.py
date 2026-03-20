@@ -11,11 +11,9 @@ from dataset.dataset_object import DatasetObject
 from model.linear.linear import LinearModel
 from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
-from model.randomforest.randomforest import RandomForestModel
 from preprocess.preprocess_utils import resolve_feature_metadata
 
 TorchModelTypes = (LinearModel, MlpModel)
-BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
 
 
 def ensure_supported_target_model(
@@ -135,23 +133,6 @@ class RecourseModelAdapter:
         if isinstance(prediction, torch.Tensor):
             return prediction.detach().cpu().numpy()
         return np.asarray(prediction)
-
-    def predict(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1)
-
-        features = self.get_ordered_features(X)
-        prediction = self._target_model.get_prediction(features, proba=False)
-        if isinstance(prediction, torch.Tensor):
-            label_indices = prediction.detach().cpu().numpy().argmax(axis=1)
-        else:
-            label_indices = np.asarray(prediction).argmax(axis=1)
-        return np.asarray([self._index_to_class[int(index)] for index in label_indices])
 
     def predict_label_indices(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
