@@ -17,4 +17,5 @@ from method.rbr.rbr import RbrMethod
 from method.revise.revise import ReviseMethod
 from method.roar.roar import RoarMethod
 from method.toy.toy import ToyMethod
+from method.trex.trex import TrexMethod
 from method.wachter.wachter import WachterMethod
