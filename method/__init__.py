@@ -3,6 +3,7 @@ from method.cfrl.cfrl import CfrlMethod
 from method.cfvae.cfvae import CfvaeMethod
 from method.claproar.claproar import ClaProarMethod
 from method.clue.clue import ClueMethod
+from method.cols.cols import ColsMethod
 from method.cruds.cruds import CrudsMethod
 from method.dice.dice import DiceMethod
 from method.face.face import FaceMethod
