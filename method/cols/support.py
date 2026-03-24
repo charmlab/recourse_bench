@@ -288,9 +288,13 @@ def encode_state_dataframe(
 def infer_base_state_spaces(
     decoded_training: pd.DataFrame,
     schema: SearchSchema,
+    state_space_overrides: dict[str, list[object]] | None = None,
 ) -> dict[str, list[object]]:
     state_spaces: dict[str, list[object]] = {}
     for source_name in schema.source_features:
+        if state_space_overrides is not None and source_name in state_space_overrides:
+            state_spaces[source_name] = list(state_space_overrides[source_name])
+            continue
         spec = schema.feature_specs[source_name]
         ordered = is_ordered_feature(spec.source_type, spec.actionability)
         if spec.representation in {"onehot", "thermometer"}:
@@ -355,10 +359,17 @@ def _build_percentile_lookup(
         values = np.sort(series.astype("float64").to_numpy())
         if values.size == 0:
             return {normalize_state_value(state): 0.0 for state in states}
+
+        def _percentile_rank(score: object) -> float:
+            score_value = float(score)
+            left = int(np.searchsorted(values, score_value, side="left"))
+            right = int(np.searchsorted(values, score_value, side="right"))
+            if right > left:
+                return float(((left + right + 1) / 2.0) / values.size)
+            return float(right / values.size)
+
         return {
-            normalize_state_value(state): float(
-                np.searchsorted(values, float(state), side="right") / values.size
-            )
+            normalize_state_value(state): _percentile_rank(state)
             for state in states
         }
 
@@ -483,7 +494,7 @@ def _compute_feature_cost_means(
         means[finite_mask] *= 1.0 - preference_score
     means[feature_context.current_index] = 0.0
     vars_[(means > 0.0) & np.isfinite(means)] = variance
-    return means, vars_
+    return np.round(means, 4), np.round(vars_, 4)
 
 
 def sample_cost_vector(
@@ -494,20 +505,18 @@ def sample_cost_vector(
 ) -> np.ndarray:
     samples = np.full(means.shape, invalid_cost, dtype="float64")
     zero_mask = means == 0.0
-    finite_mask = np.isfinite(means)
-    positive_mask = finite_mask & (means > 0.0)
+    positive_mask = np.isfinite(means) & (means > 0.0) & (means <= 1.0)
 
     if positive_mask.any():
         mean_values = means[positive_mask] + EPSILON
-        mean_values = np.clip(mean_values, EPSILON, 1.0 - EPSILON)
+        mean_values[mean_values >= 1.0] = 1.0 - (EPSILON * 1.1)
         var_values = vars_[positive_mask] + EPSILON
 
         alpha_values = (
             ((1.0 - mean_values) / var_values) - (1.0 / mean_values)
         ) * np.square(mean_values)
-        alpha_values = np.maximum(alpha_values, EPSILON)
+        alpha_values[alpha_values < 0.0] = EPSILON
         beta_values = alpha_values * ((1.0 / mean_values) - 1.0)
-        beta_values = np.maximum(beta_values, EPSILON)
         samples[positive_mask] = rng.beta(alpha_values, beta_values)
 
     samples[zero_mask] = 0.0
@@ -636,6 +645,30 @@ def build_runtime_context(
         num_mcmc=num_mcmc,
         invalid_cost=invalid_cost,
     )
+
+
+def rank_candidates_for_addition(
+    best_cost_matrix: np.ndarray,
+    candidate_cost_matrix: np.ndarray,
+    invalid_cost: float = DEFAULT_INVALID_COST,
+) -> list[int]:
+    if candidate_cost_matrix.size == 0:
+        return []
+
+    if best_cost_matrix.size == 0:
+        benefits = np.maximum(0.0, invalid_cost - candidate_cost_matrix)
+    else:
+        current_best = best_cost_matrix.min(axis=0, keepdims=True)
+        benefits = current_best - candidate_cost_matrix
+
+    positive_benefits = np.where(benefits > 0.0, benefits, np.nan)
+    benefit_sum = np.nansum(positive_benefits, axis=1)
+    benefit_sum = np.where(np.isnan(benefit_sum), 0.0, benefit_sum)
+    ranked = np.flatnonzero(benefit_sum > 0.0)
+    if ranked.size == 0:
+        return []
+    ranked = ranked[np.argsort(benefit_sum[ranked])[::-1]]
+    return ranked.astype(int).tolist()
 
 
 def compute_candidate_cost_matrix(

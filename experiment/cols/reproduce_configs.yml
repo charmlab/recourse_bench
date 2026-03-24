@@ -1,3 +1,5 @@
+active_profile: paper
+
 data:
   dataset_name: compas_carla
   raw_path: dataset/compas_carla/compas_carla.csv
@@ -115,8 +117,8 @@ methods:
   - name: COLS
     desired_class: 1
     num_cfs: 10
-    num_mcmc: 50
-    budget: 100
+    num_mcmc: 1000
+    budget: 5000
     num_parallel_runs: 1
     hamming_dist: 2
     perturb_type: all
@@ -129,6 +131,10 @@ methods:
 reproduction:
   run_seeds:
     - 1
+    - 2
+    - 3
+    - 4
+    - 5
   paper_targets:
     COLS:
       FS@1: 82.23
@@ -138,3 +144,14 @@ reproduction:
       Prox: 77.82
       Spars: 70.05
       Val: 95.48
+
+profiles:
+  paper: {}
+  fast_debug:
+    methods:
+      COLS:
+        num_mcmc: 50
+        budget: 100
+    reproduction:
+      run_seeds:
+        - 1

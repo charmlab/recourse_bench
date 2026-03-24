@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import copy
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ import pandas as pd
 import torch
 import yaml
 from sklearn.model_selection import ShuffleSplit
+from tqdm.auto import tqdm
 
 from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from method.cols.cols import ColsMethod
@@ -26,6 +28,42 @@ from model.model_object import process_nan
 from utils.seed import seed_context
 
 EPSILON = 1e-7
+
+
+def _resolve_progress_mode(progress: str) -> str:
+    resolved = str(progress).lower()
+    if resolved not in {"none", "standard", "all"}:
+        raise ValueError("progress must be one of: none, standard, all")
+    return resolved
+
+
+def _progress_enabled(progress_mode: str) -> bool:
+    return progress_mode != "none"
+
+
+def _search_progress_enabled(progress_mode: str) -> bool:
+    return progress_mode == "all"
+
+
+def _build_progress_bar(*args, **kwargs):
+    kwargs.setdefault("dynamic_ncols", True)
+    return tqdm(*args, **kwargs)
+
+
+def _maybe_write_heartbeat(
+    *,
+    enabled: bool,
+    heartbeat_seconds: int,
+    last_heartbeat: float,
+    message: str,
+) -> float:
+    if (not enabled) or heartbeat_seconds <= 0:
+        return last_heartbeat
+    now = time.monotonic()
+    if now - last_heartbeat >= heartbeat_seconds:
+        tqdm.write(message)
+        return now
+    return last_heartbeat
 
 
 @dataclass(frozen=True)
@@ -124,6 +162,11 @@ class ReferenceCompasMlpModel(MlpModel):
         self,
         trainset,
         valset=None,
+        show_progress: bool = False,
+        progress_desc: str = "model-fit",
+        progress_position: int = 0,
+        progress_leave: bool = False,
+        heartbeat_seconds: int = 60,
     ):
         if trainset is None:
             raise ValueError("trainset is required for ReferenceCompasMlpModel.fit()")
@@ -191,8 +234,17 @@ class ReferenceCompasMlpModel(MlpModel):
             best_state: dict[str, torch.Tensor] | None = None
             best_val_accuracy = float("-inf")
             best_val_loss = float("inf")
+            last_heartbeat = time.monotonic()
 
-            for _ in range(self._epochs):
+            epoch_iterator = _build_progress_bar(
+                range(self._epochs),
+                total=self._epochs,
+                desc=progress_desc,
+                position=progress_position,
+                leave=progress_leave,
+                disable=not show_progress,
+            )
+            for epoch_index in epoch_iterator:
                 self._model.train()
                 permutation = torch.randperm(
                     X_train_tensor.shape[0],
@@ -230,6 +282,23 @@ class ReferenceCompasMlpModel(MlpModel):
                     best_state = copy.deepcopy(self._model.state_dict())
                     best_val_accuracy = val_accuracy
                     best_val_loss = val_loss
+                if show_progress:
+                    epoch_iterator.set_postfix(
+                        val_acc=f"{val_accuracy:.4f}",
+                        best_acc=f"{best_val_accuracy:.4f}",
+                        val_loss=f"{val_loss:.4f}",
+                    )
+                last_heartbeat = _maybe_write_heartbeat(
+                    enabled=show_progress,
+                    heartbeat_seconds=heartbeat_seconds,
+                    last_heartbeat=last_heartbeat,
+                    message=(
+                        f"[train] epoch={epoch_index + 1}/{self._epochs} "
+                        f"best_val_acc={best_val_accuracy:.4f} "
+                        f"best_val_loss={best_val_loss:.4f}"
+                    ),
+                )
+            epoch_iterator.close()
 
             if best_state is None:
                 raise RuntimeError("Validation checkpoint selection failed")
@@ -249,6 +318,57 @@ def _load_config(config_path: Path) -> dict[str, Any]:
     return config
 
 
+def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    merged = copy.deepcopy(base)
+    for key, value in overrides.items():
+        if (
+            key in merged
+            and isinstance(merged[key], dict)
+            and isinstance(value, dict)
+        ):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = copy.deepcopy(value)
+    return merged
+
+
+def _apply_profile(config: dict[str, Any], profile_name: str | None) -> dict[str, Any]:
+    profiles = config.get("profiles")
+    if not isinstance(profiles, dict):
+        return copy.deepcopy(config)
+
+    resolved_profile = profile_name or config.get("active_profile")
+    if resolved_profile is None:
+        return copy.deepcopy(config)
+    if resolved_profile not in profiles:
+        raise ValueError(f"Unknown reproduction profile: {resolved_profile}")
+
+    profile = profiles[resolved_profile]
+    if not isinstance(profile, dict):
+        raise ValueError(f"Profile '{resolved_profile}' must be a dictionary")
+
+    cfg = copy.deepcopy(config)
+    for section_name in ("data", "model", "reproduction"):
+        section_overrides = profile.get(section_name)
+        if isinstance(section_overrides, dict):
+            cfg[section_name] = _deep_merge(cfg[section_name], section_overrides)
+
+    method_overrides = profile.get("methods")
+    if isinstance(method_overrides, list):
+        cfg["methods"] = copy.deepcopy(method_overrides)
+    elif isinstance(method_overrides, dict):
+        updated_methods = []
+        for method_cfg in cfg["methods"]:
+            override = method_overrides.get(str(method_cfg["name"]))
+            if isinstance(override, dict):
+                updated_methods.append(_deep_merge(method_cfg, override))
+            else:
+                updated_methods.append(copy.deepcopy(method_cfg))
+        cfg["methods"] = updated_methods
+
+    return cfg
+
+
 def _resolve_device(device_name: str) -> str:
     if device_name == "auto":
         return "cuda" if torch.cuda.is_available() else "cpu"
@@ -256,7 +376,7 @@ def _resolve_device(device_name: str) -> str:
 
 
 def _apply_cli_overrides(config: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
-    cfg = copy.deepcopy(config)
+    cfg = _apply_profile(config, getattr(args, "profile", None))
     if args.max_runs is not None:
         cfg["reproduction"]["run_seeds"] = cfg["reproduction"]["run_seeds"][
             : int(args.max_runs)
@@ -499,6 +619,7 @@ def _build_frozen_dataset(
     target: pd.Series,
     data_cfg: dict[str, Any],
     marker: str,
+    extra_attrs: dict[str, object] | None = None,
 ):
     dataset = template.clone()
     if not _uses_scalar_categorical_encoding(data_cfg):
@@ -509,6 +630,9 @@ def _build_frozen_dataset(
     )
     combined.columns = list(feature_df.columns) + [data_cfg["target_column"]]
     dataset.update(marker, True, df=combined)
+    if extra_attrs is not None:
+        for attr_name, attr_value in extra_attrs.items():
+            dataset.update(attr_name, attr_value)
     dataset.freeze()
     return dataset
 
@@ -548,8 +672,16 @@ def _build_metric_context(
             continue
         if feature_name in continuous_feature_names:
             values = np.sort(balanced_df[feature_name].astype(int).to_numpy())
+
+            def _percentile_rank(score: int) -> float:
+                left = int(np.searchsorted(values, int(score), side="left"))
+                right = int(np.searchsorted(values, int(score), side="right"))
+                if right > left:
+                    return float(((left + right + 1) / 2.0) / values.size)
+                return float(right / values.size)
+
             percentiles[feature_name] = {
-                state: float(np.searchsorted(values, state, side="right") / values.size)
+                state: _percentile_rank(state)
                 for state in original_ranges[feature_name]
             }
             continue
@@ -603,6 +735,27 @@ def _build_metric_context(
         invalid_cost=float(evaluation_cfg["invalid_cost"]),
         variance=float(evaluation_cfg["variance"]),
     )
+
+
+def _build_cols_state_space_overrides(
+    balanced_df: pd.DataFrame,
+    scaling_stats: ScalingStats,
+    data_cfg: dict[str, Any],
+) -> dict[str, list[float]]:
+    overrides: dict[str, list[float]] = {}
+    for feature_name in data_cfg["continuous_feature_order"]:
+        minimum = scaling_stats.minimum[feature_name]
+        maximum = scaling_stats.maximum[feature_name]
+        raw_min = int(balanced_df[feature_name].min())
+        raw_max = int(balanced_df[feature_name].max())
+        if maximum == minimum:
+            overrides[feature_name] = [0.0]
+            continue
+        overrides[feature_name] = [
+            float((raw_value - minimum) / (maximum - minimum))
+            for raw_value in range(raw_min, raw_max + 1)
+        ]
+    return overrides
 
 
 def _sample_editable_features(
@@ -743,7 +896,7 @@ def _linear_cost_means(
 
     means[current_index] = 0.0
     variances[current_index] = 0.0
-    return means, variances
+    return np.round(means, 4), np.round(variances, 4)
 
 
 def _percentile_cost_means(
@@ -789,7 +942,7 @@ def _percentile_cost_means(
 
     means[current_index] = 0.0
     variances[current_index] = 0.0
-    return means, variances
+    return np.round(means, 4), np.round(variances, 4)
 
 
 def _combine_cost_means(
@@ -803,7 +956,7 @@ def _combine_cost_means(
         return linear_means, linear_vars
     if alpha == 1.0:
         return percentile_means, percentile_vars
-    means = linear_means * alpha + percentile_means * (1.0 - alpha)
+    means = np.round(linear_means * alpha + percentile_means * (1.0 - alpha), 4)
     return means, percentile_vars
 
 
@@ -818,14 +971,13 @@ def _sample_cost_vector(
     positive_mask = (means > 0.0) & (means <= 1.0)
     if positive_mask.any():
         mean_values = means[positive_mask] + EPSILON
-        mean_values = np.clip(mean_values, EPSILON, 1.0 - EPSILON)
+        mean_values[mean_values >= 1.0] = 1.0 - (EPSILON * 1.1)
         variance_values = variances[positive_mask] + EPSILON
         alpha_values = (
             ((1.0 - mean_values) / variance_values) - (1.0 / mean_values)
         ) * np.square(mean_values)
-        alpha_values = np.maximum(alpha_values, EPSILON)
+        alpha_values[alpha_values < 0.0] = EPSILON
         beta_values = alpha_values * ((1.0 / mean_values) - 1.0)
-        beta_values = np.maximum(beta_values, EPSILON)
         samples[positive_mask] = rng.beta(alpha_values, beta_values)
     samples[zero_mask] = 0.0
     return samples
@@ -1087,6 +1239,9 @@ def _evaluate_method(
     data_cfg: dict[str, Any],
     scaling_stats: ScalingStats,
     device: str,
+    progress_mode: str,
+    heartbeat_seconds: int,
+    progress_position: int = 0,
 ) -> tuple[dict[str, float], dict[str, float]]:
     cols_method = ColsMethod(
         target_model=model,
@@ -1107,13 +1262,29 @@ def _evaluate_method(
     )
     cols_method.fit(trainset)
 
-    cf_sets_encoded = cols_method.get_counterfactual_sets(factual_encoded)
+    cf_sets_encoded = cols_method.get_counterfactual_sets(
+        factual_encoded,
+        show_progress=_progress_enabled(progress_mode),
+        search_progress=_search_progress_enabled(progress_mode),
+        heartbeat_seconds=heartbeat_seconds,
+        progress_desc=f"{method_name} factuals",
+        progress_position=progress_position,
+    )
     cf_validity_masks = [mask.to_numpy(copy=True) for mask in cols_method._last_counterfactual_validity]
     search_stats = list(cols_method._last_search_stats)
 
     cost_rows = []
     set_rows = []
-    for factual_index, cf_encoded in enumerate(cf_sets_encoded):
+    evaluation_iterator = _build_progress_bar(
+        enumerate(cf_sets_encoded),
+        total=len(cf_sets_encoded),
+        desc=f"{method_name} evaluate",
+        position=progress_position,
+        leave=False,
+        disable=not _progress_enabled(progress_mode),
+    )
+    last_heartbeat = time.monotonic()
+    for factual_index, cf_encoded in evaluation_iterator:
         cf_pred_classes = _predict_label_indices(model, cf_encoded)
         validity_mask = cf_validity_masks[factual_index].astype(bool)
         target_index = int(method_cfg["desired_class"])
@@ -1150,6 +1321,24 @@ def _evaluate_method(
                 context=metric_context,
             )
         )
+        if _progress_enabled(progress_mode):
+            evaluation_iterator.set_postfix(
+                valid=int(search_stats[factual_index]["num_valid"]),
+                queries=int(search_stats[factual_index]["num_queries"]),
+                emc=f"{float(search_stats[factual_index]['emc']):.4f}",
+            )
+        last_heartbeat = _maybe_write_heartbeat(
+            enabled=_progress_enabled(progress_mode),
+            heartbeat_seconds=heartbeat_seconds,
+            last_heartbeat=last_heartbeat,
+            message=(
+                f"[evaluate] method={method_name} "
+                f"factual={factual_index + 1}/{len(cf_sets_encoded)} "
+                f"queries={int(search_stats[factual_index]['num_queries'])} "
+                f"emc={float(search_stats[factual_index]['emc']):.4f}"
+            ),
+        )
+    evaluation_iterator.close()
 
     covered_mask = [bool(row["covered"]) for row in cost_rows]
     pac_values = [float(row["PAC"]) for row in cost_rows if bool(row["covered"])]
@@ -1202,6 +1391,9 @@ def _run_single_seed(
     run_seed: int,
     config: dict[str, Any],
     device: str,
+    progress_mode: str,
+    heartbeat_seconds: int,
+    seed_position: int = 0,
 ) -> dict[str, Any]:
     data_cfg = config["data"]
     model_cfg = config["model"]
@@ -1214,6 +1406,11 @@ def _run_single_seed(
     )
 
     template = _build_dataset_template(data_cfg)
+    balanced_features = _encode_raw_features(
+        split_artifacts.balanced_df,
+        data_cfg,
+        scaling_stats,
+    )
     train_features = _encode_raw_features(split_artifacts.train_df, data_cfg, scaling_stats)
     val_features = _encode_raw_features(split_artifacts.val_df, data_cfg, scaling_stats)
     provisional_features = _encode_raw_features(
@@ -1228,6 +1425,14 @@ def _run_single_seed(
         split_artifacts.train_df[data_cfg["target_column"]],
         data_cfg,
         "trainset",
+        extra_attrs={
+            "cols_feature_space_df": balanced_features,
+            "cols_state_space_overrides": _build_cols_state_space_overrides(
+                split_artifacts.balanced_df,
+                scaling_stats,
+                data_cfg,
+            ),
+        },
     )
     valset = _build_frozen_dataset(
         template,
@@ -1254,7 +1459,15 @@ def _run_single_seed(
         ),
         save_name=None,
     )
-    model.fit(trainset, valset=valset)
+    model.fit(
+        trainset,
+        valset=valset,
+        show_progress=_progress_enabled(progress_mode),
+        progress_desc=f"seed {run_seed} train",
+        progress_position=seed_position + 1,
+        progress_leave=False,
+        heartbeat_seconds=heartbeat_seconds,
+    )
 
     provisional_predictions = _predict_label_indices(model, provisional_features)
     undesired_class = int(data_cfg["undesired_class"])
@@ -1279,19 +1492,47 @@ def _run_single_seed(
     )
 
     evaluation_rng = np.random.default_rng(run_seed)
-    user_costs = [
-        _sample_user_cost(
-            factual_raw.iloc[row_index].loc[metric_context.feature_names],
-            metric_context,
-            data_cfg["evaluation"].get("alpha"),
-            evaluation_rng,
+    user_costs = []
+    user_cost_iterator = _build_progress_bar(
+        range(factual_raw.shape[0]),
+        total=factual_raw.shape[0],
+        desc=f"seed {run_seed} user-costs",
+        position=seed_position + 1,
+        leave=False,
+        disable=not _progress_enabled(progress_mode),
+    )
+    last_heartbeat = time.monotonic()
+    for row_index in user_cost_iterator:
+        user_costs.append(
+            _sample_user_cost(
+                factual_raw.iloc[row_index].loc[metric_context.feature_names],
+                metric_context,
+                data_cfg["evaluation"].get("alpha"),
+                evaluation_rng,
+            )
         )
-        for row_index in range(factual_raw.shape[0])
-    ]
+        last_heartbeat = _maybe_write_heartbeat(
+            enabled=_progress_enabled(progress_mode),
+            heartbeat_seconds=heartbeat_seconds,
+            last_heartbeat=last_heartbeat,
+            message=(
+                f"[user-costs] seed={run_seed} "
+                f"sampled={row_index + 1}/{factual_raw.shape[0]}"
+            ),
+        )
+    user_cost_iterator.close()
     factual_predictions = _predict_label_indices(model, factual_encoded)
 
     method_results: dict[str, dict[str, Any]] = {}
-    for base_method_cfg in config["methods"]:
+    method_iterator = _build_progress_bar(
+        config["methods"],
+        total=len(config["methods"]),
+        desc=f"seed {run_seed} methods",
+        position=seed_position + 1,
+        leave=False,
+        disable=not _progress_enabled(progress_mode),
+    )
+    for method_index, base_method_cfg in enumerate(method_iterator):
         method_cfg = copy.deepcopy(base_method_cfg)
         method_cfg["seed"] = run_seed
         metrics, search_summary = _evaluate_method(
@@ -1307,11 +1548,21 @@ def _run_single_seed(
             data_cfg=data_cfg,
             scaling_stats=scaling_stats,
             device=device,
+            progress_mode=progress_mode,
+            heartbeat_seconds=heartbeat_seconds,
+            progress_position=seed_position + 1,
         )
         method_results[str(method_cfg["name"])] = {
             "metrics": metrics,
             "search": search_summary,
         }
+        if _progress_enabled(progress_mode):
+            method_iterator.set_postfix(
+                method=str(method_cfg["name"]),
+                cov=f"{metrics['Cov']:.2f}",
+                val=f"{metrics['Val']:.2f}",
+            )
+    method_iterator.close()
 
     return {
         "seed": run_seed,
@@ -1389,6 +1640,9 @@ def main() -> None:
     parser.add_argument("--override-num-mcmc", type=int, default=None)
     parser.add_argument("--methods", type=str, default=None)
     parser.add_argument("--use-reference-checkpoint", action="store_true")
+    parser.add_argument("--profile", type=str, default=None)
+    parser.add_argument("--progress", type=str, default="standard")
+    parser.add_argument("--heartbeat-seconds", type=int, default=60)
     args = parser.parse_args()
 
     config_path = (PROJECT_ROOT / args.config).resolve()
@@ -1396,12 +1650,37 @@ def main() -> None:
         config_path = Path(args.config).resolve()
     config = _apply_cli_overrides(_load_config(config_path), args)
     device = _resolve_device(str(config["model"]["device"]).lower())
+    progress_mode = _resolve_progress_mode(args.progress)
+    heartbeat_seconds = max(1, int(args.heartbeat_seconds))
 
     run_results = []
-    for run_seed in [int(seed) for seed in config["reproduction"]["run_seeds"]]:
-        run_result = _run_single_seed(run_seed, config, device)
+    run_seeds = [int(seed) for seed in config["reproduction"]["run_seeds"]]
+    seed_iterator = _build_progress_bar(
+        run_seeds,
+        total=len(run_seeds),
+        desc="reproduction seeds",
+        position=0,
+        leave=True,
+        disable=not _progress_enabled(progress_mode),
+    )
+    for seed_index, run_seed in enumerate(seed_iterator):
+        run_result = _run_single_seed(
+            run_seed,
+            config,
+            device,
+            progress_mode=progress_mode,
+            heartbeat_seconds=heartbeat_seconds,
+            seed_position=0,
+        )
         run_results.append(run_result)
         _print_run_summary(run_result)
+        if _progress_enabled(progress_mode):
+            seed_iterator.set_postfix(
+                seed=run_seed,
+                factuals=int(run_result["factual_rows"]),
+                val_acc=f"{float(run_result['val_accuracy']):.4f}",
+            )
+    seed_iterator.close()
 
     comparison = _build_comparison_table(
         run_results,

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 
 import numpy as np
 import pandas as pd
+from tqdm.auto import tqdm
 
 from dataset.dataset_object import DatasetObject
 from method.cols.support import (
@@ -22,6 +24,7 @@ from method.cols.support import (
     ensure_supported_target_model,
     infer_base_state_spaces,
     is_ordered_feature,
+    rank_candidates_for_addition,
     resolve_target_index,
     select_replacement_pairs,
     split_budget,
@@ -39,6 +42,22 @@ class _SearchArtifacts:
     cost_matrix: np.ndarray
     valid_mask: np.ndarray
     emc: float
+
+
+def _maybe_write_heartbeat(
+    *,
+    enabled: bool,
+    heartbeat_seconds: int,
+    last_heartbeat: float,
+    message: str,
+) -> float:
+    if (not enabled) or heartbeat_seconds <= 0:
+        return last_heartbeat
+    now = time.monotonic()
+    if now - last_heartbeat >= heartbeat_seconds:
+        tqdm.write(message)
+        return now
+    return last_heartbeat
 
 
 @register("cols")
@@ -125,12 +144,21 @@ class ColsMethod(MethodObject):
 
         with seed_context(self._seed):
             features = trainset.get(target=False)
+            try:
+                feature_space = trainset.attr("cols_feature_space_df")
+            except AttributeError:
+                feature_space = features
+            try:
+                state_space_overrides = trainset.attr("cols_state_space_overrides")
+            except AttributeError:
+                state_space_overrides = None
             self._feature_names = list(features.columns)
             self._schema = build_search_schema(trainset)
-            self._decoded_training = decode_feature_dataframe(features, self._schema)
+            self._decoded_training = decode_feature_dataframe(feature_space, self._schema)
             self._base_state_spaces = infer_base_state_spaces(
                 self._decoded_training,
                 self._schema,
+                state_space_overrides=state_space_overrides,
             )
             self._adapter = RecourseModelAdapter(self._target_model, self._feature_names)
 
@@ -164,16 +192,15 @@ class ColsMethod(MethodObject):
         runtime_context: RuntimeSearchContext,
         rng: np.random.Generator,
     ) -> object:
-        choices = runtime_context.feature_contexts[source_name].search_states
+        feature_context = runtime_context.feature_contexts[source_name]
+        choices = feature_context.search_states
         if len(choices) == 1:
             return choices[0]
 
-        alternatives = [
-            choice
-            for choice in choices
-            if str(choice) != str(current_value)
-            or choice != current_value
-        ]
+        if feature_context.spec.source_type == "numerical":
+            return choices[int(rng.integers(0, len(choices)))]
+
+        alternatives = [choice for choice in choices if choice != current_value]
         if not alternatives:
             alternatives = list(choices)
         return alternatives[int(rng.integers(0, len(alternatives)))]
@@ -330,13 +357,72 @@ class ColsMethod(MethodObject):
         target_index: int,
         run_budget: int,
         rng: np.random.Generator,
+        show_progress: bool = False,
+        search_progress: bool = False,
+        heartbeat_seconds: int = 60,
+        progress_desc: str = "COLS factuals",
+        progress_position: int = 0,
+        factual_number: int = 1,
+        total_factuals: int = 1,
+        run_number: int = 1,
+        total_runs: int = 1,
     ) -> _SearchArtifacts:
         run_start_queries = self._query_count
+        search_columns = runtime_context.schema.source_features
+        search_bar = tqdm(
+            total=run_budget,
+            desc=(
+                f"{progress_desc} search"
+                if total_runs == 1
+                else f"{progress_desc} search {run_number}/{total_runs}"
+            ),
+            position=progress_position,
+            leave=False,
+            disable=not search_progress,
+            dynamic_ncols=True,
+        )
+        last_reported_queries = 0
+        last_heartbeat = time.monotonic()
+
+        def refresh_search_status(best_cost_matrix: np.ndarray, best_size: int) -> None:
+            nonlocal last_reported_queries
+            nonlocal last_heartbeat
+
+            current_queries = self._query_count - run_start_queries
+            delta_queries = current_queries - last_reported_queries
+            if delta_queries > 0:
+                remaining = max(0, run_budget - last_reported_queries)
+                search_bar.update(min(delta_queries, remaining))
+                last_reported_queries = current_queries
+            best_emc = compute_emc(best_cost_matrix, invalid_cost=self._invalid_cost)
+            if search_progress:
+                search_bar.set_postfix(
+                    factual=f"{factual_number}/{total_factuals}",
+                    queries=f"{current_queries}/{run_budget}",
+                    emc=f"{best_emc:.4f}",
+                    valid=int(best_size),
+                    size=int(best_size),
+                )
+            last_heartbeat = _maybe_write_heartbeat(
+                enabled=show_progress,
+                heartbeat_seconds=heartbeat_seconds,
+                last_heartbeat=last_heartbeat,
+                message=(
+                    f"[cols-search] factual={factual_number}/{total_factuals} "
+                    f"run={run_number}/{total_runs} "
+                    f"queries={current_queries}/{run_budget} "
+                    f"emc={best_emc:.4f} "
+                    f"valid={int(best_size)} "
+                    f"size={int(best_size)}"
+                ),
+            )
+
         init_type = self._init_type
-        best: _SearchArtifacts | None = None
         best_buffer: pd.DataFrame | None = None
+        best_state_set = pd.DataFrame(columns=search_columns)
+        best_cost_matrix = np.empty((0, self._num_mcmc), dtype="float64")
         for attempt in range(16):
-            best = self._evaluate_state_set(
+            initial = self._evaluate_state_set(
                 self._initialize_state_set(
                     factual_state,
                     runtime_context,
@@ -346,15 +432,22 @@ class ColsMethod(MethodObject):
                 runtime_context,
                 target_index,
             )
-            best_buffer = best.state_set.copy(deep=True)
-            if bool(best.valid_mask.any()):
+            best_buffer = initial.state_set.copy(deep=True)
+            valid_indices = np.flatnonzero(initial.valid_mask)
+            if valid_indices.size > 0:
+                best_state_set = (
+                    initial.state_set.iloc[valid_indices].copy(deep=True).reset_index(drop=True)
+                )
+                best_cost_matrix = initial.cost_matrix[valid_indices].copy()
+            refresh_search_status(best_cost_matrix, len(best_state_set))
+            if bool(valid_indices.size > 0):
                 break
             if attempt >= 9:
                 init_type = "random"
 
-        if best is None or best_buffer is None:
+        if best_buffer is None:
             raise RuntimeError("COLS initialization failed")
-        linear_base = best.state_set.copy(deep=True)
+        linear_base = best_buffer.copy(deep=True)
 
         while self._query_count - run_start_queries < run_budget:
             base_state_set = (
@@ -372,41 +465,82 @@ class ColsMethod(MethodObject):
             )
             linear_base = candidate.state_set.copy(deep=True)
 
-            if self._num_cfs == 1:
-                if candidate.emc < best.emc:
-                    best = candidate
-                if best.emc <= 0.0:
-                    break
-                continue
-
-            replacements = select_replacement_pairs(
-                compute_benefit_matrix(best.cost_matrix, candidate.cost_matrix)
-            )
-            if not replacements:
-                continue
-
-            for best_index, candidate_index in replacements:
-                best.state_set.iloc[best_index] = candidate.state_set.iloc[candidate_index]
-                best.encoded_set.iloc[best_index] = candidate.encoded_set.iloc[
-                    candidate_index
-                ]
-                best.cost_matrix[best_index] = candidate.cost_matrix[candidate_index]
-                best.valid_mask[best_index] = candidate.valid_mask[candidate_index]
-                best.emc = compute_emc(best.cost_matrix, invalid_cost=self._invalid_cost)
-                valid_rows = best.state_set.loc[best.valid_mask].copy(deep=True)
-                if not valid_rows.empty:
+            valid_indices = np.flatnonzero(candidate.valid_mask)
+            if valid_indices.size > 0:
+                candidate_valid_states = (
+                    candidate.state_set.iloc[valid_indices].copy(deep=True).reset_index(drop=True)
+                )
+                candidate_valid_cost_matrix = candidate.cost_matrix[valid_indices].copy()
+                if len(best_state_set) < self._num_cfs:
+                    ranked_indices = rank_candidates_for_addition(
+                        best_cost_matrix,
+                        candidate_valid_cost_matrix,
+                        invalid_cost=self._invalid_cost,
+                    )
+                    num_to_add = min(self._num_cfs - len(best_state_set), len(ranked_indices))
+                    if num_to_add > 0:
+                        chosen_indices = ranked_indices[:num_to_add]
+                        best_state_set = pd.concat(
+                            [
+                                best_state_set,
+                                candidate_valid_states.iloc[chosen_indices],
+                            ],
+                            ignore_index=True,
+                        )
+                        if best_cost_matrix.size == 0:
+                            best_cost_matrix = candidate_valid_cost_matrix[chosen_indices].copy()
+                        else:
+                            best_cost_matrix = np.vstack(
+                                [best_cost_matrix, candidate_valid_cost_matrix[chosen_indices]]
+                            )
+                else:
+                    replacements = select_replacement_pairs(
+                        compute_benefit_matrix(
+                            best_cost_matrix,
+                            candidate_valid_cost_matrix,
+                        )
+                    )
+                    for best_index, candidate_index in replacements:
+                        best_state_set.iloc[best_index] = candidate_valid_states.iloc[
+                            candidate_index
+                        ]
+                        best_cost_matrix[best_index] = candidate_valid_cost_matrix[
+                            candidate_index
+                        ]
+                if not best_state_set.empty:
                     best_buffer = (
                         pd.concat(
-                            [best_buffer, valid_rows],
+                            [best_buffer, best_state_set],
                             ignore_index=True,
                         )
                         .tail(self._num_cfs)
                         .reset_index(drop=True)
                     )
-            if best.emc <= 0.0:
+
+            refresh_search_status(best_cost_matrix, len(best_state_set))
+            if compute_emc(best_cost_matrix, invalid_cost=self._invalid_cost) <= 0.0:
                 break
 
-        return best
+        final_state_set = best_state_set.copy(deep=True)
+        if final_state_set.shape[0] < self._num_cfs:
+            filler = self._random_state_set(
+                factual_state,
+                runtime_context,
+                rng,
+            ).iloc[: self._num_cfs - final_state_set.shape[0]]
+            final_state_set = pd.concat(
+                [final_state_set, filler],
+                ignore_index=True,
+            )
+
+        final_result = self._evaluate_state_set(
+            final_state_set,
+            runtime_context,
+            target_index,
+        )
+        refresh_search_status(final_result.cost_matrix[final_result.valid_mask], int(final_result.valid_mask.sum()))
+        search_bar.close()
+        return final_result
 
     def _run_search(
         self,
@@ -414,11 +548,18 @@ class ColsMethod(MethodObject):
         runtime_context: RuntimeSearchContext,
         target_index: int,
         rng: np.random.Generator,
+        show_progress: bool = False,
+        search_progress: bool = False,
+        heartbeat_seconds: int = 60,
+        progress_desc: str = "COLS factuals",
+        progress_position: int = 0,
+        factual_number: int = 1,
+        total_factuals: int = 1,
     ) -> _SearchArtifacts:
         run_budgets = split_budget(self._budget, self._num_parallel_runs)
         best_result: _SearchArtifacts | None = None
 
-        for run_budget in run_budgets:
+        for run_index, run_budget in enumerate(run_budgets):
             if run_budget <= 0:
                 continue
             result = self._run_cols_once(
@@ -427,6 +568,15 @@ class ColsMethod(MethodObject):
                 target_index=target_index,
                 run_budget=run_budget,
                 rng=rng,
+                show_progress=show_progress,
+                search_progress=search_progress,
+                heartbeat_seconds=heartbeat_seconds,
+                progress_desc=progress_desc,
+                progress_position=progress_position,
+                factual_number=factual_number,
+                total_factuals=total_factuals,
+                run_number=run_index + 1,
+                total_runs=len(run_budgets),
             )
             if best_result is None or result.emc < best_result.emc:
                 best_result = result
@@ -440,7 +590,15 @@ class ColsMethod(MethodObject):
             target_index,
         )
 
-    def get_counterfactual_sets(self, factuals: pd.DataFrame) -> list[pd.DataFrame]:
+    def get_counterfactual_sets(
+        self,
+        factuals: pd.DataFrame,
+        show_progress: bool = False,
+        search_progress: bool = False,
+        heartbeat_seconds: int = 60,
+        progress_desc: str | None = None,
+        progress_position: int = 0,
+    ) -> list[pd.DataFrame]:
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
         if factuals.isna().any(axis=None):
@@ -455,8 +613,16 @@ class ColsMethod(MethodObject):
 
         with seed_context(self._seed) as active_seed:
             rng = np.random.default_rng(active_seed)
+            factual_progress = tqdm(
+                total=factuals.shape[0],
+                desc=progress_desc or "COLS factuals",
+                position=progress_position,
+                leave=False,
+                disable=not show_progress,
+                dynamic_ncols=True,
+            )
 
-            for row_index in factuals.index:
+            for factual_number, row_index in enumerate(factuals.index, start=1):
                 self._query_count = 0
                 factual_encoded = factuals.loc[[row_index]].copy(deep=True)
                 factual_state = decoded_factuals.loc[row_index].to_dict()
@@ -483,6 +649,13 @@ class ColsMethod(MethodObject):
                     runtime_context=runtime_context,
                     target_index=target_index,
                     rng=rng,
+                    show_progress=show_progress,
+                    search_progress=search_progress,
+                    heartbeat_seconds=heartbeat_seconds,
+                    progress_desc=progress_desc or "COLS factuals",
+                    progress_position=progress_position + 1,
+                    factual_number=factual_number,
+                    total_factuals=factuals.shape[0],
                 )
 
                 counterfactual_set = result.encoded_set.copy(deep=True)
@@ -502,6 +675,14 @@ class ColsMethod(MethodObject):
                         "num_queries": self._query_count,
                     }
                 )
+                factual_progress.update(1)
+                if show_progress:
+                    factual_progress.set_postfix(
+                        queries=self._query_count,
+                        emc=f"{result.emc:.4f}",
+                        valid=int(result.valid_mask.sum()),
+                    )
+            factual_progress.close()
 
         return [counterfactual_set.copy(deep=True) for counterfactual_set in self._last_counterfactual_sets]
 
