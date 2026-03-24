@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from copy import deepcopy
 from pathlib import Path
-import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -13,327 +14,600 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
+from sklearn.compose import ColumnTransformer
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from experiment import Experiment
+from dataset.german.german import GermanDataset
+from dataset.german_roar.german_roar import GermanRoarDataset
+from method.rbr.rbr import RbrMethod
+from model.mlp.mlp import MlpModel
+
+DEFAULT_CURRENT_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_current.yaml"
+DEFAULT_FUTURE_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_future.yaml"
+PAPER_GERMAN_METRICS = {
+    "present_accuracy": "0.67 ± 0.02",
+    "present_auc": "0.60 ± 0.03",
+    "shift_accuracy": "0.66 ± 0.23",
+    "shift_auc": "0.60 ± 0.04",
+}
+RECOURSE_BENCHMARKS_CURRENT_VALIDITY_MIN = 0.9
+RECOURSE_BENCHMARKS_FUTURE_VALIDITY_MIN = 0.7
+NUMERICAL_FEATURES = ["age", "amount", "duration"]
+TARGET_COLUMN = "credit_risk"
+CATEGORICAL_FEATURE = "personal_status_sex"
 
 
 def _load_config(config_path: Path) -> dict:
     with config_path.open("r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+        config = yaml.safe_load(file)
+    if not isinstance(config, dict):
+        raise ValueError("Reproduction config must parse to a dictionary")
+    return config
 
 
-def _apply_device(config: dict, device: str) -> dict:
-    cfg = deepcopy(config)
-    cfg["model"]["device"] = device
-    cfg["method"]["device"] = device
-    return cfg
+def _resolve_device() -> str:
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def _materialize_datasets(experiment: Experiment) -> list[object]:
-    datasets = [experiment._raw_dataset]
-    for preprocess_step in experiment._preprocess:
-        next_datasets: list[object] = []
-        for current_dataset in datasets:
-            if preprocess_step.__class__.__name__ == "SplitPreProcess":
-                transformed = _reference_style_split(current_dataset, preprocess_step)
-            else:
-                transformed = preprocess_step.transform(current_dataset)
-            if isinstance(transformed, tuple):
-                next_datasets.extend(list(transformed))
-            else:
-                next_datasets.append(transformed)
-        datasets = next_datasets
-    return datasets
+def _load_raw_german_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
+    current_dataset = GermanDataset()
+    shifted_dataset = GermanRoarDataset()
+    current_df = current_dataset.snapshot().copy(deep=True)
+    shifted_df = shifted_dataset.snapshot().copy(deep=True)
+    return current_df, shifted_df
 
 
-def _reference_style_split(dataset, split_preprocess) -> tuple[object, object]:
-    df = dataset.snapshot()
-    split = split_preprocess._split
-    sample = split_preprocess._sample
-    seed = split_preprocess._seed
+def _build_reference_transformer(
+    current_df: pd.DataFrame,
+    shifted_df: pd.DataFrame,
+) -> tuple[ColumnTransformer, list[str], dict[str, list[str]]]:
+    combined = pd.concat(
+        [
+            current_df.drop(columns=[TARGET_COLUMN]),
+            shifted_df.drop(columns=[TARGET_COLUMN]),
+        ],
+        ignore_index=True,
+    )
+    categorical_features = [
+        column
+        for column in combined.columns
+        if column not in NUMERICAL_FEATURES
+    ]
 
-    if isinstance(split, float):
-        train_df, test_df = train_test_split(
-            df,
-            train_size=1.0 - split,
-            random_state=seed,
-            shuffle=True,
+    try:
+        categorical_encoder = OneHotEncoder(
+            handle_unknown="ignore",
+            sparse_output=False,
         )
-    else:
-        train_df, test_df = train_test_split(
-            df,
-            test_size=split,
-            random_state=seed,
-            shuffle=True,
+    except TypeError:
+        categorical_encoder = OneHotEncoder(
+            handle_unknown="ignore",
+            sparse=False,
         )
 
-    if sample is not None:
-        test_df = test_df.sample(n=sample, random_state=seed).copy(deep=True)
-    else:
-        test_df = test_df.copy(deep=True)
-    train_df = train_df.copy(deep=True)
+    transformer = ColumnTransformer(
+        transformers=[
+            ("num", StandardScaler(), NUMERICAL_FEATURES),
+            ("cat", categorical_encoder, categorical_features),
+        ],
+        sparse_threshold=0.0,
+    )
+    transformer.fit(combined)
 
-    trainset = dataset
-    testset = dataset.clone()
-    trainset.update("trainset", True, df=train_df)
-    testset.update("testset", True, df=test_df)
-    return trainset, testset
+    cat_transformer = transformer.named_transformers_["cat"]
+    categories = list(cat_transformer.categories_[0].tolist())
+    cat_columns = [f"{CATEGORICAL_FEATURE}_cat_{category}" for category in categories]
+    feature_names = list(NUMERICAL_FEATURES) + cat_columns
+    encoding_map = {CATEGORICAL_FEATURE: cat_columns}
+    return transformer, feature_names, encoding_map
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
-    prediction = probabilities.argmax(dim=1)
+def _transform_features(
+    transformer: ColumnTransformer,
+    X: pd.DataFrame,
+    feature_names: list[str],
+) -> pd.DataFrame:
+    transformed = transformer.transform(X)
+    if hasattr(transformed, "toarray"):
+        transformed = transformed.toarray()
+    return pd.DataFrame(
+        transformed,
+        index=X.index,
+        columns=feature_names,
+    )
+
+
+def _build_processed_metadata(
+    template_dataset: GermanDataset | GermanRoarDataset,
+    feature_names: list[str],
+    encoding_map: dict[str, list[str]],
+) -> tuple[dict[str, str], dict[str, bool], dict[str, str]]:
+    raw_feature_type = template_dataset.attr("raw_feature_type")
+    raw_feature_mutability = template_dataset.attr("raw_feature_mutability")
+    raw_feature_actionability = template_dataset.attr("raw_feature_actionability")
+
+    encoded_feature_type: dict[str, str] = {}
+    encoded_feature_mutability: dict[str, bool] = {}
+    encoded_feature_actionability: dict[str, str] = {}
+
+    categorical_columns = set(encoding_map[CATEGORICAL_FEATURE])
+    for feature_name in feature_names:
+        if feature_name in categorical_columns:
+            encoded_feature_type[feature_name] = "binary"
+            encoded_feature_mutability[feature_name] = bool(
+                raw_feature_mutability[CATEGORICAL_FEATURE]
+            )
+            encoded_feature_actionability[feature_name] = str(
+                raw_feature_actionability[CATEGORICAL_FEATURE]
+            )
+        else:
+            encoded_feature_type[feature_name] = str(raw_feature_type[feature_name])
+            encoded_feature_mutability[feature_name] = bool(
+                raw_feature_mutability[feature_name]
+            )
+            encoded_feature_actionability[feature_name] = str(
+                raw_feature_actionability[feature_name]
+            )
+    return (
+        encoded_feature_type,
+        encoded_feature_mutability,
+        encoded_feature_actionability,
+    )
+
+
+def _make_frozen_processed_dataset(
+    template_dataset: GermanDataset | GermanRoarDataset,
+    X: pd.DataFrame,
+    y: pd.Series,
+    feature_names: list[str],
+    encoding_map: dict[str, list[str]],
+    dataset_flag: str,
+) -> object:
+    dataset = template_dataset.clone()
+    combined = pd.concat(
+        [X.loc[:, feature_names], y.rename(TARGET_COLUMN)],
+        axis=1,
+    )
+    combined = combined.loc[:, [*feature_names, TARGET_COLUMN]]
+
+    (
+        encoded_feature_type,
+        encoded_feature_mutability,
+        encoded_feature_actionability,
+    ) = _build_processed_metadata(
+        template_dataset,
+        feature_names,
+        encoding_map,
+    )
+
+    dataset.update("encoding", deepcopy(encoding_map), df=combined)
+    dataset.update("encoded_feature_type", encoded_feature_type)
+    dataset.update("encoded_feature_mutability", encoded_feature_mutability)
+    dataset.update("encoded_feature_actionability", encoded_feature_actionability)
+    dataset.update(dataset_flag, True)
+    dataset.freeze()
+    return dataset
+
+
+def _compute_model_metrics(model: MlpModel, testset) -> dict[str, float]:
+    probabilities = model.predict_proba(testset).detach().cpu().numpy()
+    prediction = probabilities.argmax(axis=1)
 
     y = testset.get(target=True).iloc[:, 0]
     class_to_index = model.get_class_to_index()
-    encoded_target = torch.tensor(
+    encoded_target = np.array(
         [class_to_index[int(value)] for value in y.astype(int).tolist()],
-        dtype=torch.long,
+        dtype=np.int64,
     )
 
-    accuracy = float((prediction == encoded_target).to(dtype=torch.float32).mean())
+    accuracy = float(np.mean(prediction == encoded_target))
     positive_index = class_to_index.get(1, max(class_to_index.values()))
-    unique_labels = sorted(set(encoded_target.tolist()))
-    if len(unique_labels) < 2:
+    if len(set(encoded_target.tolist())) < 2:
         auc = float("nan")
     else:
-        auc = float(
-            roc_auc_score(
-                encoded_target.numpy(),
-                probabilities[:, positive_index].numpy(),
-            )
-        )
+        auc = float(roc_auc_score(encoded_target, probabilities[:, positive_index]))
     return {"test_accuracy": accuracy, "test_auc": auc}
 
 
-def _build_dataset_like(dataset, df: pd.DataFrame, flag: str | None = None):
-    output = dataset.clone()
-    if flag is None:
-        output.update("reproduced", True, df=df)
+def _select_recourse_factuals(model: MlpModel, testset, experiment_cfg: dict):
+    factual_selection = str(
+        experiment_cfg.get("factual_selection", "all")
+    ).lower()
+    prediction_probabilities = model.predict_proba(testset).detach().cpu().numpy()
+    prediction_indices = pd.Series(
+        prediction_probabilities.argmax(axis=1),
+        index=testset.get(target=False).index,
+        dtype="int64",
+    )
+    desired_index = model.get_class_to_index()[1]
+    negative_mask = prediction_indices.ne(desired_index)
+
+    if factual_selection == "all":
+        keep_mask = negative_mask
+    elif factual_selection == "negative_class":
+        num_factuals = int(experiment_cfg.get("num_factuals", 5))
+        negative_indices = prediction_indices.index[negative_mask.to_numpy()]
+        if len(negative_indices) < num_factuals:
+            raise ValueError("Not enough negative-class factuals for sampling")
+        chosen = (
+            pd.Series(negative_indices)
+            .sample(n=num_factuals, random_state=42)
+            .tolist()
+        )
+        keep_mask = pd.Series(False, index=prediction_indices.index, dtype=bool)
+        keep_mask.loc[chosen] = True
     else:
-        output.update(flag, True, df=df)
-    output.freeze()
-    return output
+        raise ValueError(f"Unsupported factual_selection: {factual_selection}")
+
+    factuals = testset.clone()
+    factual_df = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
+    factual_df = factual_df.loc[keep_mask].copy(deep=True)
+    factuals.update("reproduce_factuals", True, df=factual_df)
+    factuals.freeze()
+    if len(factuals) == 0:
+        raise ValueError("No factuals selected for RBR reproduction")
+    return factuals
 
 
-def _select_factuals(
-    testset,
-    model,
-    desired_class: int | str,
+def _compute_distance_metrics(factuals, counterfactuals) -> tuple[dict[str, float], int]:
+    factual_features = factuals.get(target=False)
+    counterfactual_features = counterfactuals.get(target=False).reindex(
+        index=factual_features.index,
+        columns=factual_features.columns,
+    )
+    success_mask = ~counterfactual_features.isna().any(axis=1)
+    successful_count = int(success_mask.sum())
+    if successful_count == 0:
+        return (
+            {
+                "distance_l0": float("nan"),
+                "distance_l1": float("nan"),
+                "distance_l2": float("nan"),
+                "distance_linf": float("nan"),
+                "l1_cost": float("nan"),
+            },
+            0,
+        )
+
+    delta = (
+        counterfactual_features.loc[success_mask].to_numpy(dtype=np.float64)
+        - factual_features.loc[success_mask].to_numpy(dtype=np.float64)
+    )
+    l0 = np.sum(~np.isclose(delta, np.zeros_like(delta), atol=1e-05), axis=1)
+    l1 = np.sum(np.abs(delta), axis=1, dtype=np.float32)
+    l2 = np.linalg.norm(delta, ord=2, axis=1)
+    linf = np.max(np.abs(delta), axis=1).astype(np.float32)
+    return (
+        {
+            "distance_l0": float(np.mean(l0)),
+            "distance_l1": float(np.mean(l1)),
+            "distance_l2": float(np.mean(l2)),
+            "distance_linf": float(np.mean(linf)),
+            "l1_cost": float(np.mean(l1)),
+        },
+        successful_count,
+    )
+
+
+def _compute_current_validity(current_model: MlpModel, counterfactuals) -> float:
+    counterfactual_features = counterfactuals.get(target=False)
+    success_mask = ~counterfactual_features.isna().any(axis=1)
+    denominator = int(len(counterfactual_features))
+    if denominator == 0:
+        return float("nan")
+    if int(success_mask.sum()) == 0:
+        return 0.0
+
+    probabilities = current_model.get_prediction(
+        counterfactual_features.loc[success_mask],
+        proba=True,
+    ).detach().cpu().numpy()
+    positive_probability = probabilities[:, current_model.get_class_to_index()[1]]
+    return float(np.sum(positive_probability >= 0.5) / denominator)
+
+
+def _compute_future_validity(
+    future_models: list[MlpModel],
+    counterfactuals,
+) -> float:
+    counterfactual_features = counterfactuals.get(target=False)
+    success_mask = ~counterfactual_features.isna().any(axis=1)
+    denominator = int(len(counterfactual_features))
+    if denominator == 0:
+        return float("nan")
+    if int(success_mask.sum()) == 0:
+        return 0.0
+
+    cf_success = counterfactual_features.loc[success_mask]
+    validities = []
+    for future_model in future_models:
+        probabilities = future_model.get_prediction(
+            cf_success,
+            proba=True,
+        ).detach().cpu().numpy()
+        positive_probability = probabilities[:, future_model.get_class_to_index()[1]]
+        validities.append((positive_probability >= 0.5).astype(np.float32))
+    stacked = np.stack(validities, axis=0)
+    per_instance_future_validity = stacked.mean(axis=0)
+    return float(np.sum(per_instance_future_validity) / denominator)
+
+
+def _build_mlp_from_config(config: dict, device: str) -> MlpModel:
+    model_cfg = deepcopy(config["model"])
+    return MlpModel(
+        seed=model_cfg.get("seed", 42),
+        device=device,
+        epochs=model_cfg.get("epochs", 1000),
+        learning_rate=model_cfg.get("learning_rate", 0.001),
+        batch_size=model_cfg.get("batch_size"),
+        layers=model_cfg.get("layers"),
+        optimizer=model_cfg.get("optimizer", "adam"),
+        criterion=model_cfg.get("criterion", "bce"),
+        output_activation=model_cfg.get("output_activation", "sigmoid"),
+        pretrained_path=model_cfg.get("pretrained_path"),
+        save_name=model_cfg.get("save_name"),
+        weight_decay=model_cfg.get("weight_decay", 0.0),
+        loss_reduction=model_cfg.get("loss_reduction", "mean"),
+        xavier_uniform_init=model_cfg.get("xavier_uniform_init", False),
+        early_stop_tol=model_cfg.get("early_stop_tol"),
+        early_stop_patience=model_cfg.get("early_stop_patience"),
+    )
+
+
+def _build_rbr_from_config(
+    config: dict,
+    target_model: MlpModel,
+    device: str,
+) -> RbrMethod:
+    method_cfg = deepcopy(config["method"])
+    return RbrMethod(
+        target_model=target_model,
+        seed=method_cfg.get("seed", 42),
+        device=device,
+        desired_class=method_cfg.get("desired_class", 1),
+        num_samples=method_cfg.get("num_samples", 200),
+        perturb_radius=method_cfg.get("perturb_radius", 0.2),
+        delta_plus=method_cfg.get("delta_plus", 1.0),
+        sigma=method_cfg.get("sigma", 1.0),
+        epsilon_op=method_cfg.get("epsilon_op", 0.5),
+        epsilon_pe=method_cfg.get("epsilon_pe", 1.0),
+        max_iter=method_cfg.get("max_iter", 1000),
+        clamp=method_cfg.get("clamp", False),
+        enforce_encoding=method_cfg.get("enforce_encoding", False),
+        random_state=method_cfg.get("random_state", 42),
+        verbose=method_cfg.get("verbose", False),
+    )
+
+
+def _split_current_data(
+    current_df: pd.DataFrame,
+    train_split: float,
+    random_state: int,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    X = current_df.drop(columns=[TARGET_COLUMN])
+    y = current_df[TARGET_COLUMN].astype(int)
+    return train_test_split(
+        X,
+        y,
+        train_size=train_split,
+        random_state=random_state,
+        stratify=y,
+    )
+
+
+def _build_future_trainsets(
+    template_dataset: GermanDataset,
+    transformer: ColumnTransformer,
+    feature_names: list[str],
+    encoding_map: dict[str, list[str]],
+    current_X_train: pd.DataFrame,
+    current_y_train: pd.Series,
+    shifted_df: pd.DataFrame,
+    future_cfg: dict,
+) -> list[object]:
+    shifted_X = shifted_df.drop(columns=[TARGET_COLUMN])
+    shifted_y = shifted_df[TARGET_COLUMN].astype(int)
+
+    experiment_cfg = future_cfg.get("experiment", {})
+    shifted_train_fraction = float(experiment_cfg.get("shifted_train_fraction", 0.5))
+    shifted_model_random_states = list(
+        experiment_cfg.get("shifted_model_random_states", [1, 2, 3, 4, 5])
+    )
+
+    future_trainsets = []
+    for random_state in shifted_model_random_states:
+        shifted_X_train, _, shifted_y_train, _ = train_test_split(
+            shifted_X,
+            shifted_y,
+            train_size=shifted_train_fraction,
+            random_state=int(random_state),
+            stratify=shifted_y,
+        )
+        future_X_raw = pd.concat([current_X_train, shifted_X_train], ignore_index=True)
+        future_y = pd.concat([current_y_train, shifted_y_train], ignore_index=True)
+        future_X = _transform_features(transformer, future_X_raw, feature_names)
+        future_trainsets.append(
+            _make_frozen_processed_dataset(
+                template_dataset=template_dataset,
+                X=future_X,
+                y=future_y,
+                feature_names=feature_names,
+                encoding_map=encoding_map,
+                dataset_flag="trainset",
+            )
+        )
+    return future_trainsets
+
+
+def _build_summary(
+    current_model_metrics: dict[str, float],
+    future_model_metrics: dict[str, float],
+    distance_metrics: dict[str, float],
     num_factuals: int,
-    seed: int,
-):
-    class_to_index = model.get_class_to_index()
-    desired_index = int(class_to_index[desired_class])
-    predictions = model.predict(testset).argmax(dim=1).detach().cpu().numpy()
-    keep_mask = predictions != desired_index
-    if int(keep_mask.sum()) < num_factuals:
-        raise ValueError(
-            "Not enough factuals outside desired_class to sample the requested count"
+    num_successful: int,
+    current_validity: float,
+    future_validity: float,
+    device: str,
+) -> dict[str, float | int | str]:
+    return {
+        "device": device,
+        "num_factuals": num_factuals,
+        "num_successful": num_successful,
+        "current_validity": current_validity,
+        "future_validity": future_validity,
+        **distance_metrics,
+        "current_model_test_accuracy": current_model_metrics["test_accuracy"],
+        "current_model_test_auc": current_model_metrics["test_auc"],
+        "future_model_test_accuracy": future_model_metrics["test_accuracy"],
+        "future_model_test_auc": future_model_metrics["test_auc"],
+    }
+
+
+def _assert_summary(summary: dict[str, float | int | str]) -> None:
+    current_validity = float(summary["current_validity"])
+    future_validity = float(summary["future_validity"])
+    assert current_validity >= RECOURSE_BENCHMARKS_CURRENT_VALIDITY_MIN, (
+        "current_validity does not satisfy recourse_benchmarks RBR threshold: "
+        f"{current_validity} < {RECOURSE_BENCHMARKS_CURRENT_VALIDITY_MIN}"
+    )
+    assert future_validity >= RECOURSE_BENCHMARKS_FUTURE_VALIDITY_MIN, (
+        "future_validity does not satisfy recourse_benchmarks RBR threshold: "
+        f"{future_validity} < {RECOURSE_BENCHMARKS_FUTURE_VALIDITY_MIN}"
+    )
+
+
+def run_reproduction(
+    current_config_path: str = DEFAULT_CURRENT_CONFIG,
+    future_config_path: str = DEFAULT_FUTURE_CONFIG,
+) -> dict[str, float | int | str]:
+    device = _resolve_device()
+    current_cfg = _load_config((PROJECT_ROOT / current_config_path).resolve())
+    future_cfg = _load_config((PROJECT_ROOT / future_config_path).resolve())
+
+    current_raw_df, shifted_raw_df = _load_raw_german_frames()
+    transformer, feature_names, encoding_map = _build_reference_transformer(
+        current_raw_df,
+        shifted_raw_df,
+    )
+
+    train_split = float(current_cfg.get("experiment", {}).get("train_split", 0.8))
+    split_random_state = int(
+        current_cfg.get("experiment", {}).get("split_random_state", 42)
+    )
+    current_X_train_raw, current_X_test_raw, current_y_train, current_y_test = (
+        _split_current_data(
+            current_raw_df,
+            train_split=train_split,
+            random_state=split_random_state,
         )
-
-    combined = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
-    factual_df = combined.loc[keep_mask].sample(n=num_factuals, random_state=seed)
-    factual_df = factual_df.loc[:, testset.ordered_features()].copy(deep=True)
-    return _build_dataset_like(testset, factual_df, flag="testset")
-
-
-def _combine_future_trainset(
-    current_trainset, future_full_dataset, seed: int, frac: float
-):
-    current_train_df = pd.concat(
-        [current_trainset.get(target=False), current_trainset.get(target=True)], axis=1
     )
-    future_full_df = pd.concat(
-        [future_full_dataset.get(target=False), future_full_dataset.get(target=True)],
-        axis=1,
+    current_X_train = _transform_features(
+        transformer,
+        current_X_train_raw,
+        feature_names,
     )
-    shifted_subset = future_full_df.sample(frac=frac, random_state=seed).copy(deep=True)
-    combined_df = pd.concat([current_train_df, shifted_subset], ignore_index=True)
-    combined_df = combined_df.loc[:, current_trainset.ordered_features()].copy(
-        deep=True
+    current_X_test = _transform_features(
+        transformer,
+        current_X_test_raw,
+        feature_names,
     )
-    return _build_dataset_like(current_trainset, combined_df, flag="trainset")
 
-
-def _validate_feature_alignment(current_trainset, future_full_dataset) -> None:
-    current_columns = current_trainset.ordered_features()
-    future_columns = future_full_dataset.ordered_features()
-    if current_columns != future_columns:
-        raise ValueError(
-            "Current and future processed datasets do not share the same column order"
-        )
-
-
-def _positive_probability(model, features: pd.DataFrame) -> float:
-    probabilities = model.get_prediction(features, proba=True).detach().cpu()
-    positive_index = int(
-        model.get_class_to_index().get(1, max(model.get_class_to_index().values()))
+    current_template_dataset = GermanDataset()
+    current_trainset = _make_frozen_processed_dataset(
+        template_dataset=current_template_dataset,
+        X=current_X_train,
+        y=current_y_train,
+        feature_names=feature_names,
+        encoding_map=encoding_map,
+        dataset_flag="trainset",
     )
-    return float(probabilities[:, positive_index].item())
+    current_testset = _make_frozen_processed_dataset(
+        template_dataset=current_template_dataset,
+        X=current_X_test,
+        y=current_y_test,
+        feature_names=feature_names,
+        encoding_map=encoding_map,
+        dataset_flag="testset",
+    )
+
+    current_model = _build_mlp_from_config(current_cfg, device=device)
+    current_model.fit(current_trainset)
+    current_model_metrics = _compute_model_metrics(current_model, current_testset)
+
+    rbr_method = _build_rbr_from_config(current_cfg, current_model, device=device)
+    rbr_method.fit(current_trainset)
+    factuals = _select_recourse_factuals(
+        current_model,
+        current_testset,
+        current_cfg.get("experiment", {}),
+    )
+    counterfactuals = rbr_method.predict(factuals)
+
+    future_trainsets = _build_future_trainsets(
+        template_dataset=current_template_dataset,
+        transformer=transformer,
+        feature_names=feature_names,
+        encoding_map=encoding_map,
+        current_X_train=current_X_train_raw,
+        current_y_train=current_y_train,
+        shifted_df=shifted_raw_df,
+        future_cfg=future_cfg,
+    )
+    future_models = []
+    future_model_metrics = []
+    for future_trainset in future_trainsets:
+        future_model = _build_mlp_from_config(future_cfg, device=device)
+        future_model.fit(future_trainset)
+        future_models.append(future_model)
+        future_model_metrics.append(_compute_model_metrics(future_model, current_testset))
+
+    mean_future_model_metrics = {
+        "test_accuracy": float(
+            np.mean([metric["test_accuracy"] for metric in future_model_metrics])
+        ),
+        "test_auc": float(
+            np.mean([metric["test_auc"] for metric in future_model_metrics])
+        ),
+    }
+
+    distance_metrics, num_successful = _compute_distance_metrics(
+        factuals,
+        counterfactuals,
+    )
+    current_validity = _compute_current_validity(current_model, counterfactuals)
+    future_validity = _compute_future_validity(future_models, counterfactuals)
+
+    summary = _build_summary(
+        current_model_metrics=current_model_metrics,
+        future_model_metrics=mean_future_model_metrics,
+        distance_metrics=distance_metrics,
+        num_factuals=len(factuals),
+        num_successful=num_successful,
+        current_validity=current_validity,
+        future_validity=future_validity,
+        device=device,
+    )
+    _assert_summary(summary)
+    return summary
+
+
+def test_run_experiment():
+    return run_reproduction()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--current-config",
-        default="./experiment/rbr/german_mlp_rbr_reproduce_current.yaml",
-    )
-    parser.add_argument(
-        "--future-config",
-        default="./experiment/rbr/german_mlp_rbr_reproduce_future.yaml",
-    )
+    parser.add_argument("--current-config", default=DEFAULT_CURRENT_CONFIG)
+    parser.add_argument("--future-config", default=DEFAULT_FUTURE_CONFIG)
     args = parser.parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    current_cfg = _apply_device(
-        _load_config((PROJECT_ROOT / args.current_config).resolve()),
-        device,
+    summary = run_reproduction(
+        current_config_path=args.current_config,
+        future_config_path=args.future_config,
     )
-    future_cfg = _apply_device(
-        _load_config((PROJECT_ROOT / args.future_config).resolve()),
-        device,
-    )
-    quiet_future_cfg = deepcopy(future_cfg)
-    quiet_future_cfg["logger"] = {"level": "CRITICAL", "path": None}
-
-    reproduce_cfg = current_cfg.get("reproduce", {})
-    num_factuals = int(reproduce_cfg.get("num_factuals", 10))
-    factual_seed = int(reproduce_cfg.get("factual_seed", 54321))
-    future_fraction = float(reproduce_cfg.get("future_fraction", 0.2))
-    future_seeds = list(reproduce_cfg.get("future_seeds", [1, 2, 3, 4, 5]))
-    current_validity_min = float(reproduce_cfg.get("current_validity_min", 0.9))
-    future_validity_min = float(reproduce_cfg.get("future_validity_min", 0.7))
-
-    current_experiment = Experiment(current_cfg)
-    current_datasets = _materialize_datasets(current_experiment)
-    current_trainset, current_testset = current_experiment._resolve_train_test(
-        current_datasets
-    )
-
-    current_experiment._target_model.fit(current_trainset)
-    current_model_metrics = _compute_model_metrics(
-        current_experiment._target_model,
-        current_testset,
-    )
-
-    current_experiment._method.fit(current_trainset)
-    desired_class = current_experiment._method._desired_class
-    if desired_class is None:
-        raise ValueError("RBR reproduction requires desired_class to be set")
-    factuals = _select_factuals(
-        current_testset,
-        current_experiment._target_model,
-        desired_class=desired_class,
-        num_factuals=num_factuals,
-        seed=factual_seed,
-    )
-    counterfactuals = current_experiment._method.predict(factuals)
-
-    future_template_experiment = Experiment(quiet_future_cfg)
-    future_template_datasets = _materialize_datasets(future_template_experiment)
-    if len(future_template_datasets) != 1:
-        raise ValueError(
-            "Future reproduction config must materialize exactly one dataset"
-        )
-    future_full_dataset = future_template_datasets[0]
-    _validate_feature_alignment(current_trainset, future_full_dataset)
-
-    future_models = []
-    for seed in future_seeds:
-        future_trainset = _combine_future_trainset(
-            current_trainset,
-            future_full_dataset,
-            seed=int(seed),
-            frac=future_fraction,
-        )
-        future_experiment = Experiment(quiet_future_cfg)
-        future_experiment._target_model.fit(future_trainset)
-        future_models.append(future_experiment._target_model)
-
-    factual_features = factuals.get(target=False)
-    counterfactual_features = counterfactuals.get(target=False)
-
-    running_cost = 0.0
-    running_current_validity = 0.0
-    running_future_validity = 0.0
-    num_instances = factual_features.shape[0]
-
-    print(f"Device: {device}")
-    print(
-        "Current model metrics:",
-        f"accuracy={current_model_metrics['test_accuracy']:.4f}",
-        f"auc={current_model_metrics['test_auc']:.4f}",
-    )
-    print(f"Num factuals: {num_instances}")
-
-    for row_index, factual_index in enumerate(factual_features.index):
-        factual_row = factual_features.loc[[factual_index]].copy(deep=True)
-        counterfactual_row = counterfactual_features.loc[[factual_index]].copy(
-            deep=True
-        )
-
-        feasible = not bool(counterfactual_row.isna().any(axis=1).iloc[0])
-        if feasible:
-            l1_cost = float(
-                np.linalg.norm(
-                    (
-                        counterfactual_row.to_numpy(dtype="float32")
-                        - factual_row.to_numpy(dtype="float32")
-                    ).reshape(-1),
-                    ord=1,
-                )
-            )
-            current_validity = float(
-                _positive_probability(
-                    current_experiment._target_model, counterfactual_row
-                )
-                >= 0.5
-            )
-            future_scores = [
-                float(_positive_probability(model, counterfactual_row) >= 0.5)
-                for model in future_models
-            ]
-            future_validity = float(np.mean(future_scores))
-        else:
-            l1_cost = float("inf")
-            current_validity = 0.0
-            future_validity = 0.0
-
-        running_cost += l1_cost
-        running_current_validity += current_validity
-        running_future_validity += future_validity
-
-        print(
-            f"Instance {row_index}: "
-            f"L1 cost = {l1_cost}, "
-            f"Current Validity = {current_validity}, "
-            f"Future Validity = {future_validity}, "
-            f"Feasible = {feasible}"
-        )
-
-    average_cost = running_cost / num_instances
-    average_current_validity = running_current_validity / num_instances
-    average_future_validity = running_future_validity / num_instances
-
-    print(
-        "Average:",
-        f"L1 cost = {average_cost},",
-        f"Current Validity = {average_current_validity},",
-        f"Future Validity = {average_future_validity}",
-    )
-
-    assert average_current_validity >= current_validity_min, (
-        f"Average current validity {average_current_validity:.4f} "
-        f"is below required threshold {current_validity_min:.4f}"
-    )
-    assert average_future_validity >= future_validity_min, (
-        f"Average future validity {average_future_validity:.4f} "
-        f"is below required threshold {future_validity_min:.4f}"
-    )
+    print(json.dumps(summary, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

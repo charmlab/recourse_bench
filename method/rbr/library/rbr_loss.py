@@ -344,6 +344,8 @@ def robust_bayesian_recourse(
     x0: np.ndarray,
     cat_features_indices: Optional[Sequence[Sequence[int]]] = None,
     train_data: Optional[np.ndarray] = None,
+    train_t: Optional[torch.Tensor] = None,
+    train_label: Optional[torch.Tensor] = None,
     num_samples: int = 200,
     perturb_radius: float = 0.2,
     delta_plus: float = 1.0,
@@ -352,7 +354,7 @@ def robust_bayesian_recourse(
     epsilon_pe: float = 1.0,
     max_iter: int = 1000,
     dev: str = "cpu",
-    random_state: Optional[int] = None,
+    random_state: Optional[int] = 42,
     verbose: bool = False,
 ) -> np.ndarray:
 
@@ -473,18 +475,27 @@ def robust_bayesian_recourse(
 
     rng = check_random_state(random_state)
 
-    if train_data is None:
-        raise ValueError("train_data must be provided to robust_bayesian_recourse")
+    if train_t is None and train_data is None:
+        raise ValueError(
+            "train_data or train_t must be provided to robust_bayesian_recourse"
+        )
 
     # ------- Implementation of fit_instance() ------------------
-    x0_t = torch.from_numpy(x0.copy()).float().to(dev)
+    x0_t = torch.from_numpy(np.asarray(x0, dtype=np.float32).copy()).float().to(dev)
 
-    train_t = torch.tensor(train_data).float().to(dev)
-    # print(f"train_t: {train_t}")
+    if train_t is None:
+        train_t = torch.tensor(train_data, dtype=torch.float32, device=dev)
+    else:
+        train_t = train_t.detach().clone().to(dev)
 
-    # training label vector
-    train_label = torch.tensor(predict_fn_np(train_t)).to(dev)
-    # print(f"train_label: {train_label}")
+    if train_label is None:
+        train_label = torch.tensor(
+            predict_fn_np(train_t),
+            dtype=torch.long,
+            device=dev,
+        )
+    else:
+        train_label = train_label.detach().clone().to(dev)
 
     # -------- Implementation of find_x_boundary() ---------------
     # find nearest opposite label examples and search along line for boundary
@@ -513,12 +524,9 @@ def robust_bayesian_recourse(
 
     if best_x_b is None:
         # fallback: nearest opposite neighbor directly
-        opp_idx = (train_label == (1 - x_label)).nonzero(as_tuple=False)
-        if opp_idx.shape[0] == 0:
-            # can't find opposite label in train set -> return original
+        if candidates.shape[0] == 0:
             return x0.copy()
-        first_idx = opp_idx[0, 0].item()
-        best_x_b = train_t[first_idx].detach().clone()
+        best_x_b = candidates[0].detach().clone()
         best_dist = dist(x0_t, best_x_b)
 
     delta = best_dist + delta_plus
@@ -579,7 +587,7 @@ def robust_bayesian_recourse(
         F_sum = F.sum()
         F_sum.backward()
         # if we left L1-ball, break
-        if torch.ge(torch.linalg.norm((x_t.detach() - x0_t), ord=1), float(delta)):
+        if torch.linalg.norm((x_t.detach() - x0_t), ord=1) > (float(delta) + 1e-5):
             break
 
         with torch.no_grad():

@@ -1,4 +1,13 @@
 name: german_mlp_rbr_reproduce_future
+experiment:
+  seed: 42
+  shifted_train_fraction: 0.5
+  shifted_model_random_states:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
 logger:
   level: INFO
   path: ./logs/german_mlp_rbr_reproduce_future.log
@@ -6,24 +15,13 @@ caching:
   path: ./cache/
 dataset:
   name: german_roar
-preprocess:
-  - name: rbr_german_aggregate
-    seed: 42
-  - name: scale
-    seed: 42
-    scaling: standardize
-    range: true
-  - name: encode
-    seed: 42
-    encoding: onehot
-  - name: finalize
 model:
   name: mlp
-  seed: 54321
+  seed: 42
   device: cpu
-  epochs: 100
+  epochs: 1000
   learning_rate: 0.001
-  batch_size: 1000
+  batch_size: null
   layers:
     - 20
     - 50
@@ -31,9 +29,15 @@ model:
   optimizer: adam
   criterion: bce
   output_activation: sigmoid
+  save_name: null
+  weight_decay: 0.1
+  loss_reduction: sum
+  xavier_uniform_init: true
+  early_stop_tol: 1.0e-7
+  early_stop_patience: 3
 method:
   name: rbr
-  seed: 54321
+  seed: 42
   device: cpu
   desired_class: 1
   num_samples: 200
@@ -43,8 +47,7 @@ method:
   epsilon_op: 0.5
   epsilon_pe: 1.0
   max_iter: 1000
-  random_state: 54321
-  enforce_encoding: true
-evaluation:
-  - name: validity
-  - name: distance
+  clamp: false
+  enforce_encoding: false
+  random_state: 42
+  verbose: false

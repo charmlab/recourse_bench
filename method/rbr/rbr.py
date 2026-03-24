@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import torch
 
 from dataset.dataset_object import DatasetObject
 from method.method_object import MethodObject
@@ -38,7 +39,7 @@ class RbrMethod(MethodObject):
         max_iter: int = 1000,
         clamp: bool = False,
         enforce_encoding: bool = False,
-        random_state: int = 54321,
+        random_state: int = 42,
         verbose: bool = False,
         **kwargs,
     ):
@@ -98,8 +99,20 @@ class RbrMethod(MethodObject):
                 raise ValueError("RbrMethod trainset features cannot contain NaN")
 
             self._feature_names = list(features.columns)
-            self._adapter = RecourseModelAdapter(self._target_model, self._feature_names)
+            self._adapter = RecourseModelAdapter(
+                self._target_model, self._feature_names
+            )
             self._train_data = train_data
+            self._train_t = torch.tensor(
+                train_data,
+                dtype=torch.float32,
+                device=self._device,
+            )
+            self._train_label = torch.tensor(
+                self._adapter.predict_label_indices(self._train_t),
+                dtype=torch.long,
+                device=self._device,
+            )
             self._onehot_feature_indices = resolve_onehot_feature_indices(
                 trainset,
                 self._feature_names,
@@ -142,10 +155,7 @@ class RbrMethod(MethodObject):
                 original_index = int(original_prediction[row_index])
                 target_index = int(target_indices[row_index])
 
-                if (
-                    self._desired_class is not None
-                    and original_index == target_index
-                ):
+                if self._desired_class is not None and original_index == target_index:
                     rows.append(pd.Series(factual.copy(), index=self._feature_names))
                     continue
 
@@ -156,6 +166,8 @@ class RbrMethod(MethodObject):
                         self._onehot_feature_indices if self._enforce_encoding else None
                     ),
                     train_data=self._train_data,
+                    train_t=self._train_t,
+                    train_label=self._train_label,
                     num_samples=self._num_samples,
                     perturb_radius=self._perturb_radius,
                     delta_plus=self._delta_plus,
@@ -183,7 +195,9 @@ class RbrMethod(MethodObject):
                     )
                 rows.append(pd.Series(candidate, index=self._feature_names))
 
-        candidates = pd.DataFrame(rows, index=factuals.index, columns=self._feature_names)
+        candidates = pd.DataFrame(
+            rows, index=factuals.index, columns=self._feature_names
+        )
         return validate_counterfactuals(
             target_model=self._target_model,
             factuals=factuals,
