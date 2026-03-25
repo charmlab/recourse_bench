@@ -4,6 +4,7 @@ from method.cfvae.cfvae import CfvaeMethod
 from method.claproar.claproar import ClaProarMethod
 from method.clue.clue import ClueMethod
 from method.cruds.cruds import CrudsMethod
+from method.cvas_proj.cvas_proj import CvasProjMethod
 from method.dice.dice import DiceMethod
 from method.face.face import FaceMethod
 from method.feature_tweak.feature_tweak import FeatureTweakMethod
