@@ -7,14 +7,10 @@ caching:
 dataset:
   name: german_roar
 preprocess:
-  - name: scale
+  - name: cvas_german_reference
     seed: 42
-    scaling: standardize
-    range: true
-  - name: encode
-    seed: 42
-    encoding: onehot
-  - name: split
+    paired_dataset_name: german
+  - name: stratified_split
     seed: 42
     split: 0.2
 model:
@@ -29,18 +25,23 @@ model:
     - 50
     - 20
   optimizer: adam
+  weight_decay: 0.1
   criterion: bce
+  loss_reduction: sum
   output_activation: sigmoid
+  weight_init: xavier_uniform
+  early_stopping_patience: 3
+  early_stopping_tol: 1.0e-7
   save_name: german_cvas_proj_future_mlp
 method:
   name: cvas_proj
-  seed: 0
+  seed: 124
   device: cpu
   desired_class: 1
   surrogate_method: fr_rmpm
   rho_neg: 10.0
   rho_pos: 0.0
-  perturb_radius: 0.05
+  perturb_radius: 0.2
   num_samples: 1000
   num_boundary_neighbors: 10
   line_search_steps: 100
@@ -48,6 +49,7 @@ method:
   projection_epsilon: 0.1
   surrogate_solver: CLARABEL
   projection_solver: HIGHS
+  row_seed_strategy: fixed
 evaluation:
   - name: validity
   - name: distance

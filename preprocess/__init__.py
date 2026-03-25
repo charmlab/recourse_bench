@@ -5,4 +5,8 @@ from preprocess.common import (
     ScalePreProcess,
     SplitPreProcess,
 )
+from preprocess.cvas_reference import (
+    CvasGermanReferencePreProcess,
+    StratifiedSplitPreProcess,
+)
 from preprocess.preprocess_object import PreProcessObject

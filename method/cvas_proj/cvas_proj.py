@@ -44,6 +44,7 @@ class CvasProjMethod(MethodObject):
         projection_epsilon: float = 0.1,
         surrogate_solver: str = "CLARABEL",
         projection_solver: str = "HIGHS",
+        row_seed_strategy: str = "row_hash",
         **kwargs,
     ):
         ensure_supported_target_model(
@@ -69,6 +70,7 @@ class CvasProjMethod(MethodObject):
         self._projection_epsilon = float(projection_epsilon)
         self._surrogate_solver = str(surrogate_solver).upper()
         self._projection_solver = str(projection_solver).upper()
+        self._row_seed_strategy = str(row_seed_strategy).lower()
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
@@ -89,6 +91,8 @@ class CvasProjMethod(MethodObject):
             raise ValueError("line_search_steps must be >= 2")
         if self._projection_epsilon < 0:
             raise ValueError("projection_epsilon must be >= 0")
+        if self._row_seed_strategy not in {"row_hash", "fixed"}:
+            raise ValueError("row_seed_strategy must be one of ['row_hash', 'fixed']")
 
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:
@@ -226,7 +230,11 @@ class CvasProjMethod(MethodObject):
                 candidate = self._generate_single_counterfactual(
                     x0=x0,
                     target_index=int(target_indices[row_position]),
-                    row_seed=derive_row_seed(self._seed, row_index),
+                    row_seed=(
+                        derive_row_seed(self._seed, row_index)
+                        if self._row_seed_strategy == "row_hash"
+                        else self._seed
+                    ),
                 )
                 if candidate is None:
                     rows.append(

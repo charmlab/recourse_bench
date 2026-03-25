@@ -29,8 +29,13 @@ class MlpModel(ModelObject):
         batch_size: int = 16,
         layers: list[int] | None = None,
         optimizer: str = "adam",
+        weight_decay: float = 0.0,
         criterion: str = "cross_entropy",
+        loss_reduction: str = "mean",
         output_activation: str = "softmax",
+        weight_init: str | None = None,
+        early_stopping_patience: int | None = None,
+        early_stopping_tol: float = 1e-7,
         pretrained_path: str | None = None,
         save_name: str | None = None,
         **kwargs,
@@ -45,22 +50,46 @@ class MlpModel(ModelObject):
         self._batch_size: int = int(batch_size)
         self._layers: list[int] = list(layers or [32, 16])
         self._optimizer_name: str = optimizer
+        self._weight_decay: float = float(weight_decay)
         self._criterion_name: str = criterion.lower()
+        self._loss_reduction: str = str(loss_reduction).lower()
         self._output_activation_name: str = output_activation.lower()
+        self._weight_init: str | None = (
+            None if weight_init is None else str(weight_init).lower()
+        )
+        self._early_stopping_patience: int | None = (
+            None
+            if early_stopping_patience is None
+            else int(early_stopping_patience)
+        )
+        self._early_stopping_tol: float = float(early_stopping_tol)
         self._pretrained_path: str | None = pretrained_path
         self._save_name: str | None = save_name
         self._output_dim: int | None = None
 
         if self._batch_size < 1:
             raise ValueError("batch_size must be >= 1")
+        if self._weight_decay < 0:
+            raise ValueError("weight_decay must be >= 0")
         if self._criterion_name not in {"cross_entropy", "bce"}:
             raise ValueError(
                 "MlpModel supports criterion='cross_entropy' or criterion='bce' only"
             )
+        if self._loss_reduction not in {"mean", "sum"}:
+            raise ValueError("loss_reduction must be 'mean' or 'sum'")
         if self._output_activation_name not in {"softmax", "sigmoid"}:
             raise ValueError(
                 "MlpModel output_activation must be 'softmax' or 'sigmoid'"
             )
+        if self._weight_init not in {None, "none", "xavier_uniform"}:
+            raise ValueError(
+                "weight_init must be one of [None, 'none', 'xavier_uniform']"
+            )
+        if (
+            self._early_stopping_patience is not None
+            and self._early_stopping_patience < 1
+        ):
+            raise ValueError("early_stopping_patience must be >= 1 when provided")
         if self._output_activation_name == "sigmoid" and self._criterion_name != "bce":
             raise ValueError(
                 "MlpModel output_activation='sigmoid' requires criterion='bce'"
@@ -79,6 +108,16 @@ class MlpModel(ModelObject):
             current_dim = hidden_dim
         blocks.append(torch.nn.Linear(current_dim, output_dim))
         return torch.nn.Sequential(*blocks)
+
+    def _apply_weight_initialization(self) -> None:
+        if self._weight_init in {None, "none"}:
+            return
+        if self._weight_init != "xavier_uniform":
+            raise ValueError(f"Unsupported weight_init: {self._weight_init}")
+
+        for module in self._model.modules():
+            if isinstance(module, torch.nn.Linear):
+                torch.nn.init.xavier_uniform_(module.weight)
 
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:
@@ -99,6 +138,7 @@ class MlpModel(ModelObject):
             self._model = self._build_model(input_dim, network_output_dim).to(
                 self._device
             )
+            self._apply_weight_initialization()
 
             if (
                 self._pretrained_path is not None
@@ -113,21 +153,29 @@ class MlpModel(ModelObject):
                 return
 
             optimizer = build_optimizer(
-                self._optimizer_name, self._model.parameters(), self._learning_rate
+                self._optimizer_name,
+                self._model.parameters(),
+                self._learning_rate,
+                weight_decay=self._weight_decay,
             )
             X_tensor = torch.tensor(
                 X.to_numpy(dtype="float32"), dtype=torch.float32, device=self._device
             )
             if self._criterion_name == "cross_entropy":
-                criterion = torch.nn.CrossEntropyLoss()
+                criterion = torch.nn.CrossEntropyLoss(
+                    reduction=self._loss_reduction
+                )
                 y_tensor = labels.to(self._device)
             else:
-                criterion = torch.nn.BCELoss()
+                criterion = torch.nn.BCELoss(reduction=self._loss_reduction)
                 y_tensor = labels.to(self._device).to(dtype=torch.float32).unsqueeze(1)
 
             self._model.train()
+            prev_epoch_loss = 0.0
+            stable_epochs = 0
             for _ in tqdm(range(self._epochs), desc="mlp-fit", leave=False):
                 permutation = torch.randperm(X_tensor.shape[0], device=self._device)
+                epoch_loss = 0.0
                 for start in range(0, X_tensor.shape[0], self._batch_size):
                     batch_indices = permutation[start : start + self._batch_size]
                     batch_X = X_tensor[batch_indices]
@@ -142,6 +190,19 @@ class MlpModel(ModelObject):
                     loss = criterion(loss_input, batch_y)
                     loss.backward()
                     optimizer.step()
+                    epoch_loss += float(loss.detach().item())
+
+                if self._early_stopping_patience is None:
+                    continue
+
+                loss_diff = prev_epoch_loss - epoch_loss
+                if loss_diff <= self._early_stopping_tol:
+                    stable_epochs += 1
+                    if stable_epochs >= self._early_stopping_patience:
+                        break
+                else:
+                    stable_epochs = 0
+                prev_epoch_loss = epoch_loss
 
             self._model.eval()
             self._is_trained = True

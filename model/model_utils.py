@@ -53,14 +53,31 @@ def logits_to_prediction(
     raise ValueError(f"Unsupported output activation: {output_activation}")
 
 
-def build_optimizer(optimizer_name: str, parameters, learning_rate: float):
+def build_optimizer(
+    optimizer_name: str,
+    parameters,
+    learning_rate: float,
+    weight_decay: float = 0.0,
+):
     optimizer_name = optimizer_name.lower()
     if optimizer_name == "adam":
-        return torch.optim.Adam(parameters, lr=learning_rate)
+        return torch.optim.Adam(
+            parameters,
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
     if optimizer_name == "sgd":
-        return torch.optim.SGD(parameters, lr=learning_rate)
+        return torch.optim.SGD(
+            parameters,
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
     if optimizer_name in {"rms", "rmsprop"}:
-        return torch.optim.RMSprop(parameters, lr=learning_rate)
+        return torch.optim.RMSprop(
+            parameters,
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
     raise ValueError(f"Unsupported optimizer: {optimizer_name}")
 
 
