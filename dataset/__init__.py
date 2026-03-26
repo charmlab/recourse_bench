@@ -4,6 +4,7 @@ from dataset.breast_cancer.breast_cancer import BreastCancerDataset
 from dataset.compas.compas import CompasDataset
 from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from dataset.credit.credit import CreditDataset
+from dataset.credit_cchvae.credit_cchvae import CreditCchvaeDataset
 from dataset.dataset_object import DatasetObject
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
