@@ -28,3 +28,24 @@ raw_feature_actionability:
   PriorsCount: any
   ChargeDegree: any
   TwoYearRecid (label): none
+mace_feature_type:
+  AgeGroup: ordinal
+  Race: binary
+  Sex: binary
+  PriorsCount: numeric-int
+  ChargeDegree: binary
+  TwoYearRecid (label): binary
+mace_feature_mutability:
+  AgeGroup: true
+  Race: true
+  Sex: true
+  PriorsCount: true
+  ChargeDegree: true
+  TwoYearRecid (label): false
+mace_feature_actionability:
+  AgeGroup: any
+  Race: any
+  Sex: any
+  PriorsCount: any
+  ChargeDegree: any
+  TwoYearRecid (label): none

@@ -64,3 +64,51 @@ raw_feature_actionability:
   TotalMonthsOverdue: any
   HasHistoryOfOverduePayments: any
   NoDefaultNextMonth (label): none
+mace_feature_type:
+  isMale: binary
+  isMarried: binary
+  AgeGroup: ordinal
+  EducationLevel: ordinal
+  MaxBillAmountOverLast6Months: numeric-real
+  MaxPaymentAmountOverLast6Months: numeric-real
+  MonthsWithZeroBalanceOverLast6Months: numeric-int
+  MonthsWithLowSpendingOverLast6Months: numeric-int
+  MonthsWithHighSpendingOverLast6Months: numeric-int
+  MostRecentBillAmount: numeric-real
+  MostRecentPaymentAmount: numeric-real
+  TotalOverdueCounts: numeric-int
+  TotalMonthsOverdue: numeric-int
+  HasHistoryOfOverduePayments: binary
+  NoDefaultNextMonth (label): binary
+mace_feature_mutability:
+  isMale: true
+  isMarried: true
+  AgeGroup: true
+  EducationLevel: true
+  MaxBillAmountOverLast6Months: true
+  MaxPaymentAmountOverLast6Months: true
+  MonthsWithZeroBalanceOverLast6Months: true
+  MonthsWithLowSpendingOverLast6Months: true
+  MonthsWithHighSpendingOverLast6Months: true
+  MostRecentBillAmount: true
+  MostRecentPaymentAmount: true
+  TotalOverdueCounts: true
+  TotalMonthsOverdue: true
+  HasHistoryOfOverduePayments: true
+  NoDefaultNextMonth (label): false
+mace_feature_actionability:
+  isMale: any
+  isMarried: any
+  AgeGroup: any
+  EducationLevel: any
+  MaxBillAmountOverLast6Months: any
+  MaxPaymentAmountOverLast6Months: any
+  MonthsWithZeroBalanceOverLast6Months: any
+  MonthsWithLowSpendingOverLast6Months: any
+  MonthsWithHighSpendingOverLast6Months: any
+  MostRecentBillAmount: any
+  MostRecentPaymentAmount: any
+  TotalOverdueCounts: any
+  TotalMonthsOverdue: any
+  HasHistoryOfOverduePayments: any
+  NoDefaultNextMonth (label): none
