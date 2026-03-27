@@ -98,6 +98,7 @@ class Experiment:
         dataset_name = self._cfg["dataset"].get("name")
         model_name = self._cfg["model"].get("name")
         method_name = self._cfg["method"].get("name")
+        ensemble_model_cfgs = self._cfg["method"].get("ensemble_models", [])
 
         if dataset_name not in registries["dataset"]:
             self._fatal(f"Unknown dataset name: {dataset_name}")
@@ -105,6 +106,14 @@ class Experiment:
             self._fatal(f"Unknown model name: {model_name}")
         if method_name not in registries["method"]:
             self._fatal(f"Unknown method name: {method_name}")
+        if not isinstance(ensemble_model_cfgs, list):
+            self._fatal("method.ensemble_models must be a list when provided")
+        for item in ensemble_model_cfgs:
+            if not isinstance(item, dict):
+                self._fatal("Each method.ensemble_models item must be a config object")
+            ensemble_model_name = item.get("name")
+            if ensemble_model_name not in registries["model"]:
+                self._fatal(f"Unknown ensemble model name: {ensemble_model_name}")
 
         for item in self._cfg.get("preprocess", []):
             if item.get("name") not in registries["preprocess"]:
@@ -117,6 +126,12 @@ class Experiment:
         method_device = self._cfg["method"].get("device", "cpu").lower()
         if model_device != method_device:
             self._fatal("model.device must match method.device")
+        for item in ensemble_model_cfgs:
+            ensemble_device = item.get("device", model_device).lower()
+            if ensemble_device != method_device:
+                self._fatal(
+                    "All method.ensemble_models[].device values must match method.device"
+                )
 
     def _build_dataset(self):
         cfg = deepcopy(self._cfg["dataset"])
@@ -142,8 +157,20 @@ class Experiment:
     def _build_method(self):
         cfg = deepcopy(self._cfg["method"])
         name = cfg.pop("name")
+        ensemble_model_cfgs = list(cfg.pop("ensemble_models", []))
         method_class = get_registry("Method")[name]
-        return method_class(target_model=self._target_model, **cfg)
+        ensemble_models = []
+        model_registry = get_registry("TargetModel")
+        for item in ensemble_model_cfgs:
+            item_cfg = deepcopy(item)
+            item_name = item_cfg.pop("name")
+            item_cfg.setdefault("device", self._target_model._device)
+            ensemble_models.append(model_registry[item_name](**item_cfg))
+        return method_class(
+            target_model=self._target_model,
+            ensemble_models=ensemble_models,
+            **cfg,
+        )
 
     def _build_evaluation(self) -> list:
         evaluation_objects = []

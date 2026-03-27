@@ -12,3 +12,4 @@ torch==2.10.0+cu126
 torchvision==0.25.0+cu126
 tqdm==4.67.2
 z3-solver==4.16.0.0
+clingo==5.8.0
