@@ -32,7 +32,7 @@ DEFAULT_CONFIG_PATH = Path(__file__).with_name(
     "credit_cchvae_sklearn_logistic_regression_cchvae_reproduce.yaml"
 )
 TRAIN_SAMPLE_LIMIT: int | None = None
-NCOUNTERFACTUALS = 25
+NCOUNTERFACTUALS: int | None = None
 LOF_NEIGHBORS = [5, 10, 20, 50]
 CONNECTEDNESS_EPSILONS = [10, 20, 30, 40, 50]
 DBSCAN_MIN_SAMPLES = 5
@@ -272,7 +272,10 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
         desired_index = class_to_index[desired_class]
         search_mask = predicted_test != desired_index
     candidate_indices = testset.get(target=False).index[search_mask]
-    selected_indices = candidate_indices[:NCOUNTERFACTUALS]
+    if NCOUNTERFACTUALS is None:
+        selected_indices = candidate_indices
+    else:
+        selected_indices = candidate_indices[:NCOUNTERFACTUALS]
     factual_subset = _subset_dataset(testset, selected_indices, "testset")
     logger.info(
         "Selected %d / %d desired-class-mismatched test samples for search",
@@ -303,7 +306,7 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
         "n_train": len(trainset),
         "n_test": len(testset),
         "n_search_candidates_total": int(search_mask.sum()),
-        "n_counterfactuals_requested": NCOUNTERFACTUALS,
+        "n_counterfactuals_requested": len(selected_indices),
         "n_counterfactuals_evaluated": len(factual_subset),
         "n_counterfactuals_success": int(selected_mask.sum()),
         "validity": float(validity.iloc[0]["validity"]),
