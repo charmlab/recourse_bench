@@ -19,6 +19,7 @@ class RandomForestModel(ModelObject):
         n_estimators: int = 200,
         max_depth: int | None = None,
         min_samples_split: int = 2,
+        n_jobs: int | None = None,
         **kwargs,
     ):
         self._model: RandomForestClassifier = RandomForestClassifier(
@@ -26,6 +27,7 @@ class RandomForestModel(ModelObject):
             max_depth=max_depth,
             min_samples_split=min_samples_split,
             random_state=seed,
+            n_jobs=n_jobs,
         )
         self._seed = seed
         self._device = device.lower()
@@ -45,14 +47,19 @@ class RandomForestModel(ModelObject):
         if not self._is_trained:
             raise RuntimeError("Target model is not trained")
         with seed_context(self._seed):
-            probabilities = torch.tensor(
-                self._model.predict_proba(X), dtype=torch.float32
-            )
             if proba:
+                probabilities = torch.tensor(
+                    self._model.predict_proba(X), dtype=torch.float32
+                )
                 return probabilities
-            indices = probabilities.argmax(dim=1)
+
+            predicted_labels = torch.tensor(
+                self._model.predict(X),
+                dtype=torch.long,
+            )
             return torch.nn.functional.one_hot(
-                indices, num_classes=probabilities.shape[1]
+                predicted_labels,
+                num_classes=len(self._model.classes_),
             ).to(dtype=torch.float32)
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
