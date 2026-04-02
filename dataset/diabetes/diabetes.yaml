@@ -1,0 +1,42 @@
+name: diabetes
+target_column: Outcome
+feature_order:
+  - Pregnancies
+  - Glucose
+  - BloodPressure
+  - SkinThickness
+  - Insulin
+  - BMI
+  - DiabetesPedigreeFunction
+  - Age
+  - Outcome
+raw_feature_type:
+  Pregnancies: numerical
+  Glucose: numerical
+  BloodPressure: numerical
+  SkinThickness: numerical
+  Insulin: numerical
+  BMI: numerical
+  DiabetesPedigreeFunction: numerical
+  Age: numerical
+  Outcome: binary
+raw_feature_mutability:
+  Pregnancies: true
+  Glucose: true
+  BloodPressure: true
+  SkinThickness: true
+  Insulin: true
+  BMI: true
+  DiabetesPedigreeFunction: true
+  Age: true
+  Outcome: false
+raw_feature_actionability:
+  Pregnancies: any
+  Glucose: any
+  BloodPressure: any
+  SkinThickness: any
+  Insulin: any
+  BMI: any
+  DiabetesPedigreeFunction: any
+  Age: any
+  Outcome: none

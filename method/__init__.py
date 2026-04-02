@@ -5,6 +5,7 @@ from method.claproar.claproar import ClaProarMethod
 from method.clue.clue import ClueMethod
 from method.cruds.cruds import CrudsMethod
 from method.dice.dice import DiceMethod
+from method.diverse_dist.diverse_dist import DiverseDistMethod
 from method.face.face import FaceMethod
 from method.feature_tweak.feature_tweak import FeatureTweakMethod
 from method.gravitational.gravitational import GravitationalMethod

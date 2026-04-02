@@ -1,0 +1,99 @@
+name: diverse_dist_diabetes_reproduction
+logger:
+  level: WARNING
+dataset:
+  name: diabetes
+preprocess:
+  - name: scale
+    seed: 42
+    scaling: normalize
+    range: true
+model:
+  name: mlp
+  seed: 42
+  device: cpu
+  epochs: 100
+  learning_rate: 0.01
+  batch_size: 8
+  layers:
+    - 20
+    - 10
+  optimizer: sgd
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: diverse_dist
+  seed: 42
+  device: cpu
+  total_cfs: 5
+  alpha: 50
+  beta: 0.5
+  gamma: 0.1
+  candidate_selection: angle
+evaluation: []
+reproduction:
+  split_seed: 0
+  test_size: 0.2
+  start_index: 50
+  num_inputs: 50
+  repeat_times: 3
+  noise_percent: 0.08
+  noise_seed: 42
+  norms:
+    - 1
+    - 2
+  opt_settings:
+    - true
+    - false
+  show_progress: true
+  paper_targets:
+    opt_true:
+      l1:
+        validity: 100.0
+        k_distance_mean: 1.13
+        k_distance_std: 0.43
+        k_diversity_mean: 1.39
+        k_diversity_std: 0.46
+        set_distance_sum_mean: 0.21
+        set_distance_sum_std: 0.20
+        set_distance_max_mean: 0.51
+        set_distance_max_std: 0.44
+        time_mean: 0.02
+        time_std: 0.00
+      l2:
+        validity: 100.0
+        k_distance_mean: 0.52
+        k_distance_std: 0.20
+        k_diversity_mean: 0.63
+        k_diversity_std: 0.22
+        set_distance_sum_mean: 0.09
+        set_distance_sum_std: 0.03
+        set_distance_max_mean: 0.24
+        set_distance_max_std: 0.20
+        time_mean: 0.02
+        time_std: 0.00
+    opt_false:
+      l1:
+        validity: 100.0
+        k_distance_mean: 1.38
+        k_distance_std: 0.29
+        k_diversity_mean: 1.71
+        k_diversity_std: 0.30
+        set_distance_sum_mean: 0.22
+        set_distance_sum_std: 0.24
+        set_distance_max_mean: 0.63
+        set_distance_max_std: 0.56
+        time_mean: 0.01
+        time_std: 0.00
+      l2:
+        validity: 100.0
+        k_distance_mean: 0.64
+        k_distance_std: 0.14
+        k_diversity_mean: 0.78
+        k_diversity_std: 0.15
+        set_distance_sum_mean: 0.10
+        set_distance_sum_std: 0.11
+        set_distance_max_mean: 0.29
+        set_distance_max_std: 0.26
+        time_mean: 0.01
+        time_std: 0.00
