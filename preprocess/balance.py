@@ -16,8 +16,10 @@ class BalancePreProcess(PreProcessObject):
         if not isinstance(strategy, str):
             raise TypeError("strategy must be str")
         strategy = strategy.lower()
-        if strategy != "downsample":
-            raise ValueError("BalancePreProcess supports strategy='downsample' only")
+        if strategy not in {"downsample", "upsample"}:
+            raise ValueError(
+                "BalancePreProcess supports strategy='downsample' or 'upsample' only"
+            )
         return strategy
 
     @staticmethod
@@ -69,6 +71,9 @@ class BalancePreProcess(PreProcessObject):
 
     def transform(self, input: DatasetObject) -> DatasetObject:
         with seed_context(self._seed):
+            if getattr(input, "testset", False):
+                return input
+
             ensure_flag_absent(input, "balanced")
 
             df = input.snapshot()
@@ -83,7 +88,10 @@ class BalancePreProcess(PreProcessObject):
                     "BalancePreProcess requires at least two target classes"
                 )
 
-            balanced_count_per_class = int(class_counts.min())
+            if self._strategy == "downsample":
+                balanced_count_per_class = int(class_counts.min())
+            else:
+                balanced_count_per_class = int(class_counts.max())
             if self._round_to is not None:
                 balanced_count_per_class = (
                     balanced_count_per_class // self._round_to * self._round_to
@@ -99,6 +107,7 @@ class BalancePreProcess(PreProcessObject):
                 sampled_parts.append(
                     class_df.sample(
                         n=balanced_count_per_class,
+                        replace=self._strategy == "upsample",
                         random_state=self._seed,
                     )
                 )
@@ -116,6 +125,7 @@ class BalancePreProcess(PreProcessObject):
                 "round_to": self._round_to,
                 "shuffle": self._shuffle,
                 "target_column": target_column,
+                "applied": True,
                 "original_counts": {
                     class_value: int(class_counts[class_value])
                     for class_value in class_counts.index.tolist()
