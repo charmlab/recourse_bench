@@ -1,0 +1,65 @@
+name: compas_mlp_dice_reproduce
+logger:
+  level: INFO
+  path: ./logs/compas_mlp_dice_reproduce.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+preprocess:
+  - name: scale
+    seed: 42
+    scaling: normalize
+    range: true
+  - name: encode
+    seed: 42
+    encoding: onehot
+  - name: split
+    seed: 42
+    split: 0.2
+  - name: balance
+    seed: 42
+    strategy: upsample
+    shuffle: true
+model:
+  name: mlp
+  seed: 42
+  device: cpu
+  epochs: 160
+  learning_rate: 0.01
+  batch_size: 16
+  layers:
+    - 20
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: compas_mlp_dice_reproduce
+method:
+  name: dice
+  seed: 42
+  device: cpu
+  desired_class: 0
+  num: 4
+  algorithm: DiverseCF
+  yloss_type: hinge_loss
+  diversity_loss_type: dpp_style:inverse_dist
+  feature_weights: inverse_mad
+  proximity_weight: 0.5
+  diversity_weight: 1.0
+  categorical_penalty: 0.1
+  optimizer: adam
+  learning_rate: 0.05
+  min_iter: 500
+  max_iter: 5000
+  project_iter: 0
+  loss_diff_thres: 1.0e-05
+  loss_converge_maxiter: 2
+  init_near_query_instance: false
+  tie_random: false
+  stopping_threshold: 0.5
+  posthoc_sparsity_param: 0.1
+  posthoc_sparsity_algorithm: linear
+  respect_mutability: false
+evaluation:
+  - name: validity
+  - name: distance
