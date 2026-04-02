@@ -53,7 +53,9 @@ class DistanceEvaluation(EvaluationObject):
 
         for metric in self._metrics:
             if metric == "l0":
-                value = diff.ne(0).sum(dim=1).to(dtype=torch.float32).mean().item()
+                zero = torch.zeros(1, dtype=diff.dtype, device=diff.device)
+                changed = ~torch.isclose(diff, zero)
+                value = changed.sum(dim=1).to(dtype=torch.float32).mean().item()
             elif metric == "l1":
                 value = diff.sum(dim=1).mean().item()
             elif metric == "l2":
