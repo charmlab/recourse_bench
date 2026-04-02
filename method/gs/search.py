@@ -69,6 +69,8 @@ def growing_spheres_search(
             model=model,
             instance_label=instance_label,
             target_label=target_label,
+            distance_features=keys_mutable_continuous,
+            feature_order=keys_correct,
         )
         if initial_enemies[0].shape[0] == 0:
             break
@@ -97,6 +99,8 @@ def growing_spheres_search(
             model=model,
             instance_label=instance_label,
             target_label=target_label,
+            distance_features=keys_mutable_continuous,
+            feature_order=keys_correct,
         )
         if enemy_candidates.shape[0] > 0:
             candidate_counterfactual_star = enemy_candidates[
@@ -174,8 +178,19 @@ def _select_enemies(
     model,
     instance_label,
     target_label,
+    distance_features,
+    feature_order,
 ):
-    distances = LA.norm(candidates.values - factual.reshape(1, -1), ord=2, axis=1)
+    if distance_features:
+        distance_indices = [feature_order.index(feature) for feature in distance_features]
+        distances = LA.norm(
+            candidates.values[:, distance_indices]
+            - factual.reshape(1, -1)[:, distance_indices],
+            ord=2,
+            axis=1,
+        )
+    else:
+        distances = np.zeros(candidates.shape[0], dtype=float)
     predictions = model.predict_label_indices(candidates.values)
     enemy_mask = predictions == int(target_label)
     if int(target_label) == int(instance_label):

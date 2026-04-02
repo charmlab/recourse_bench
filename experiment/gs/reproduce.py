@@ -27,7 +27,7 @@ DEFAULT_CONFIG_PATH = Path(__file__).with_name(
 )
 SEED = 42
 RF_GRID = [10, 50, 100, 200, 500]
-PAPER_FACTUAL_LIMIT = 256
+PAPER_FACTUAL_LIMIT = None
 PAPER_TARGETS = {
     "test_auc": 0.70,
     "max_l0": 17.0,
@@ -221,14 +221,8 @@ def run_reproduction(
     if mode == "paper" and factual_limit is None:
         factual_limit = PAPER_FACTUAL_LIMIT
 
-    grid_experiment = Experiment(deepcopy(base_config))
-    grid_trainset, _ = _materialize_datasets(grid_experiment)
-    best_n_estimators = _select_best_n_estimators(
-        grid_trainset, grid_experiment._logger
-    )
-
     final_config = deepcopy(base_config)
-    final_config["model"]["n_estimators"] = best_n_estimators
+    selected_n_estimators = int(final_config["model"]["n_estimators"])
     if mode == "smoke":
         final_config["name"] = f"{final_config['name']}_smoke"
         final_config["logger"][
@@ -268,7 +262,7 @@ def run_reproduction(
     sparsity_stats = _compute_gs_sparsity_stats(factuals, counterfactuals)
     summary = {
         "mode": mode,
-        "selected_n_estimators": int(best_n_estimators),
+        "selected_n_estimators": selected_n_estimators,
         "num_factuals": int(len(factuals)),
         "search_seconds": float(elapsed_seconds),
         **model_metrics,
