@@ -1,0 +1,85 @@
+experiment:
+  name: "german_mlp_trex_reproduce"
+  seed: 0
+  device: "auto"
+
+data:
+  - name: "german_reconstructed_61d"
+    overrides:
+      raw_path: "./dataset/german/german.csv"
+      split_seed: 27
+      test_split: 0.33
+      label_flip: true
+      numeric_columns:
+        - "duration"
+        - "amount"
+        - "installment_rate"
+        - "present_residence"
+        - "age"
+        - "number_credits"
+        - "people_liable"
+      categorical_columns:
+        - "status"
+        - "credit_history"
+        - "purpose"
+        - "savings"
+        - "employment_duration"
+        - "personal_status_sex"
+        - "other_debtors"
+        - "property"
+        - "other_installment_plans"
+        - "housing"
+        - "job"
+        - "telephone"
+        - "foreign_worker"
+
+model:
+  name: "mlp"
+  overrides:
+    epochs: 50
+    learning_rate: 0.001
+    batch_size: 256
+    layers: [128, 128]
+    optimizer: "adam"
+    criterion: "cross_entropy"
+    output_activation: "softmax"
+
+method:
+  name: "trex"
+  overrides:
+    seed: 0
+    desired_class: 1
+    cf_confidence: 0.5
+    cf_steps: 60
+    cf_step_size: 0.02
+    k: 1000
+    sigma: 0.15
+    trex_step_size: 0.01
+    trex_max_steps: 200
+    trex_epsilon: 1.0
+    trex_p: 2
+    batch_size: 1
+    clamp: true
+    tau_grid: []
+    tau_l1: 0.80
+    tau_l2:
+
+evaluation:
+  overrides:
+    wi_models: 50
+    lo_models: 50
+    pilot_model_count: 10
+    pilot_factual_limit: 64
+    factual_limit:
+    lof_n_neighbors: 1
+  paper_targets:
+    l1:
+      cost: 4.81
+      lof: 0.72
+      wi_validity_pct: 98.0
+      lo_validity_pct: 96.5
+    l2:
+      cost: 1.20
+      lof: 0.75
+      wi_validity_pct: 99.2
+      lo_validity_pct: 98.7
