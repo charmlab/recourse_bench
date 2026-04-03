@@ -1,0 +1,71 @@
+name: proplace_compas_reproduce
+logger:
+  level: INFO
+  path: ./logs/proplace_compas_reproduce.log
+caching:
+  path: ./cache/
+
+dataset:
+  name: compas_carla
+
+preprocess:
+  - name: proplace_compas_reproduce
+    seed: 1
+    source_path: ./dataset/compas_carla/compas_carla.csv
+    target_column: score
+    numerical_features:
+      - age
+      - two_year_recid
+      - priors_count
+      - length_of_stay
+    binary_positive_category:
+      c_charge_degree: M
+      race: Other
+      sex: Male
+
+model:
+  name: proplace_compas_reproduce_mlp
+  seed: 101
+  hidden_size: 20
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  l2_lambda: 0.0001
+  save_name: null
+
+method:
+  name: proplace
+  seed: 101
+  desired_class: 1
+  delta: 0.025
+  k: 20
+  epsilon: 0.01
+  big_m: 1000
+  solver_output: false
+  convex_hull_prune: true
+
+evaluation: []
+
+reproduction:
+  split:
+    half_selection_seed: 1
+    train_test_split_seed: 0
+    train_test_test_size: 0.2
+  factual_selection:
+    sample_seed: 10
+    sample_with_replacement: true
+    num_factuals: 50
+  ensemble:
+    retrain_count: 10
+    retrain_seed_start: 100
+    leave_out_count: 10
+    leave_out_seed_start: 2
+    leave_out_fraction: 0.01
+    leave_out_selection_seed: 1
+    hidden_size: 50
+    epochs: 50
+  metrics:
+    target_class: 1
+    delta: 0.025
+    epsilon: 0.01
+    robustness_big_m: 10000
