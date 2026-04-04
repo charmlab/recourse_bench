@@ -6,30 +6,43 @@ caching:
   path: ./cache/
 
 dataset:
-  name: compas_carla
+  name: compas_carla_proplace_reproduce
 
 preprocess:
-  - name: proplace_compas_reproduce
+  - name: scale
     seed: 1
-    source_path: ./dataset/compas_carla/compas_carla.csv
-    target_column: score
-    numerical_features:
-      - age
-      - two_year_recid
-      - priors_count
-      - length_of_stay
+    scaling: normalize
+    range: true
+  - name: encode
+    seed: 1
+    encoding: onehot_drop_binary
     binary_positive_category:
       c_charge_degree: M
       race: Other
       sex: Male
+  - name: reorder
+    seed: 1
+    order:
+      - age
+      - two_year_recid
+      - priors_count
+      - length_of_stay
+      - c_charge_degree_cat_M
+      - race_cat_Other
+      - sex_cat_Male
 
 model:
-  name: proplace_compas_reproduce_mlp
+  name: mlp
   seed: 101
-  hidden_size: 20
+  layers:
+    - 20
+    - 20
   epochs: 50
   learning_rate: 0.01
   batch_size: 32
+  optimizer: adam
+  criterion: bce
+  output_activation: sigmoid
   l2_lambda: 0.0001
   save_name: null
 

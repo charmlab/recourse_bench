@@ -36,7 +36,12 @@ class EncodePreProcess(PreProcessObject):
             raise TypeError("encoding must be str or None")
 
         encoding = encoding.lower()
-        if encoding not in {"none", "onehot", "thermometer"}:
+        if encoding not in {
+            "none",
+            "onehot",
+            "onehot_drop_binary",
+            "thermometer",
+        }:
             raise ValueError(f"Unsupported encoding option: {encoding}")
         return encoding
 
@@ -66,6 +71,26 @@ class EncodePreProcess(PreProcessObject):
                 raise ValueError("EncodePreProcess override values must not be None")
             resolved_override[feature_name] = resolved_mode
         return resolved_override
+
+    @staticmethod
+    def _resolve_binary_positive_category(
+        binary_positive_category: dict[str, object] | None,
+    ) -> dict[str, object] | None:
+        if binary_positive_category is None:
+            return None
+        if not isinstance(binary_positive_category, dict):
+            raise TypeError(
+                "EncodePreProcess binary_positive_category must be a dict[str, object] or None"
+            )
+
+        resolved_mapping: dict[str, object] = {}
+        for feature_name, category in binary_positive_category.items():
+            if not isinstance(feature_name, str):
+                raise TypeError(
+                    "EncodePreProcess binary_positive_category keys must be str feature names only"
+                )
+            resolved_mapping[feature_name] = category
+        return resolved_mapping
 
     @staticmethod
     def _resolve_encode_modes(
@@ -133,6 +158,42 @@ class EncodePreProcess(PreProcessObject):
         return encoded
 
     @staticmethod
+    def _build_onehot_drop_binary(
+        series: pd.Series,
+        feature_name: str,
+        positive_category: object | None = None,
+    ) -> pd.DataFrame:
+        categories = sorted(pd.Index(series.dropna().unique()).tolist())
+        if len(categories) != 2:
+            if positive_category is not None:
+                raise ValueError(
+                    "EncodePreProcess binary_positive_category requires a feature with exactly two categories: "
+                    f"{feature_name}"
+                )
+            return EncodePreProcess._build_onehot(series, feature_name)
+
+        resolved_positive = categories[-1]
+        if positive_category is not None:
+            matched_categories = [
+                category
+                for category in categories
+                if category == positive_category or str(category) == str(positive_category)
+            ]
+            if not matched_categories:
+                raise ValueError(
+                    f"EncodePreProcess binary_positive_category contains invalid category "
+                    f"for {feature_name}: {positive_category}"
+                )
+            resolved_positive = matched_categories[0]
+
+        column_name = (
+            f"{feature_name}_cat_"
+            f"{EncodePreProcess._format_category_suffix(resolved_positive)}"
+        )
+        encoded = (series == resolved_positive).astype("float64")
+        return pd.DataFrame({column_name: encoded}, index=series.index)
+
+    @staticmethod
     def _build_thermometer(series: pd.Series, feature_name: str) -> pd.DataFrame:
         categories = sorted(pd.Index(series.dropna().unique()).tolist())
         categorical = pd.Categorical(series, categories=categories, ordered=True)
@@ -191,11 +252,15 @@ class EncodePreProcess(PreProcessObject):
         seed: int | None = None,
         encoding: str | None = "onehot",
         override: dict[str, str] | None = None,
+        binary_positive_category: dict[str, object] | None = None,
         **kwargs,
     ):
         self._seed = seed
         self._encoding: str | None = self._resolve_encoding(encoding)
         self._override: dict[str, str] | None = self._resolve_override(override)
+        self._binary_positive_category: dict[str, object] | None = (
+            self._resolve_binary_positive_category(binary_positive_category)
+        )
 
     def transform(self, input: DatasetObject) -> DatasetObject:
         with seed_context(self._seed):
@@ -215,6 +280,22 @@ class EncodePreProcess(PreProcessObject):
                 default_mode=self._encoding,
                 override=self._override,
             )
+            binary_positive_category = self._binary_positive_category or {}
+            for feature_name in binary_positive_category:
+                if feature_name == target_column:
+                    raise ValueError(
+                        "EncodePreProcess binary_positive_category must not contain the target feature"
+                    )
+                if feature_name not in df.columns:
+                    raise ValueError(
+                        "EncodePreProcess binary_positive_category contains unknown feature: "
+                        f"{feature_name}"
+                    )
+                if raw_feature_type.get(feature_name, "").lower() != "categorical":
+                    raise ValueError(
+                        "EncodePreProcess binary_positive_category contains non-categorical feature: "
+                        f"{feature_name}"
+                    )
 
             final_parts: list[pd.DataFrame] = []
             encoded_sources: dict[str, str] = {}
@@ -242,6 +323,21 @@ class EncodePreProcess(PreProcessObject):
                     mode = selected_modes[column]
                     if mode == "onehot":
                         encoded = self._build_onehot(df[column], column)
+                        new_columns = list(encoded.columns)
+                        self._ensure_output_columns_available(
+                            new_columns, seen_columns, remaining_columns
+                        )
+                        final_parts.append(encoded)
+                        encoding_map[column] = new_columns
+                        seen_columns.update(new_columns)
+                        for encoded_column in new_columns:
+                            encoded_sources[encoded_column] = column
+                    elif mode == "onehot_drop_binary":
+                        encoded = self._build_onehot_drop_binary(
+                            df[column],
+                            column,
+                            positive_category=binary_positive_category.get(column),
+                        )
                         new_columns = list(encoded.columns)
                         self._ensure_output_columns_available(
                             new_columns, seen_columns, remaining_columns

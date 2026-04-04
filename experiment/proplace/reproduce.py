@@ -24,9 +24,6 @@ import dataset  # noqa: F401
 import method  # noqa: F401
 import model  # noqa: F401
 import preprocess  # noqa: F401
-# Trigger registration for reproduction-only components.
-import model.proplace_compas_reproduce_mlp  # noqa: F401
-import preprocess.proplace_compas_reproduce  # noqa: F401
 from method.proplace.support import (
     OptSolver,
     build_inn,
@@ -305,7 +302,7 @@ def _train_retrained_models(
             config,
             device=device,
             seed=seed,
-            hidden_size=retrain_hidden_size,
+            layers=[retrain_hidden_size, retrain_hidden_size],
             epochs=retrain_epochs,
             save_name=None,
         )
@@ -342,7 +339,7 @@ def _train_retrained_models(
             config,
             device=device,
             seed=seed,
-            hidden_size=retrain_hidden_size,
+            layers=[retrain_hidden_size, retrain_hidden_size],
             epochs=retrain_epochs,
             save_name=None,
         )
