@@ -1,0 +1,58 @@
+name: adult_cogs
+target_column: income
+feature_order:
+- age
+- workclass
+- education-num
+- marital-status
+- occupation
+- relationship
+- race
+- sex
+- capital-gain
+- capital-loss
+- hours-per-week
+- native-country
+- income
+raw_feature_type:
+  age: numerical
+  workclass: categorical
+  education-num: numerical
+  marital-status: categorical
+  occupation: categorical
+  relationship: categorical
+  race: categorical
+  sex: categorical
+  capital-gain: numerical
+  capital-loss: numerical
+  hours-per-week: numerical
+  native-country: categorical
+  income: binary
+raw_feature_mutability:
+  age: true
+  workclass: true
+  education-num: true
+  marital-status: true
+  occupation: true
+  relationship: true
+  race: false
+  sex: false
+  capital-gain: true
+  capital-loss: true
+  hours-per-week: true
+  native-country: false
+  income: false
+raw_feature_actionability:
+  age: same-or-increase
+  workclass: any
+  education-num: same-or-increase
+  marital-status: any
+  occupation: any
+  relationship: any
+  race: none
+  sex: none
+  capital-gain: any
+  capital-loss: any
+  hours-per-week: any
+  native-country: none
+  income: none
