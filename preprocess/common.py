@@ -36,7 +36,7 @@ class EncodePreProcess(PreProcessObject):
             raise TypeError("encoding must be str or None")
 
         encoding = encoding.lower()
-        if encoding not in {"none", "onehot", "thermometer"}:
+        if encoding not in {"none", "onehot", "thermometer", "ordinal_code"}:
             raise ValueError(f"Unsupported encoding option: {encoding}")
         return encoding
 
@@ -148,20 +148,45 @@ class EncodePreProcess(PreProcessObject):
         return pd.DataFrame(encoded_columns, index=series.index)
 
     @staticmethod
+    def _build_ordinal_code(
+        series: pd.Series,
+        feature_name: str,
+    ) -> tuple[pd.DataFrame, dict[int, object]]:
+        categories = sorted(pd.Index(series.dropna().unique()).tolist())
+        categorical = pd.Categorical(series, categories=categories, ordered=True)
+        codes = pd.Series(categorical.codes, index=series.index).astype("float64")
+        code_to_category = {
+            int(index): category for index, category in enumerate(categories)
+        }
+        return pd.DataFrame({feature_name: codes}, index=series.index), code_to_category
+
+    @staticmethod
     def _build_encoded_metadata(
         dataset: DatasetObject,
         final_columns: list[str],
         encoded_sources: dict[str, str],
+        encoded_feature_type_override: dict[str, str] | None = None,
     ) -> tuple[dict[str, str], dict[str, bool], dict[str, str]]:
         raw_feature_type = dataset.attr("raw_feature_type")
         raw_feature_mutability = dataset.attr("raw_feature_mutability")
         raw_feature_actionability = dataset.attr("raw_feature_actionability")
+        encoded_feature_type_override = encoded_feature_type_override or {}
 
         encoded_feature_type: dict[str, str] = {}
         encoded_feature_mutability: dict[str, bool] = {}
         encoded_feature_actionability: dict[str, str] = {}
 
         for column in final_columns:
+            if column in encoded_feature_type_override:
+                source_feature = encoded_sources.get(column, column)
+                encoded_feature_type[column] = encoded_feature_type_override[column]
+                encoded_feature_mutability[column] = bool(
+                    raw_feature_mutability[source_feature]
+                )
+                encoded_feature_actionability[column] = str(
+                    raw_feature_actionability[source_feature]
+                )
+                continue
             if column in encoded_sources:
                 source_feature = encoded_sources[column]
                 encoded_feature_type[column] = "binary"
@@ -219,6 +244,8 @@ class EncodePreProcess(PreProcessObject):
             final_parts: list[pd.DataFrame] = []
             encoded_sources: dict[str, str] = {}
             encoding_map: dict[str, list[str]] = {}
+            encoded_category_map: dict[str, dict[int, object]] = {}
+            encoded_feature_type_override: dict[str, str] = {}
             seen_columns: set[str] = set()
             remaining_columns = set(df.columns)
             for column in df.columns:
@@ -262,6 +289,20 @@ class EncodePreProcess(PreProcessObject):
                         seen_columns.update(new_columns)
                         for encoded_column in new_columns:
                             encoded_sources[encoded_column] = column
+                    elif mode == "ordinal_code":
+                        encoded, code_to_category = self._build_ordinal_code(
+                            df[column], column
+                        )
+                        new_columns = list(encoded.columns)
+                        self._ensure_output_columns_available(
+                            new_columns, seen_columns, remaining_columns
+                        )
+                        final_parts.append(encoded)
+                        encoding_map[column] = new_columns
+                        seen_columns.update(new_columns)
+                        encoded_sources[column] = column
+                        encoded_category_map[column] = code_to_category
+                        encoded_feature_type_override[column] = "categorical"
                     elif mode == "none":
                         passthrough = df.loc[:, [column]].copy(deep=True)
                         self._ensure_output_columns_available(
@@ -284,12 +325,15 @@ class EncodePreProcess(PreProcessObject):
                 dataset=input,
                 final_columns=list(final_df.columns),
                 encoded_sources=encoded_sources,
+                encoded_feature_type_override=encoded_feature_type_override,
             )
 
             input.update("encoding", encoding_map, df=final_df)
             input.update("encoded_feature_type", encoded_feature_type)
             input.update("encoded_feature_mutability", encoded_feature_mutability)
             input.update("encoded_feature_actionability", encoded_feature_actionability)
+            if encoded_category_map:
+                input.update("encoded_category_map", encoded_category_map)
             return input
 
 
