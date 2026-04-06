@@ -6,5 +6,6 @@ from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from dataset.credit.credit import CreditDataset
 from dataset.dataset_object import DatasetObject
 from dataset.german.german import GermanDataset
+from dataset.german.german_full import GermanFullDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
 from dataset.toydata.toydata import ToydataDataset
