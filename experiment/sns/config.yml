@@ -1,0 +1,63 @@
+name: sns_german_full_reproduce
+logger:
+  level: INFO
+  path: ./logs/sns_german_full_reproduce.log
+caching:
+  path: ./cache/
+
+dataset:
+  name: german_full
+
+preprocess:
+  - name: encode
+    seed: 42
+    encoding: onehot
+
+model:
+  name: mlp
+  seed: 42
+  layers: [128, 64, 16]
+  epochs: 100
+  learning_rate: 0.001
+  batch_size: 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: null
+
+method:
+  name: sns
+  seed: 42
+  desired_class: null
+  base_search: min_l2
+  base_steps: 100
+  base_step_size: 0.01
+  base_lambda_start: 0.01
+  base_lambda_growth: 2.0
+  base_lambda_max: 100.0
+  sns_eps: 2.4
+  sns_nb_iters: 200
+  sns_eps_iter: 0.024
+  n_interpolations: 20
+
+evaluation: []
+
+reproduction:
+  split_seed: 42
+  sample_seed: 42
+  train_size: 700
+  test_size: 200
+  expected_feature_count: 61
+  rs_seed_start: 43
+  rs_count: 100
+  loo_count: 100
+  loo_selection_seed: 2021
+  paper:
+    min_l2:
+      loo_invalidation: 0.36
+      rs_invalidation: 0.56
+      l2_cost: 4.49
+    min_l2_sns:
+      loo_invalidation: 0.00
+      rs_invalidation: 0.06
+      l2_cost: 6.23

@@ -16,5 +16,6 @@ from method.probe.probe import ProbeMethod
 from method.rbr.rbr import RbrMethod
 from method.revise.revise import ReviseMethod
 from method.roar.roar import RoarMethod
+from method.sns.sns import SnsMethod
 from method.toy.toy import ToyMethod
 from method.wachter.wachter import WachterMethod
