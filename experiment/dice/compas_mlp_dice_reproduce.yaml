@@ -63,3 +63,35 @@ method:
 evaluation:
   - name: validity
   - name: distance
+assertions:
+  enabled: true
+  accuracy_target: 0.67
+  accuracy_tolerance: 0.05
+  compare_ks:
+    - 2
+    - 4
+  diverse_validity_floor:
+    2: 0.9
+    4: 0.8
+  diversity_epsilon: 0.02
+  categorical_proximity_ratio_floor: 0.7
+  randominit_validity_margin_k4: 0.1
+  boundary_compare_radius: 0.5
+  boundary_compare_ks:
+    - 4
+  boundary_f1_floor: 0.35
+  boundary_lime_ratio_floor: 0.6
+  lime_num_samples: 500
+autorepro:
+  enabled: true
+  screening_num_factuals: 2
+  screening_boundary_samples: 20
+  acceptance_num_factuals: 2
+  acceptance_boundary_samples: 20
+  screening_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  acceptance_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  max_runs: 8
