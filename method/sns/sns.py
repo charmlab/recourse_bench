@@ -7,6 +7,7 @@ from dataset.dataset_object import DatasetObject
 from method.method_object import MethodObject
 from method.sns.support import (
     TorchModelTypes,
+    build_art_classifier,
     ensure_supported_target_model,
     min_l2_search,
     resolve_feature_groups,
@@ -30,6 +31,8 @@ class SnsMethod(MethodObject):
         base_search: str = "min_l2",
         base_steps: int = 1000,
         base_step_size: float = 1e-2,
+        base_confidence: float = 0.5,
+        base_beta: float = 0.0,
         base_lambda_start: float = 1e-2,
         base_lambda_growth: float = 2.0,
         base_lambda_max: float = 1e4,
@@ -50,6 +53,8 @@ class SnsMethod(MethodObject):
         self._base_search = str(base_search).lower()
         self._base_steps = int(base_steps)
         self._base_step_size = float(base_step_size)
+        self._base_confidence = float(base_confidence)
+        self._base_beta = float(base_beta)
         self._base_lambda_start = float(base_lambda_start)
         self._base_lambda_growth = float(base_lambda_growth)
         self._base_lambda_max = float(base_lambda_max)
@@ -66,6 +71,10 @@ class SnsMethod(MethodObject):
             raise ValueError("base_steps must be >= 1")
         if self._base_step_size <= 0:
             raise ValueError("base_step_size must be > 0")
+        if self._base_confidence < 0:
+            raise ValueError("base_confidence must be >= 0")
+        if self._base_beta < 0:
+            raise ValueError("base_beta must be >= 0")
         if self._base_lambda_start <= 0:
             raise ValueError("base_lambda_start must be > 0")
         if self._base_lambda_growth <= 1:
@@ -95,6 +104,11 @@ class SnsMethod(MethodObject):
                     "SnsMethod requires fully numeric input features"
                 ) from error
             self._clamp = (float(np.min(train_array)), float(np.max(train_array)))
+            self._art_classifier = build_art_classifier(
+                target_model=self._target_model,
+                input_dim=train_array.shape[1],
+                clamp=self._clamp,
+            )
             self._is_trained = True
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
@@ -121,14 +135,20 @@ class SnsMethod(MethodObject):
             rows: list[np.ndarray] = []
             for row_position, (_, row) in enumerate(factuals.iterrows()):
                 factual = row.to_numpy(dtype=np.float64)
+                original_index = int(original_prediction[row_position])
                 target_index = int(target_indices[row_position])
                 base_candidate = min_l2_search(
                     self._target_model,
                     factual=factual,
+                    original_index=original_index,
                     target_index=target_index,
                     clamp=self._clamp,
                     steps=self._base_steps,
                     step_size=self._base_step_size,
+                    confidence=self._base_confidence,
+                    beta=self._base_beta,
+                    targeted=self._desired_class is not None,
+                    art_classifier=self._art_classifier,
                     lambda_start=self._base_lambda_start,
                     lambda_growth=self._base_lambda_growth,
                     lambda_max=self._base_lambda_max,

@@ -6,6 +6,8 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 import torch
+from art.attacks.evasion import ElasticNet
+from art.estimators.classification import PyTorchClassifier
 
 from dataset.dataset_object import DatasetObject
 from model.mlp.mlp import MlpModel
@@ -175,6 +177,53 @@ def _get_torch_model(target_model: ModelObject) -> torch.nn.Module:
     return model
 
 
+class _ArtBinaryWrapper(torch.nn.Module):
+    def __init__(self, base_model: torch.nn.Module):
+        super().__init__()
+        self._base_model = base_model
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        logits = self._base_model(X)
+        if logits.ndim == 1:
+            logits = logits.unsqueeze(1)
+        if logits.shape[1] != 1:
+            raise ValueError("Binary wrapper expects a single-logit network")
+        return torch.cat([-logits, logits], dim=1)
+
+
+def build_art_classifier(
+    target_model: ModelObject,
+    input_dim: int,
+    clamp: tuple[float, float],
+) -> PyTorchClassifier:
+    ensure_supported_target_model(target_model, TorchModelTypes, "build_art_classifier")
+    model = _get_torch_model(target_model)
+    output_activation = str(
+        getattr(target_model, "_output_activation_name", "softmax")
+    ).lower()
+
+    if output_activation == "sigmoid":
+        art_model = _ArtBinaryWrapper(model)
+    else:
+        art_model = model
+
+    nb_classes = len(target_model.get_class_to_index())
+    if nb_classes < 2:
+        raise ValueError("SNS requires at least two output classes")
+
+    lower, upper = clamp
+    device_type = "gpu" if target_model._device == "cuda" else "cpu"
+    return PyTorchClassifier(
+        model=art_model,
+        loss=torch.nn.CrossEntropyLoss(),
+        input_shape=(int(input_dim),),
+        nb_classes=nb_classes,
+        optimizer=None,
+        clip_values=(float(lower), float(upper)),
+        device_type=device_type,
+    )
+
+
 def differentiable_predict_proba(
     target_model: ModelObject,
     X: torch.Tensor,
@@ -234,63 +283,51 @@ def linear_integral_probability(
 def min_l2_search(
     target_model: ModelObject,
     factual: np.ndarray,
+    original_index: int,
     target_index: int,
     clamp: tuple[float, float],
-    steps: int = 1000,
+    steps: int = 100,
     step_size: float = 1e-2,
-    lambda_start: float = 1e-2,
-    lambda_growth: float = 2.0,
-    lambda_max: float = 1e4,
+    confidence: float = 0.5,
+    beta: float = 0.0,
+    targeted: bool = False,
+    art_classifier: PyTorchClassifier | None = None,
+    **kwargs,
 ) -> np.ndarray | None:
-    x = torch.tensor(
-        np.asarray(factual, dtype=np.float32).reshape(1, -1),
-        dtype=torch.float32,
-        device=target_model._device,
+    x = np.asarray(factual, dtype=np.float32).reshape(1, -1)
+    if art_classifier is None:
+        art_classifier = build_art_classifier(
+            target_model=target_model,
+            input_dim=x.shape[1],
+            clamp=clamp,
+        )
+
+    y_index = int(target_index if targeted else original_index)
+    y = np.eye(len(target_model.get_class_to_index()), dtype=np.float32)[[y_index]]
+    attack = ElasticNet(
+        classifier=art_classifier,
+        confidence=float(confidence),
+        targeted=bool(targeted),
+        learning_rate=float(step_size),
+        max_iter=int(steps),
+        beta=float(beta),
+        batch_size=1,
+        decision_rule="L2",
+        verbose=False,
     )
-    target = torch.tensor([target_index], dtype=torch.long, device=target_model._device)
-    model = _get_torch_model(target_model)
-    model.eval()
+    candidate = attack.generate(x, y=y)
+    if not np.isfinite(candidate).all():
+        return None
 
-    best_candidate = None
-    best_distance = float("inf")
-    lam = float(lambda_start)
-    output_activation = str(getattr(target_model, "_output_activation_name", "softmax")).lower()
+    predicted = art_classifier.predict(candidate).argmax(axis=1)
+    if targeted:
+        success = int(predicted[0]) == int(target_index)
+    else:
+        success = int(predicted[0]) != int(original_index)
+    if not success:
+        return None
 
-    while lam <= lambda_max:
-        candidate = x.clone().detach()
-        candidate.requires_grad_(True)
-        optimizer = torch.optim.Adam([candidate], lr=step_size)
-        for _ in range(int(steps)):
-            optimizer.zero_grad()
-            logits = model(candidate)
-            if output_activation == "sigmoid":
-                positive_logit = logits.reshape(-1)
-                if target_index == 1:
-                    class_loss = torch.nn.functional.binary_cross_entropy_with_logits(
-                        positive_logit, torch.ones_like(positive_logit)
-                    )
-                else:
-                    class_loss = torch.nn.functional.binary_cross_entropy_with_logits(
-                        positive_logit, torch.zeros_like(positive_logit)
-                    )
-            else:
-                class_loss = torch.nn.functional.cross_entropy(logits, target)
-            distance_loss = torch.linalg.norm(candidate - x, ord=2, dim=1).mean()
-            loss = lam * class_loss + distance_loss
-            loss.backward()
-            optimizer.step()
-            with torch.no_grad():
-                candidate.copy_(clamp_tensor(candidate, clamp))
-            predicted = differentiable_predict_proba(target_model, candidate).argmax(dim=1)
-            if int(predicted.item()) == target_index:
-                distance = float(torch.linalg.norm(candidate - x, ord=2).item())
-                if distance < best_distance:
-                    best_distance = distance
-                    best_candidate = candidate.detach().cpu().numpy().reshape(-1)
-        lam *= float(lambda_growth)
-        if best_candidate is not None:
-            break
-    return best_candidate
+    return candidate.reshape(-1).astype(np.float64, copy=False)
 
 
 def sns_search(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 import time
 from copy import deepcopy
@@ -143,14 +144,20 @@ def _run_base_and_sns(method, factuals: pd.DataFrame):
         )
     ):
         factual = row.to_numpy(dtype=np.float64)
+        original_index = int(original_prediction[row_position])
         target_index = int(target_indices[row_position])
         base_cf = min_l2_search(
             method._target_model,
             factual=factual,
+            original_index=original_index,
             target_index=target_index,
             clamp=method._clamp,
             steps=method._base_steps,
             step_size=method._base_step_size,
+            confidence=method._base_confidence,
+            beta=method._base_beta,
+            targeted=False,
+            art_classifier=method._art_classifier,
             lambda_start=method._base_lambda_start,
             lambda_growth=method._base_lambda_growth,
             lambda_max=method._base_lambda_max,
@@ -291,6 +298,8 @@ def main() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     config_path = (PROJECT_ROOT / args.config).resolve()
     config = _apply_device(_load_config(config_path), device)
+    logging.getLogger("art").setLevel(logging.WARNING)
+    logging.getLogger("art.attacks.evasion.elastic_net").setLevel(logging.WARNING)
 
     experiment = Experiment(config)
     encoded_dataset = _materialize_single_dataset(experiment)
@@ -322,6 +331,8 @@ def main() -> None:
 
     base_success_rate = float((~base_cfs.isna().any(axis=1)).mean())
     sns_success_rate = float((~sns_cfs.isna().any(axis=1)).mean())
+    base_valid_count = int((~base_cfs.isna().any(axis=1)).sum())
+    sns_valid_count = int((~sns_cfs.isna().any(axis=1)).sum())
     base_costs = _compute_l2_costs(factuals, base_cfs)
     sns_costs = _compute_l2_costs(factuals, sns_cfs)
 
@@ -342,6 +353,8 @@ def main() -> None:
     print(f"num_factuals_evaluated: {len(factuals)}")
     print(f"rs_models_evaluated: {len(rs_models)}")
     print(f"loo_models_evaluated: {len(loo_models)}")
+    print(f"base_valid_counterfactuals: {base_valid_count}")
+    print(f"sns_valid_counterfactuals: {sns_valid_count}")
     print(f"base_success_rate: {base_success_rate:.4f}")
     print(f"sns_success_rate: {sns_success_rate:.4f}")
     print(

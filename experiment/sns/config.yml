@@ -32,6 +32,8 @@ method:
   base_search: min_l2
   base_steps: 100
   base_step_size: 0.01
+  base_confidence: 0.5
+  base_beta: 0.0
   base_lambda_start: 0.01
   base_lambda_growth: 2.0
   base_lambda_max: 100.0
