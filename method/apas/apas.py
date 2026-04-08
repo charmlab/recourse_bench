@@ -8,12 +8,14 @@ from method.apas.support import (
     ApasContext,
     compute_delta_max,
     ensure_binary_mlp_target_model,
+    ensure_supported_target_model,
     generate_apas_counterfactual,
     prepare_apas_context,
     resolve_target_index,
     validate_counterfactuals,
 )
 from method.method_object import MethodObject
+from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
 from utils.registry import register
 from utils.seed import seed_context
@@ -42,7 +44,7 @@ class ApasMethod(MethodObject):
         rounding: int | None = 5,
         **kwargs,
     ):
-        ensure_binary_mlp_target_model(target_model, "ApasMethod")
+        ensure_supported_target_model(target_model, (MlpModel,), "ApasMethod")
 
         self._target_model = target_model
         self._seed = seed
@@ -88,18 +90,20 @@ class ApasMethod(MethodObject):
         if self._rounding is not None and self._rounding < 0:
             raise ValueError("rounding must be >= 0 or None")
 
-        class_to_index = self._target_model.get_class_to_index()
-        if self._desired_class is not None and self._desired_class not in class_to_index:
-            raise ValueError("desired_class is invalid for the trained target model")
-
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:
             raise ValueError("trainset is required for ApasMethod.fit()")
 
         with seed_context(self._seed):
+            ensure_binary_mlp_target_model(self._target_model, "ApasMethod")
             self._context = prepare_apas_context(self._target_model, trainset)
             self._feature_names = list(self._context.feature_schema.feature_names)
             self._class_to_index = dict(self._context.class_to_index)
+            if (
+                self._desired_class is not None
+                and self._desired_class not in self._class_to_index
+            ):
+                raise ValueError("desired_class is invalid for the trained target model")
             self._is_trained = True
 
     def _postprocess_candidate(self, candidate: np.ndarray) -> np.ndarray:
