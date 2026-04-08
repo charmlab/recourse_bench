@@ -1,0 +1,59 @@
+dataset:
+  name: diabetes
+  path: ./dataset/diabetes/
+
+reproduction:
+  seed_numpy: 1
+  seed_model: 0
+  d1_size: 384
+  d1_train_test_split: 0.2
+  gap: 0.25
+  num_test_instances: 500
+  num_sound_instances: 50
+
+model:
+  device: auto
+  hidden_layer_sizes:
+    - 8
+  activation: relu
+  solver: adam
+  learning_rate: adaptive
+  learning_rate_init: 0.01
+  batch_size: 8
+  max_iter: 7000
+
+apas:
+  desired_class: 1
+  alpha: 0.999
+  r: 0.995
+  delta_init: 0.0001
+  delta_source: delta_min
+  num_concretizations: 10000
+  eps_init: 0.01
+  eps_step: 0.2
+  max_iter: 100
+  big_m: 10000.0
+  use_biases: true
+  rounding: null
+
+targets:
+  notebook:
+    sound_fraction: 0.27380952380952384
+    sound_count: 69
+    delta_max: 0.3457906217784634
+    delta_min: 0.1058395646526038
+    delta_e: 0.27983832
+    found: 1.0
+    vm1: 1.0
+    vm2: 1.0
+    delta_validity: 0.0
+    l1: 0.07657846284575133
+    l0: 0.3075
+    lof: 1.0
+  paper:
+    delta: 0.11
+    delta_e: 0.27
+    vm1: 1.0
+    vm2: 1.0
+    l1: 0.077
+    lof: 1.0

@@ -1,3 +1,4 @@
+from method.apas.apas import ApasMethod
 from method.cchvae.cchvae import CchvaeMethod
 from method.cfrl.cfrl import CfrlMethod
 from method.cfvae.cfvae import CfvaeMethod
