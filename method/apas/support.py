@@ -8,7 +8,7 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 import torch
-from gurobipy import GRB, GurobiError, Model, max_, quicksum
+from gurobipy import Env, GRB, GurobiError, Model, max_, quicksum
 
 from dataset.dataset_object import DatasetObject
 from model.mlp.mlp import MlpModel
@@ -62,6 +62,31 @@ class CertificationResult:
     is_robust: bool
     robust_fraction: float
     num_concretizations: int
+
+
+global_gurobi_env: Env | None = None
+
+
+def get_silent_gurobi_env() -> Env:
+    global global_gurobi_env
+    if global_gurobi_env is not None:
+        return global_gurobi_env
+
+    env = Env(empty=True)
+    env.setParam("OutputFlag", 0)
+    env.setParam("LogToConsole", 0)
+    env.start()
+    global_gurobi_env = env
+    return env
+
+
+def create_silent_gurobi_model(name: str, seed: int | None = None) -> Model:
+    model = Model(name, env=get_silent_gurobi_env())
+    model.Params.OutputFlag = 0
+    model.Params.Threads = 1
+    if seed is not None:
+        model.Params.Seed = int(seed)
+    return model
 
 
 def ensure_supported_target_model(
@@ -668,11 +693,7 @@ def solve_counterfactual(
     seed: int | None = None,
 ) -> np.ndarray | None:
     try:
-        model = Model("apas_counterfactual")
-        model.Params.OutputFlag = 0
-        model.Params.Threads = 1
-        if seed is not None:
-            model.Params.Seed = int(seed)
+        model = create_silent_gurobi_model("apas_counterfactual", seed=seed)
 
         input_vars = _add_input_constraints(model, schema, factual)
         hidden_layer = _add_hidden_constraints(

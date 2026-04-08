@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import json
 import sys
 import warnings
 from pathlib import Path
@@ -15,14 +14,18 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
-from gurobipy import GRB, GurobiError, Model
+from gurobipy import GRB, GurobiError
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.neural_network import MLPClassifier
 
 from dataset.diabetes.diabetes import DiabetesDataset
 from method.apas.apas import ApasMethod
-from method.apas.support import BinaryNetwork, extract_binary_target_networks
+from method.apas.support import (
+    BinaryNetwork,
+    create_silent_gurobi_model,
+    extract_binary_target_networks,
+)
 from model.mlp.mlp import MlpModel
 
 warnings.filterwarnings("ignore")
@@ -33,15 +36,23 @@ def _load_config(config_path: Path) -> dict:
         return yaml.safe_load(file)
 
 
-def _resolve_device(configured_device: str) -> str:
-    configured_device = str(configured_device).lower()
-    if configured_device == "auto":
+def _resolve_device(device: str) -> str:
+    device = str(device).lower()
+    if device == "auto":
         return "cuda" if torch.cuda.is_available() else "cpu"
-    if configured_device == "cuda" and not torch.cuda.is_available():
+    if device == "cuda" and not torch.cuda.is_available():
         raise ValueError("Configured device 'cuda' is unavailable")
-    if configured_device not in {"cpu", "cuda"}:
-        raise ValueError(f"Unsupported device: {configured_device}")
-    return configured_device
+    if device not in {"cpu", "cuda"}:
+        raise ValueError(f"Unsupported device: {device}")
+    return device
+
+
+def _resolve_runtime_device(config: dict) -> str:
+    model_device = _resolve_device(config["model"]["device"])
+    method_device = _resolve_device(config["method"].get("device", config["model"]["device"]))
+    if model_device != method_device:
+        raise ValueError("model.device must match method.device")
+    return model_device
 
 
 def _make_frozen_dataset(
@@ -80,7 +91,9 @@ def _split_reference_d1_d2(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     np.random.seed(seed_numpy)
     d1_indices = np.sort(np.random.choice(range(len(scaled_df)), d1_size))
-    d2_indices = np.array([index for index in range(len(scaled_df)) if index not in d1_indices])
+    d2_indices = np.array(
+        [index for index in range(len(scaled_df)) if index not in d1_indices]
+    )
 
     d1_df = pd.DataFrame(scaled_df.values[d1_indices], columns=scaled_df.columns)
     d2_df = pd.DataFrame(scaled_df.values[d2_indices], columns=scaled_df.columns)
@@ -89,21 +102,20 @@ def _split_reference_d1_d2(
 
 def _build_reference_classifier(config: dict) -> MLPClassifier:
     model_cfg = config["model"]
-    hidden_layers = model_cfg["hidden_layer_sizes"]
-    if len(hidden_layers) == 1:
-        hidden_layer_sizes = int(hidden_layers[0])
-    else:
-        hidden_layer_sizes = tuple(int(value) for value in hidden_layers)
+    sklearn_cfg = config["reproduction"]["sklearn"]
+
+    layers = model_cfg["layers"]
+    hidden_layer_sizes = int(layers[0]) if len(layers) == 1 else tuple(int(v) for v in layers)
 
     return MLPClassifier(
-        learning_rate=model_cfg["learning_rate"],
+        learning_rate=str(sklearn_cfg["learning_rate"]),
         hidden_layer_sizes=hidden_layer_sizes,
-        learning_rate_init=float(model_cfg["learning_rate_init"]),
-        batch_size=int(model_cfg["batch_size"]),
-        max_iter=int(model_cfg["max_iter"]),
+        learning_rate_init=float(sklearn_cfg["learning_rate_init"]),
+        batch_size=int(sklearn_cfg["batch_size"]),
+        max_iter=int(sklearn_cfg["max_iter"]),
         random_state=int(config["reproduction"]["seed_model"]),
-        activation=str(model_cfg["activation"]),
-        solver=str(model_cfg["solver"]),
+        activation=str(sklearn_cfg["activation"]),
+        solver=str(sklearn_cfg["solver"]),
     )
 
 
@@ -132,7 +144,10 @@ def _partial_fit_clone(
     y_update: pd.Series,
 ) -> MLPClassifier:
     clone = copy.deepcopy(clf)
-    clone.partial_fit(X_update.to_numpy(dtype=np.float64), y_update.to_numpy(dtype=np.int64))
+    clone.partial_fit(
+        X_update.to_numpy(dtype=np.float64),
+        y_update.to_numpy(dtype=np.int64),
+    )
     return clone
 
 
@@ -188,28 +203,20 @@ def _compute_delta_e_notebook_style(
 
 def _sklearn_to_benchmark_mlp(
     clf: MLPClassifier,
+    model_cfg: dict,
     device: str,
-    seed: int,
-    learning_rate_init: float,
-    batch_size: int,
 ) -> MlpModel:
-    hidden_sizes = clf.hidden_layer_sizes
-    if isinstance(hidden_sizes, int):
-        layers = [int(hidden_sizes)]
-    else:
-        layers = [int(size) for size in hidden_sizes]
-
     model = MlpModel(
-        seed=seed,
+        seed=int(model_cfg["seed"]),
         device=device,
-        epochs=1,
-        learning_rate=learning_rate_init,
-        batch_size=batch_size,
-        layers=layers,
-        optimizer="adam",
-        criterion="bce",
-        output_activation="sigmoid",
-        save_name=None,
+        epochs=int(model_cfg["epochs"]),
+        learning_rate=float(model_cfg["learning_rate"]),
+        batch_size=int(model_cfg["batch_size"]),
+        layers=[int(value) for value in model_cfg["layers"]],
+        optimizer=str(model_cfg["optimizer"]),
+        criterion=str(model_cfg["criterion"]),
+        output_activation=str(model_cfg["output_activation"]),
+        save_name=model_cfg.get("save_name"),
     )
 
     model._class_to_index = {
@@ -264,11 +271,7 @@ def _compute_interval_lower_bound(
 ) -> float | None:
     bias_delta = float(delta) if use_biases else 0.0
     try:
-        model = Model("apas_interval_lower")
-        model.Params.OutputFlag = 0
-        model.Params.Threads = 1
-        if seed is not None:
-            model.Params.Seed = int(seed)
+        model = create_silent_gurobi_model("apas_interval_lower", seed=seed)
 
         previous_layer: list[float | object] = [float(value) for value in point.reshape(-1)]
 
@@ -462,20 +465,22 @@ def _evaluate_counterfactuals(
             l0_sum += _normalised_l0(counterfactual_array, factual)
             lof_sum += float(lof_model.predict(counterfactual_array.reshape(1, -1))[0])
 
-            retrained_prediction = int(_predict_label_indices(retrained_model, counterfactual_df)[0])
+            retrained_prediction = int(
+                _predict_label_indices(retrained_model, counterfactual_df)[0]
+            )
             if retrained_prediction != original_prediction:
                 vm2 += 1
 
     denominator = float(max(factuals.shape[0], 1))
-    vm1_denominator = float(max(vm1, 1))
+    valid_denominator = float(max(vm1, 1))
     return {
         "found": found / denominator,
         "vm1": vm1 / denominator,
         "vm2": vm2 / denominator,
         "delta_validity": delta_validity / denominator,
-        "l1": l1_sum / vm1_denominator if vm1 > 0 else float("nan"),
-        "l0": l0_sum / vm1_denominator if vm1 > 0 else float("nan"),
-        "lof": lof_sum / vm1_denominator if vm1 > 0 else float("nan"),
+        "l1": l1_sum / valid_denominator if vm1 > 0 else float("nan"),
+        "l0": l0_sum / valid_denominator if vm1 > 0 else float("nan"),
+        "lof": lof_sum / valid_denominator if vm1 > 0 else float("nan"),
         "num_found": float(found),
         "num_valid": float(vm1),
     }
@@ -505,38 +510,33 @@ def _compute_reference_datasets(config: dict) -> dict[str, object]:
     )
 
     full_dataset = _make_frozen_dataset(dataset_template, scaled_df, "fullset")
-    d1_train_df = pd.concat([X1_train, y1_train], axis=1).loc[:, scaled_df.columns]
-    d1_train_dataset = _make_frozen_dataset(dataset_template, d1_train_df, "trainset")
-
     return {
-        "dataset_template": dataset_template,
-        "scaled_df": scaled_df,
         "full_dataset": full_dataset,
-        "feature_columns": feature_columns,
-        "target_column": target_column,
         "X1": X1.reset_index(drop=True),
         "y1": y1.reset_index(drop=True),
         "X2": X2.reset_index(drop=True),
         "y2": y2.reset_index(drop=True),
         "X1_train": X1_train.reset_index(drop=True),
         "y1_train": y1_train.reset_index(drop=True),
-        "X1_test": X1_test.reset_index(drop=True),
-        "y1_test": y1_test.reset_index(drop=True),
-        "d1_train_dataset": d1_train_dataset,
     }
 
 
-def _compare_against_targets(results: dict[str, float], targets: dict[str, float]) -> dict[str, float]:
-    comparison: dict[str, float] = {}
+def _compare_against_targets(
+    results: dict[str, float],
+    targets: dict[str, float],
+) -> list[tuple[str, float, float, float]]:
+    rows: list[tuple[str, float, float, float]] = []
     for key, target_value in targets.items():
         if key not in results:
             continue
-        comparison[f"{key}_abs_diff"] = float(abs(results[key] - float(target_value)))
-    return comparison
+        reproduced = float(results[key])
+        target = float(target_value)
+        rows.append((key, target, reproduced, abs(reproduced - target)))
+    return rows
 
 
 def run_reproduction(config: dict) -> dict[str, object]:
-    device = _resolve_device(config["model"]["device"])
+    device = _resolve_runtime_device(config)
     datasets = _compute_reference_datasets(config)
 
     sklearn_base = _build_reference_classifier(config)
@@ -565,20 +565,17 @@ def run_reproduction(config: dict) -> dict[str, object]:
 
     base_model = _sklearn_to_benchmark_mlp(
         clf=sklearn_base,
+        model_cfg=config["model"],
         device=device,
-        seed=int(config["reproduction"]["seed_model"]),
-        learning_rate_init=float(config["model"]["learning_rate_init"]),
-        batch_size=int(config["model"]["batch_size"]),
     )
     retrained_model = _sklearn_to_benchmark_mlp(
         clf=sklearn_retrained,
+        model_cfg=config["model"],
         device=device,
-        seed=int(config["reproduction"]["seed_model"]),
-        learning_rate_init=float(config["model"]["learning_rate_init"]),
-        batch_size=int(config["model"]["batch_size"]),
     )
 
-    desired_class = int(config["apas"]["desired_class"])
+    method_cfg = copy.deepcopy(config["method"])
+    desired_class = int(method_cfg["desired_class"])
     candidate_factuals = _select_reference_test_instances(
         base_model=base_model,
         X1=datasets["X1"],
@@ -590,35 +587,28 @@ def run_reproduction(config: dict) -> dict[str, object]:
         base_model=base_model,
         candidate_factuals=candidate_factuals,
         delta_min=delta_min,
-        big_m=float(config["apas"]["big_m"]),
-        use_biases=bool(config["apas"]["use_biases"]),
+        big_m=float(method_cfg["big_m"]),
+        use_biases=bool(method_cfg["use_biases"]),
     )
-    num_sound_instances = int(config["reproduction"]["num_sound_instances"])
-    final_positions = sound_positions[:num_sound_instances]
-    if len(final_positions) < num_sound_instances:
+
+    final_count = int(config["reproduction"]["num_sound_instances"])
+    final_positions = sound_positions[:final_count]
+    if len(final_positions) < final_count:
         raise ValueError(
-            f"Expected at least {num_sound_instances} sound factuals, found {len(final_positions)}"
+            f"Expected at least {final_count} sound factuals, found {len(final_positions)}"
         )
     factuals = candidate_factuals.iloc[final_positions].reset_index(drop=True)
 
-    apas_delta = delta_min if str(config["apas"]["delta_source"]).lower() == "delta_min" else float(config["apas"]["delta"])
-    apas_method = ApasMethod(
-        target_model=base_model,
-        seed=int(config["reproduction"]["seed_model"]),
-        device=device,
-        desired_class=desired_class,
-        delta=apas_delta,
-        alpha=float(config["apas"]["alpha"]),
-        r=float(config["apas"]["r"]),
-        delta_init=float(config["apas"]["delta_init"]),
-        num_concretizations=int(config["apas"]["num_concretizations"]),
-        eps_init=float(config["apas"]["eps_init"]),
-        eps_step=float(config["apas"]["eps_step"]),
-        max_iter=int(config["apas"]["max_iter"]),
-        big_m=float(config["apas"]["big_m"]),
-        use_biases=bool(config["apas"]["use_biases"]),
-        rounding=config["apas"]["rounding"],
-    )
+    delta_source = str(config["reproduction"]["delta_source"]).lower()
+    if delta_source == "delta_min":
+        method_cfg["delta"] = float(delta_min)
+    elif method_cfg.get("delta") is None:
+        raise ValueError("method.delta must be set when reproduction.delta_source is not 'delta_min'")
+
+    method_cfg.pop("name", None)
+    method_cfg["device"] = device
+
+    apas_method = ApasMethod(target_model=base_model, **method_cfg)
     apas_method.fit(datasets["full_dataset"])
     counterfactuals = apas_method.get_counterfactuals(factuals)
 
@@ -632,11 +622,12 @@ def run_reproduction(config: dict) -> dict[str, object]:
         retrained_model=retrained_model,
         delta_min=delta_min,
         desired_class=desired_class,
-        big_m=float(config["apas"]["big_m"]),
-        use_biases=bool(config["apas"]["use_biases"]),
+        big_m=float(config["method"]["big_m"]),
+        use_biases=bool(config["method"]["use_biases"]),
         lof_model=lof_model,
     )
 
+    targets = config["reproduction"]["targets"]
     results = {
         "device": device,
         "d1_size": int(datasets["X1"].shape[0]),
@@ -648,19 +639,79 @@ def run_reproduction(config: dict) -> dict[str, object]:
         "delta": float(delta_min),
         "delta_min": float(delta_min),
         "delta_max": float(delta_max_reference),
-        "delta_max_reference": float(delta_max_reference),
         "delta_e": float(delta_e),
         **metric_results,
     }
 
-    comparison = {
-        "notebook": _compare_against_targets(results, config["targets"]["notebook"]),
-        "paper": _compare_against_targets(results, config["targets"]["paper"]),
-    }
     return {
         "results": results,
-        "comparison": comparison,
+        "notebook_comparison": _compare_against_targets(results, targets["notebook"]),
+        "paper_comparison": _compare_against_targets(results, targets["paper"]),
     }
+
+
+def _format_value(value: float | int) -> str:
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        return f"{value:.12f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _print_comparison_table(
+    title: str,
+    rows: list[tuple[str, float, float, float]],
+) -> None:
+    if not rows:
+        return
+
+    print(title)
+    print(f"{'Metric':<18} {'Target':>16} {'Reproduced':>16} {'Abs Diff':>16}")
+    for metric, target, reproduced, difference in rows:
+        print(
+            f"{metric:<18} "
+            f"{_format_value(target):>16} "
+            f"{_format_value(reproduced):>16} "
+            f"{_format_value(difference):>16}"
+        )
+    print()
+
+
+def _print_report(config: dict, output: dict[str, object]) -> None:
+    results = output["results"]
+
+    print(f"Experiment: {config['name']}")
+    print("Execution Path: notebook-faithful APAS diabetes reproduction")
+    print(f"Device: {results['device']}")
+    print(f"D1 size: {results['d1_size']}")
+    print(f"D2 size: {results['d2_size']}")
+    print(f"Candidate factuals: {results['candidate_factuals']}")
+    print(
+        "Sound factuals: "
+        f"{results['sound_count']} / {results['candidate_factuals']} "
+        f"({_format_value(results['sound_fraction'])})"
+    )
+    print(f"Evaluated factuals: {results['evaluated_factuals']}")
+    print()
+
+    print("Metrics")
+    for label, key in [
+        ("delta_min", "delta_min"),
+        ("delta_max", "delta_max"),
+        ("delta_e", "delta_e"),
+        ("found", "found"),
+        ("VM1", "vm1"),
+        ("VM2", "vm2"),
+        ("delta_validity", "delta_validity"),
+        ("L1", "l1"),
+        ("L0", "l0"),
+        ("LOF", "lof"),
+    ]:
+        print(f"  {label:<16} {_format_value(results[key])}")
+    print()
+
+    _print_comparison_table("Notebook Comparison", output["notebook_comparison"])
+    _print_comparison_table("Paper Comparison", output["paper_comparison"])
 
 
 def main() -> None:
@@ -674,7 +725,7 @@ def main() -> None:
     config_path = (PROJECT_ROOT / args.config).resolve()
     config = _load_config(config_path)
     output = run_reproduction(config)
-    print(json.dumps(output, indent=2, sort_keys=True))
+    _print_report(config, output)
 
 
 if __name__ == "__main__":
