@@ -1,0 +1,38 @@
+name: compas_carla_arg_ensembling
+target_column: score
+feature_order:
+  - age
+  - two_year_recid
+  - priors_count
+  - length_of_stay
+  - c_charge_degree_M
+  - race_Other
+  - sex_Male
+  - score
+raw_feature_type:
+  age: numerical
+  two_year_recid: numerical
+  priors_count: numerical
+  length_of_stay: numerical
+  c_charge_degree_M: binary
+  race_Other: binary
+  sex_Male: binary
+  score: binary
+raw_feature_mutability:
+  age: true
+  two_year_recid: true
+  priors_count: true
+  length_of_stay: true
+  c_charge_degree_M: true
+  race_Other: true
+  sex_Male: true
+  score: false
+raw_feature_actionability:
+  age: same-or-increase
+  two_year_recid: same-or-increase
+  priors_count: same-or-increase
+  length_of_stay: same-or-increase
+  c_charge_degree_M: any
+  race_Other: any
+  sex_Male: any
+  score: none

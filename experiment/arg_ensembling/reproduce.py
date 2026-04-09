@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import argparse
-import json
+import math
 import sys
-import time
-from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -16,684 +15,545 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
 from tqdm import tqdm
 
-from evaluation.distance import DistanceEvaluation
-from experiment import Experiment
+from dataset.compas_carla.compas_carla_arg_ensembling import (
+    CompasCarlaArgEnsemblingDataset,
+)
+from dataset.dataset_object import DatasetObject
 from method.arg_ensembling.support import (
     build_baf_program,
-    build_model_adapters,
     nearest_neighbor_counterfactual,
-    predict_label_indices,
-    solve_largest_extension_partitioned,
+    solve_argumentative_extension,
 )
 from model.model_object import ModelObject
-from utils.seed import seed_context
-from utils.registry import get_registry
 
 
-@dataclass
-class StrategyRow:
-    dataset: str
-    ensemble_size: int
-    repeat: int
-    strategy: str
-    avg_model_accuracy: float
-    aggregated_accuracy: float
-    non_emptiness_rate: float
-    model_agreement_rate: float
-    counterfactual_validity_rate: float
-    counterfactual_coherence_rate: float
-    distance_l0: float
-    distance_l1: float
-    distance_l2: float
-    distance_linf: float
-    avg_runtime_sec: float
-    factual_count: int
+@dataclass(frozen=True)
+class PoolEntry:
+    model: "SklearnMlpModel"
+    accuracy: float
+    simplicity: float
+    train_predictions: np.ndarray
+
+
+class SklearnMlpModel(ModelObject):
+    def __init__(
+        self,
+        hidden_layer_sizes: tuple[int, ...],
+        random_state: int,
+        learning_rate: str = "adaptive",
+        batch_size: int = 64,
+        learning_rate_init: float = 0.02,
+        max_iter: int = 200,
+        device: str = "cpu",
+        **kwargs,
+    ):
+        self._model = MLPClassifier(
+            hidden_layer_sizes=hidden_layer_sizes,
+            random_state=random_state,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            learning_rate_init=learning_rate_init,
+            max_iter=max_iter,
+        )
+        self._seed = random_state
+        self._device = device.lower()
+        self._need_grad = False
+        self._is_trained = False
+        self._class_to_index = None
+
+    def fit(self, trainset: DatasetObject | None):
+        if trainset is None:
+            raise ValueError("trainset is required for SklearnMlpModel.fit()")
+        X = trainset.get(target=False)
+        y = trainset.get(target=True).iloc[:, 0]
+        self.fit_frames(X, y)
+
+    def fit_frames(self, X: pd.DataFrame, y: pd.Series | np.ndarray):
+        labels = pd.Series(np.asarray(y).reshape(-1))
+        self._model.fit(X.to_numpy(dtype=np.float64), labels.to_numpy())
+        classes = list(self._model.classes_)
+        normalized_classes: list[int | str] = []
+        for value in classes:
+            if isinstance(value, (int, np.integer)):
+                normalized_classes.append(int(value))
+            elif isinstance(value, (float, np.floating)) and float(value).is_integer():
+                normalized_classes.append(int(value))
+            else:
+                normalized_classes.append(str(value))
+        self._class_to_index = {
+            class_value: index for index, class_value in enumerate(normalized_classes)
+        }
+        self._is_trained = True
+
+    def get_prediction(self, X: pd.DataFrame, proba: bool = True) -> torch.Tensor:
+        if not self._is_trained:
+            raise RuntimeError("Target model is not trained")
+        probabilities = torch.tensor(
+            self._model.predict_proba(X.to_numpy(dtype=np.float64)),
+            dtype=torch.float32,
+        )
+        if proba:
+            return probabilities
+        indices = probabilities.argmax(dim=1)
+        return torch.nn.functional.one_hot(
+            indices, num_classes=probabilities.shape[1]
+        ).to(dtype=torch.float32)
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        raise TypeError("SklearnMlpModel.forward() is unavailable")
+
+    def predict_label_indices(self, X: pd.DataFrame) -> np.ndarray:
+        return self.get_prediction(X, proba=True).argmax(dim=1).detach().cpu().numpy()
 
 
 def _load_config(config_path: Path) -> dict:
     with config_path.open("r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-    if not isinstance(config, dict):
-        raise ValueError("Reproduction config must parse to a dictionary")
-    return config
+        return yaml.safe_load(file)
 
 
-def _resolve_device(preferred_device: str | None = None) -> str:
-    if preferred_device is not None:
-        preferred_device = str(preferred_device).lower()
-        if preferred_device == "cuda" and not torch.cuda.is_available():
-            return "cpu"
-        return preferred_device
-    return "cuda" if torch.cuda.is_available() else "cpu"
+def _normalize_hidden_layers(raw_sizes: list[list[int]]) -> list[tuple[int, ...]]:
+    return [tuple(int(value) for value in sizes) for sizes in raw_sizes]
 
 
-def _build_base_experiment_config(dataset_name: str, settings: dict, device: str) -> dict:
-    seed = int(settings.get("seed", 7))
-    sample = settings.get("sample")
-    preprocess_cfg: list[dict[str, object]] = [
-        {
-            "name": "scale",
-            "seed": seed,
-            "scaling": str(settings.get("scaling", "standardize")),
-            "range": True,
-        },
-        {
-            "name": "encode",
-            "seed": seed,
-            "encoding": str(settings.get("encoding", "onehot")),
-        },
-        {
-            "name": "split",
-            "seed": seed,
-            "split": float(settings.get("test_split", 0.2)),
-        },
-    ]
-    if sample is not None:
-        preprocess_cfg[-1]["sample"] = int(sample)
-
-    return {
-        "name": f"{dataset_name}_arg_ensembling_reproduce",
-        "logger": {"level": "ERROR"},
-        "caching": {"path": "./cache/"},
-        "dataset": {"name": dataset_name},
-        "preprocess": preprocess_cfg,
-        "model": {
-            "name": str(settings.get("model_name", "mlp")).lower(),
-            "seed": seed,
-            "device": device,
-            "epochs": int(settings["epochs"]),
-            "learning_rate": float(settings["learning_rate"]),
-            "batch_size": int(settings["batch_size"]),
-            "optimizer": str(settings.get("optimizer", "adam")).lower(),
-            "criterion": str(settings.get("criterion", "cross_entropy")).lower(),
-            "output_activation": str(
-                settings.get("output_activation", "softmax")
-            ).lower(),
-            "layers": [int(value) for value in settings["layers"]],
-        },
-        "method": {
-            "name": "arg_ensembling",
-            "seed": seed,
-            "device": device,
-            "desired_class": settings.get("desired_class"),
-        },
-        "evaluation": [{"name": "validity"}, {"name": "distance"}],
-    }
+def _normalize_table_targets(raw_targets: dict) -> dict[str, dict[int, dict[str, float]]]:
+    normalized: dict[str, dict[int, dict[str, float]]] = {}
+    for method_name, size_map in raw_targets.items():
+        normalized[method_name] = {}
+        for size, values in size_map.items():
+            normalized[method_name][int(size)] = {
+                "acc": float(values["acc"]),
+                "simp": float(values["simp"]),
+            }
+    return normalized
 
 
-def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
-    datasets = [experiment._raw_dataset]
-    for preprocess_step in experiment._preprocess:
-        next_datasets = []
-        for current_dataset in datasets:
-            transformed = preprocess_step.transform(current_dataset)
-            if isinstance(transformed, tuple):
-                next_datasets.extend(list(transformed))
-            else:
-                next_datasets.append(transformed)
-        datasets = next_datasets
-    return experiment._resolve_train_test(datasets)
+def _load_compas_dataset(config: dict) -> tuple[pd.DataFrame, pd.Series]:
+    dataset_cfg = config["dataset"]
+    dataset = CompasCarlaArgEnsemblingDataset(path=dataset_cfg["path"])
+    dataset.freeze()
+    feature_frame = dataset.get(target=False)
+    target_series = dataset.get(target=True).iloc[:, 0].astype(int)
+    return feature_frame, target_series
 
 
-def _build_model_pool(
-    trainset,
-    testset,
-    model_cfg: dict,
-    pool_size: int,
-    model_seeds: list[int],
-) -> tuple[list[ModelObject], list[float]]:
-    if len(model_seeds) < pool_size:
-        raise ValueError("model_seeds must contain at least pool_size entries")
-
-    model_pool: list[ModelObject] = []
-    accuracies: list[float] = []
-
-    model_registry = get_registry("TargetModel")
-    model_name = str(model_cfg["name"])
-    model_class = model_registry[model_name]
-
-    for index in range(pool_size):
-        current_cfg = deepcopy(model_cfg)
-        current_cfg["seed"] = int(model_seeds[index])
-        current_cfg["save_name"] = None
-        model = model_class(**current_cfg)
-        model.fit(trainset)
-        probabilities = model.predict_proba(testset).detach().cpu()
-        prediction = probabilities.argmax(dim=1).numpy()
-        target = testset.get(target=True).iloc[:, 0]
-        class_to_index = model.get_class_to_index()
-        encoded_target = np.asarray(
-            [
-                class_to_index[int(value)]
-                if isinstance(value, (float, np.floating)) and float(value).is_integer()
-                else class_to_index[value]
-                for value in target.tolist()
-            ],
-            dtype=np.int64,
-        )
-        accuracy = float((prediction == encoded_target).mean())
-        model_pool.append(model)
-        accuracies.append(accuracy)
-
-    return model_pool, accuracies
-
-
-def _build_counterfactual_dataset(
-    factuals,
-    feature_frame: pd.DataFrame,
-    evaluation_mask: pd.Series | None = None,
-):
-    target_column = factuals.target_column
-    counterfactual_target = pd.DataFrame(
-        -1.0,
-        index=feature_frame.index,
-        columns=[target_column],
+def _validate_against_reference(features: pd.DataFrame, target: pd.Series) -> None:
+    reference_x = pd.read_csv(
+        PROJECT_ROOT / "reference/argumentative_ensembling/data/compas_x.csv"
     )
-    counterfactual_df = pd.concat([feature_frame, counterfactual_target], axis=1)
-    counterfactual_df = counterfactual_df.reindex(columns=factuals.ordered_features())
+    reference_y = pd.read_csv(
+        PROJECT_ROOT / "reference/argumentative_ensembling/data/compas_y.csv"
+    ).iloc[:, 0]
 
-    output = factuals.clone()
-    output.update("counterfactual", True, df=counterfactual_df)
-    if evaluation_mask is not None:
-        output.update(
-            "evaluation_filter",
-            pd.DataFrame(
-                evaluation_mask.astype(bool), index=feature_frame.index, columns=["evaluation_filter"]
-            ),
-        )
-    output.freeze()
-    return output
+    if list(features.columns) != list(reference_x.columns):
+        raise ValueError("Local COMPAS variant columns do not match the reference data")
+    if features.shape != reference_x.shape:
+        raise ValueError("Local COMPAS variant shape does not match the reference data")
+    if target.shape[0] != reference_y.shape[0]:
+        raise ValueError("Local COMPAS variant target shape does not match the reference data")
+    if not np.allclose(features.to_numpy(dtype=np.float64), reference_x.to_numpy(dtype=np.float64)):
+        raise ValueError("Local COMPAS variant features do not match the reference data")
+    if not np.allclose(target.to_numpy(dtype=np.float64), reference_y.to_numpy(dtype=np.float64)):
+        raise ValueError("Local COMPAS variant target does not match the reference data")
 
 
-def _select_recourse_factuals(
-    primary_model: ModelObject,
-    testset,
-    desired_class: int | None,
-):
-    if desired_class is None:
-        return testset
+def _select_eval_subset(
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    max_test_points: int,
+    seed: int,
+) -> tuple[pd.DataFrame, pd.Series]:
+    if len(X_test) <= max_test_points:
+        return X_test.reset_index(drop=True), y_test.reset_index(drop=True)
 
-    class_to_index = primary_model.get_class_to_index()
-    desired_index = int(class_to_index[desired_class])
-    prediction = primary_model.predict(testset).argmax(dim=1).detach().cpu().numpy()
-    feature_frame = testset.get(target=False)
-    target_frame = testset.get(target=True)
-    keep_mask = pd.Series(prediction != desired_index, index=feature_frame.index, dtype=bool)
-
-    filtered = testset.clone()
-    filtered_df = pd.concat([feature_frame, target_frame], axis=1).loc[keep_mask].copy(
-        deep=True
+    rng = np.random.default_rng(seed)
+    indices = rng.choice(len(X_test), size=max_test_points, replace=False)
+    return (
+        X_test.iloc[indices].reset_index(drop=True),
+        y_test.iloc[indices].reset_index(drop=True),
     )
-    filtered.update("testset", True, df=filtered_df)
-    filtered.freeze()
-    return filtered
 
 
-def _resolve_target_index(model: ModelObject, desired_class: int) -> int:
-    return int(model.get_class_to_index()[desired_class])
+def _train_model_pool(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    hidden_layer_sizes: list[tuple[int, ...]],
+    simplicity_scores: list[float],
+    pool_target_size: int,
+    inner_split: float,
+    sklearn_cfg: dict,
+    seed: int,
+) -> list[PoolEntry]:
+    pool: list[PoolEntry] = []
+    candidate_seed = 0
+    rng = np.random.default_rng(seed)
+
+    progress = tqdm(total=pool_target_size, desc="train-model-pool", leave=False)
+    while len(pool) < pool_target_size:
+        X_inner_train, _, y_inner_train, _ = train_test_split(
+            X_train,
+            y_train,
+            test_size=inner_split,
+            random_state=2 * candidate_seed + 15,
+            shuffle=True,
+        )
+
+        size_index = int(rng.integers(0, len(hidden_layer_sizes)))
+        hidden_size = hidden_layer_sizes[size_index]
+        model = SklearnMlpModel(
+            hidden_layer_sizes=hidden_size,
+            random_state=3 * candidate_seed + 21,
+            learning_rate=str(sklearn_cfg["learning_rate"]),
+            batch_size=int(sklearn_cfg["batch_size"]),
+            learning_rate_init=float(sklearn_cfg["learning_rate_init"]),
+            max_iter=int(sklearn_cfg["max_iter"]),
+        )
+        model.fit_frames(X_inner_train, y_inner_train)
+        outer_predictions = model.predict_label_indices(X_test)
+        candidate_seed += 12
+
+        if len(np.unique(outer_predictions)) == 1:
+            continue
+
+        accuracy = float(accuracy_score(y_test.to_numpy(), outer_predictions))
+        train_predictions = model.predict_label_indices(X_train)
+        pool.append(
+            PoolEntry(
+                model=model,
+                accuracy=accuracy,
+                simplicity=float(simplicity_scores[size_index]),
+                train_predictions=train_predictions,
+            )
+        )
+        progress.update(1)
+    progress.close()
+    return pool
 
 
-def _compute_candidate_frame(
+def _majority_vote(predictions: np.ndarray) -> tuple[int, list[int]]:
+    labels, counts = np.unique(predictions, return_counts=True)
+    selected_label = int(labels[np.argpartition(counts, -1)[-1]])
+    selected_indices = np.where(predictions == selected_label)[0].tolist()
+    return selected_label, selected_indices
+
+
+def _build_candidate_frame(
     factual: pd.Series,
     train_features: pd.DataFrame,
-    train_prediction_indices: list[np.ndarray],
+    pool_entries: Sequence[PoolEntry],
     factual_predictions: np.ndarray,
-    feature_names: list[str],
-    desired_index: int | None,
-) -> pd.DataFrame:
+    desired_prediction: int | None = None,
+) -> pd.DataFrame | None:
     candidate_rows: list[pd.Series] = []
-    for model_index, train_predictions in enumerate(train_prediction_indices):
+    for model_index, entry in enumerate(pool_entries):
         candidate = nearest_neighbor_counterfactual(
             factual=factual,
             train_features=train_features,
-            train_predictions=train_predictions,
+            train_predictions=entry.train_predictions,
             original_prediction=int(factual_predictions[model_index]),
-            desired_prediction=desired_index,
+            desired_prediction=desired_prediction,
         )
         if candidate is None:
-            candidate_rows.append(pd.Series(np.nan, index=feature_names))
-        else:
-            candidate_rows.append(candidate.reindex(feature_names))
-    return pd.DataFrame(candidate_rows, columns=feature_names)
+            return None
+        candidate_rows.append(candidate.reindex(train_features.columns))
+    return pd.DataFrame(candidate_rows, columns=train_features.columns)
 
 
-def _naive_majority_indices(factual_predictions: np.ndarray) -> list[int]:
-    if factual_predictions.size == 0:
-        return []
-    values, counts = np.unique(factual_predictions, return_counts=True)
-    majority_value = int(values[np.argmax(counts)])
-    return [
-        index
-        for index, prediction in enumerate(factual_predictions.tolist())
-        if int(prediction) == majority_value
-    ]
-
-
-def _all_selected_valid(
-    selected_model_indices: list[int],
-    selected_ce_indices: list[int],
-    factual_predictions: np.ndarray,
-    candidate_predictions: np.ndarray,
-) -> bool:
-    for model_index in selected_model_indices:
-        for ce_index in selected_ce_indices:
-            if int(candidate_predictions[model_index, ce_index]) == int(
-                factual_predictions[model_index]
-            ):
-                return False
-    return True
-
-
-def _coherent_pairing(
-    selected_model_indices: list[int], selected_ce_indices: list[int], num_models: int
-) -> bool:
-    selected_models = set(int(index) for index in selected_model_indices)
-    selected_ces = set(int(index) for index in selected_ce_indices)
-    return all((index in selected_models) == (index in selected_ces) for index in range(num_models))
-
-
-def _agreement(selected_model_indices: list[int], factual_predictions: np.ndarray) -> bool:
-    if not selected_model_indices:
-        return False
-    labels = {int(factual_predictions[index]) for index in selected_model_indices}
-    return len(labels) == 1
-
-
-def _build_strategy_counterfactuals(
-    strategy: str,
+def _predict_candidate_matrix(
+    pool_entries: Sequence[PoolEntry],
     candidate_frame: pd.DataFrame,
-    selected_ce_indices: list[int],
-    factual_feature_frame: pd.DataFrame,
-) -> pd.Series:
-    feature_names = list(factual_feature_frame.columns)
-    if not selected_ce_indices:
-        return pd.Series(np.nan, index=feature_names)
-
-    valid_indices = [
-        int(index)
-        for index in selected_ce_indices
-        if 0 <= int(index) < candidate_frame.shape[0]
-        and not candidate_frame.iloc[int(index)].isna().any()
-    ]
-    if not valid_indices:
-        return pd.Series(np.nan, index=feature_names)
-
-    factual_values = factual_feature_frame.iloc[0].to_numpy(dtype=np.float64, copy=False)
-    best_index = min(
-        valid_indices,
-        key=lambda index: (
-            float(
-                np.linalg.norm(
-                    candidate_frame.iloc[index].to_numpy(dtype=np.float64, copy=False)
-                    - factual_values
-                )
-            ),
-            index,
-        ),
-    )
-    return candidate_frame.iloc[best_index].reindex(feature_names).copy(deep=True)
-
-
-def _evaluate_strategy(
-    strategy: str,
-    factuals,
-    chosen_counterfactual_rows: list[pd.Series],
-    desired_class: int | None,
-) -> tuple[float, float, float, float, float]:
-    feature_names = list(factuals.get(target=False).columns)
-    candidate_frame = pd.DataFrame(
-        chosen_counterfactual_rows,
-        index=factuals.get(target=False).index,
-        columns=feature_names,
-    )
-    evaluation_mask = pd.Series(True, index=candidate_frame.index, dtype=bool)
-    counterfactuals = _build_counterfactual_dataset(
-        factuals=factuals,
-        feature_frame=candidate_frame,
-        evaluation_mask=evaluation_mask,
-    )
-    distance_metrics = DistanceEvaluation().evaluate(factuals, counterfactuals)
-    return (
-        float(distance_metrics["distance_l0"].iloc[0]),
-        float(distance_metrics["distance_l1"].iloc[0]),
-        float(distance_metrics["distance_l2"].iloc[0]),
-        float(distance_metrics["distance_linf"].iloc[0]),
-        float((~candidate_frame.isna().any(axis=1)).mean()),
+) -> np.ndarray:
+    return np.vstack(
+        [entry.model.predict_label_indices(candidate_frame) for entry in pool_entries]
     )
 
 
-def _run_repeat(
-    dataset_name: str,
-    ensemble_size: int,
-    repeat: int,
-    model_pool: list[ModelObject],
-    model_accuracies: list[float],
-    trainset,
-    factuals,
-    desired_class: int | None,
-    seed: int,
-) -> list[StrategyRow]:
-    with seed_context(seed + repeat * 1000 + ensemble_size):
-        selected_indices = np.random.choice(
-            len(model_pool), size=ensemble_size, replace=False
-        ).tolist()
-
-    selected_models = [model_pool[index] for index in selected_indices]
-    selected_accuracies = [model_accuracies[index] for index in selected_indices]
-    method_cfg = {
-        "target_model": selected_models[0],
-        "seed": seed + repeat,
-        "device": selected_models[0]._device,
-        "desired_class": desired_class,
-        "ensemble_models": selected_models[1:],
+def _evaluate_avg_row(pool_entries: Sequence[PoolEntry]) -> dict[str, float]:
+    return {
+        "acc": float(np.mean([entry.accuracy for entry in pool_entries])),
+        "simp": float(np.mean([entry.simplicity for entry in pool_entries])),
     }
-    from method.arg_ensembling.arg_ensembling import ArgEnsemblingMethod
 
-    method = ArgEnsemblingMethod(**method_cfg)
-    method.fit(trainset)
 
-    feature_names = list(method._feature_names)
-    factual_features = factuals.get(target=False).loc[:, feature_names].copy(deep=True)
-    target_values = factuals.get(target=True).iloc[:, 0].astype(int)
-    adapters = method._model_adapters
-    desired_index = None if method._desired_index is None else int(method._desired_index)
+def _evaluate_majority_baseline(
+    X_eval: pd.DataFrame,
+    y_eval: pd.Series,
+    pool_entries: Sequence[PoolEntry],
+) -> dict[str, float]:
+    predictions = np.zeros(len(X_eval), dtype=np.int64)
+    simplicity_total = 0.0
 
-    strategy_names = ["sn", "sv", "sas"]
-    property_flags = {
-        name: {
-            "non_emptiness": [],
-            "model_agreement": [],
-            "counterfactual_validity": [],
-            "counterfactual_coherence": [],
-            "aggregated_accuracy": [],
-            "runtime_sec": [],
-        }
-        for name in strategy_names
-    }
-    chosen_rows = {name: [] for name in strategy_names}
-
-    factual_iterator = tqdm(
-        factual_features.iterrows(),
-        total=factual_features.shape[0],
-        desc=f"{dataset_name}|M|={ensemble_size}|rep={repeat}",
-        leave=False,
-    )
-    for row_index, factual in factual_iterator:
-        factual_df = factual.to_frame().T.reindex(columns=feature_names)
-        factual_predictions = np.array(
-            [int(predict_label_indices(adapter, factual_df)[0]) for adapter in adapters],
+    for row_index, (_, row) in enumerate(X_eval.iterrows()):
+        factual_frame = row.to_frame().T.reindex(columns=X_eval.columns)
+        factual_predictions = np.asarray(
+            [entry.model.predict_label_indices(factual_frame)[0] for entry in pool_entries],
             dtype=np.int64,
         )
+        label, model_indices = _majority_vote(factual_predictions)
+        predictions[row_index] = label
+        simplicity_total += float(
+            np.mean([pool_entries[index].simplicity for index in model_indices])
+        )
 
-        candidate_frame = _compute_candidate_frame(
-            factual=factual,
-            train_features=method._train_features,
-            train_prediction_indices=method._train_prediction_indices,
+    return {
+        "acc": float(accuracy_score(y_eval.to_numpy(dtype=np.int64), predictions)),
+        "simp": float(simplicity_total / len(X_eval)),
+    }
+
+
+def _evaluate_argumentative_method(
+    X_eval: pd.DataFrame,
+    y_eval: pd.Series,
+    train_features: pd.DataFrame,
+    pool_entries: Sequence[PoolEntry],
+    semantics: str,
+    preference_mode: str,
+) -> dict[str, float]:
+    predictions = np.zeros(len(X_eval), dtype=np.int64)
+    simplicity_total = 0.0
+    success_count = 0
+
+    accuracy_scores = np.asarray([entry.accuracy for entry in pool_entries], dtype=np.float64)
+    simplicity_scores = np.asarray(
+        [entry.simplicity for entry in pool_entries],
+        dtype=np.float64,
+    )
+
+    for row_index, (_, row) in enumerate(X_eval.iterrows()):
+        factual_frame = row.to_frame().T.reindex(columns=X_eval.columns)
+        factual_predictions = np.asarray(
+            [entry.model.predict_label_indices(factual_frame)[0] for entry in pool_entries],
+            dtype=np.int64,
+        )
+        majority_label, _ = _majority_vote(factual_predictions)
+        candidate_frame = _build_candidate_frame(
+            factual=row,
+            train_features=train_features,
+            pool_entries=pool_entries,
             factual_predictions=factual_predictions,
-            feature_names=feature_names,
-            desired_index=desired_index,
+            desired_prediction=None,
         )
-        candidate_predictions = np.vstack(
-            [predict_label_indices(adapter, candidate_frame) for adapter in adapters]
-        )
+        if candidate_frame is None:
+            predictions[row_index] = 0
+            continue
 
-        start_time = time.perf_counter()
-        sas_models, sas_ces = solve_largest_extension_partitioned(
+        candidate_predictions = _predict_candidate_matrix(pool_entries, candidate_frame)
+        extension = solve_argumentative_extension(
             build_baf_program(
                 factual_predictions=factual_predictions,
                 counterfactual_predictions=candidate_predictions,
-            )
+                accuracy_scores=accuracy_scores,
+                simplicity_scores=simplicity_scores,
+                semantics=semantics,
+                preference_mode=preference_mode,
+            ),
+            factual_predictions=factual_predictions,
         )
-        sas_runtime = time.perf_counter() - start_time
+        if extension is None or not extension.model_indices:
+            predictions[row_index] = 0
+            continue
 
-        majority_indices = _naive_majority_indices(factual_predictions)
-        sv_ce_indices = [
-            index
-            for index in majority_indices
-            if not candidate_frame.iloc[index].isna().any()
-            and all(
-                int(candidate_predictions[model_index, index]) != int(factual_predictions[model_index])
-                for model_index in majority_indices
-            )
-        ]
+        selected_predictions = factual_predictions[extension.model_indices]
+        label, _ = _majority_vote(selected_predictions)
+        predictions[row_index] = label
+        simplicity_total += float(np.mean(simplicity_scores[extension.model_indices]))
+        success_count += 1
 
-        selected = {
-            "sn": (majority_indices, list(majority_indices), 0.0),
-            "sv": (majority_indices, sv_ce_indices, 0.0),
-            "sas": (list(sas_models), list(sas_ces), sas_runtime),
-        }
-
-        for strategy_name, (selected_model_indices, selected_ce_indices, runtime_sec) in selected.items():
-            non_empty = bool(selected_model_indices) and bool(selected_ce_indices)
-            agreement = _agreement(selected_model_indices, factual_predictions)
-            validity = _all_selected_valid(
-                selected_model_indices,
-                selected_ce_indices,
-                factual_predictions,
-                candidate_predictions,
-            )
-            coherence = _coherent_pairing(
-                selected_model_indices, selected_ce_indices, len(selected_models)
-            )
-
-            if agreement and selected_model_indices:
-                aggregated_label = int(factual_predictions[selected_model_indices[0]])
-                aggregated_accuracy = float(aggregated_label == int(target_values.loc[row_index]))
-            else:
-                aggregated_accuracy = 0.0
-
-            property_flags[strategy_name]["non_emptiness"].append(float(non_empty))
-            property_flags[strategy_name]["model_agreement"].append(float(agreement))
-            property_flags[strategy_name]["counterfactual_validity"].append(float(validity))
-            property_flags[strategy_name]["counterfactual_coherence"].append(float(coherence))
-            property_flags[strategy_name]["aggregated_accuracy"].append(float(aggregated_accuracy))
-            property_flags[strategy_name]["runtime_sec"].append(float(runtime_sec))
-            chosen_rows[strategy_name].append(
-                _build_strategy_counterfactuals(
-                    strategy_name,
-                    candidate_frame,
-                    selected_ce_indices,
-                    factual_df,
-                )
-            )
-
-    rows: list[StrategyRow] = []
-    avg_model_accuracy = float(np.mean(selected_accuracies))
-    for strategy_name in strategy_names:
-        distance_l0, distance_l1, distance_l2, distance_linf, _ = _evaluate_strategy(
-            strategy_name,
-            factuals,
-            chosen_rows[strategy_name],
-            desired_class,
-        )
-        rows.append(
-            StrategyRow(
-                dataset=dataset_name,
-                ensemble_size=ensemble_size,
-                repeat=repeat,
-                strategy=strategy_name,
-                avg_model_accuracy=avg_model_accuracy,
-                aggregated_accuracy=float(
-                    np.mean(property_flags[strategy_name]["aggregated_accuracy"])
-                ),
-                non_emptiness_rate=float(
-                    np.mean(property_flags[strategy_name]["non_emptiness"])
-                ),
-                model_agreement_rate=float(
-                    np.mean(property_flags[strategy_name]["model_agreement"])
-                ),
-                counterfactual_validity_rate=float(
-                    np.mean(property_flags[strategy_name]["counterfactual_validity"])
-                ),
-                counterfactual_coherence_rate=float(
-                    np.mean(property_flags[strategy_name]["counterfactual_coherence"])
-                ),
-                distance_l0=distance_l0,
-                distance_l1=distance_l1,
-                distance_l2=distance_l2,
-                distance_linf=distance_linf,
-                avg_runtime_sec=float(np.mean(property_flags[strategy_name]["runtime_sec"])),
-                factual_count=int(factual_features.shape[0]),
-            )
-        )
-    return rows
+    return {
+        "acc": float(accuracy_score(y_eval.to_numpy(dtype=np.int64), predictions)),
+        "simp": (
+            float(simplicity_total / success_count)
+            if success_count > 0
+            else float("nan")
+        ),
+    }
 
 
-def _summarize_results(results: pd.DataFrame) -> dict[str, list[dict[str, object]]]:
-    summary: dict[str, list[dict[str, object]]] = {}
-    for dataset_name in sorted(results["dataset"].unique()):
-        dataset_df = results.loc[results["dataset"] == dataset_name].copy(deep=True)
+def _method_specs() -> list[tuple[str, str | None, str | None]]:
+    return [
+        ("avg", None, None),
+        ("Sn", None, None),
+        ("Sv", None, None),
+        ("Sa,d", "d", "none"),
+        ("Sa,d-A", "d", "accuracy"),
+        ("Sa,d-S", "d", "simplicity"),
+        ("Sa,d-AS", "d", "accuracy_simplicity"),
+        ("Sa,s", "s", "none"),
+        ("Sa,s-A", "s", "accuracy"),
+        ("Sa,s-S", "s", "simplicity"),
+        ("Sa,s-AS", "s", "accuracy_simplicity"),
+    ]
 
-        accuracy_table = (
-            dataset_df.pivot_table(
-                index="ensemble_size",
-                columns="strategy",
-                values="aggregated_accuracy",
-                aggfunc="mean",
-            )
-            .reset_index()
-            .rename_axis(columns=None)
-        )
-        model_accuracy = (
-            dataset_df.groupby("ensemble_size", as_index=False)["avg_model_accuracy"]
-            .mean()
-            .rename(columns={"avg_model_accuracy": "avg_model_accuracy"})
-        )
-        accuracy_table = accuracy_table.merge(model_accuracy, on="ensemble_size", how="left")
-        accuracy_table = accuracy_table.rename(
-            columns={
-                "sn": "Sn_accuracy",
-                "sv": "Sv_accuracy",
-                "sas": "Sa,s_accuracy",
-                "ensemble_size": "|M|",
+
+def _initialize_results(
+    table_targets: dict[str, dict[int, dict[str, float]]],
+    model_sizes: Sequence[int],
+) -> dict[str, dict[int, list[dict[str, float]]]]:
+    results: dict[str, dict[int, list[dict[str, float]]]] = {}
+    for method_name, size_map in table_targets.items():
+        results[method_name] = {int(size): [] for size in model_sizes}
+    return results
+
+
+def _aggregate_results(
+    results: dict[str, dict[int, list[dict[str, float]]]],
+) -> dict[str, dict[int, dict[str, float]]]:
+    aggregated: dict[str, dict[int, dict[str, float]]] = {}
+    for method_name, size_map in results.items():
+        aggregated[method_name] = {}
+        for model_size, values in size_map.items():
+            aggregated[method_name][model_size] = {
+                "acc": float(np.mean([item["acc"] for item in values])),
+                "simp": float(np.mean([item["simp"] for item in values])),
             }
-        )
-        accuracy_table = accuracy_table[
-            ["|M|", "avg_model_accuracy", "Sn_accuracy", "Sv_accuracy", "Sa,s_accuracy"]
-        ]
+    return aggregated
 
-        property_rows = []
-        for ensemble_size, size_df in dataset_df.groupby("ensemble_size"):
-            for strategy_name, label in [("sn", "Sn"), ("sv", "Sv"), ("sas", "Sa,s")]:
-                strategy_df = size_df.loc[size_df["strategy"] == strategy_name]
-                property_rows.append(
-                    {
-                        "|M|": int(ensemble_size),
-                        "strategy": label,
-                        "non_emptiness_rate": float(
-                            strategy_df["non_emptiness_rate"].mean()
-                        ),
-                        "model_agreement_rate": float(
-                            strategy_df["model_agreement_rate"].mean()
-                        ),
-                        "counterfactual_validity_rate": float(
-                            strategy_df["counterfactual_validity_rate"].mean()
-                        ),
-                        "counterfactual_coherence_rate": float(
-                            strategy_df["counterfactual_coherence_rate"].mean()
-                        ),
-                    }
+
+def _build_reproduced_table(
+    aggregated: dict[str, dict[int, dict[str, float]]],
+    model_sizes: list[int],
+) -> pd.DataFrame:
+    rows = []
+    for method_name, size_map in aggregated.items():
+        row: dict[str, object] = {"Method": method_name}
+        for model_size in model_sizes:
+            row[f"|M|={model_size} Acc"] = size_map[model_size]["acc"]
+            row[f"|M|={model_size} Simp"] = size_map[model_size]["simp"]
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _build_diff_table(
+    aggregated: dict[str, dict[int, dict[str, float]]],
+    targets: dict[str, dict[int, dict[str, float]]],
+    model_sizes: list[int],
+) -> pd.DataFrame:
+    rows = []
+    for method_name, size_map in aggregated.items():
+        row: dict[str, object] = {"Method": method_name}
+        for model_size in model_sizes:
+            if model_size not in targets.get(method_name, {}):
+                row[f"|M|={model_size} Acc"] = float("nan")
+                row[f"|M|={model_size} Simp"] = float("nan")
+                continue
+            row[f"|M|={model_size} Acc"] = abs(
+                size_map[model_size]["acc"] - targets[method_name][model_size]["acc"]
+            )
+            row[f"|M|={model_size} Simp"] = abs(
+                size_map[model_size]["simp"] - targets[method_name][model_size]["simp"]
+            )
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def run_reproduction(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
+    features, target = _load_compas_dataset(config)
+    _validate_against_reference(features, target)
+
+    reproduction_cfg = config["reproduction"]
+    hidden_layer_sizes = _normalize_hidden_layers(reproduction_cfg["hidden_layer_sizes"])
+    table_targets = _normalize_table_targets(reproduction_cfg["table4_targets"])
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        features,
+        target,
+        test_size=float(reproduction_cfg["outer_test_size"]),
+        random_state=int(reproduction_cfg["outer_split_random_state"]),
+    )
+    X_eval, y_eval = _select_eval_subset(
+        X_test,
+        y_test,
+        max_test_points=int(reproduction_cfg["max_test_points"]),
+        seed=int(reproduction_cfg["seed"]),
+    )
+
+    pool = _train_model_pool(
+        X_train=X_train.reset_index(drop=True),
+        y_train=y_train.reset_index(drop=True),
+        X_test=X_test.reset_index(drop=True),
+        y_test=y_test.reset_index(drop=True),
+        hidden_layer_sizes=hidden_layer_sizes,
+        simplicity_scores=[float(value) for value in reproduction_cfg["simplicity_scores"]],
+        pool_target_size=int(reproduction_cfg["pool_target_size"]),
+        inner_split=float(reproduction_cfg["inner_split"]),
+        sklearn_cfg=dict(reproduction_cfg["sklearn"]),
+        seed=int(reproduction_cfg["seed"]),
+    )
+
+    configured_model_sizes = [int(value) for value in reproduction_cfg["model_sizes"]]
+    results = _initialize_results(table_targets, configured_model_sizes)
+    for model_size in configured_model_sizes:
+        repeat_progress = tqdm(
+            range(int(reproduction_cfg["repeats"])),
+            desc=f"evaluate-|M|={model_size}",
+            leave=False,
+        )
+        for repeat_index in repeat_progress:
+            repeat_seed = int(reproduction_cfg["seed"]) * (repeat_index + 3) + 4321
+            rng = np.random.default_rng(repeat_seed)
+            selected_indices = rng.choice(len(pool), size=model_size, replace=False)
+            selected_entries = [pool[int(index)] for index in selected_indices]
+
+            results["avg"][model_size].append(_evaluate_avg_row(selected_entries))
+            majority_metrics = _evaluate_majority_baseline(
+                X_eval=X_eval,
+                y_eval=y_eval,
+                pool_entries=selected_entries,
+            )
+            results["Sn"][model_size].append(dict(majority_metrics))
+            results["Sv"][model_size].append(dict(majority_metrics))
+
+            for method_name, semantics, preference_mode in _method_specs():
+                if method_name in {"avg", "Sn", "Sv"}:
+                    continue
+                results[method_name][model_size].append(
+                    _evaluate_argumentative_method(
+                        X_eval=X_eval,
+                        y_eval=y_eval,
+                        train_features=X_train,
+                        pool_entries=selected_entries,
+                        semantics=str(semantics),
+                        preference_mode=str(preference_mode),
+                    )
                 )
 
-        distance_rows = []
-        for ensemble_size, size_df in dataset_df.loc[
-            dataset_df["strategy"] == "sas"
-        ].groupby("ensemble_size"):
-            distance_rows.append(
-                {
-                    "|M|": int(ensemble_size),
-                    "Sa,s_distance_l0": float(size_df["distance_l0"].mean()),
-                    "Sa,s_distance_l1": float(size_df["distance_l1"].mean()),
-                    "Sa,s_distance_l2": float(size_df["distance_l2"].mean()),
-                    "Sa,s_distance_linf": float(size_df["distance_linf"].mean()),
-                    "Sa,s_avg_runtime_sec": float(size_df["avg_runtime_sec"].mean()),
-                }
-            )
-
-        summary[dataset_name] = [
-            {
-                "accuracy_table": accuracy_table.to_dict(orient="records"),
-                "property_table": property_rows,
-                "distance_table": distance_rows,
-            }
-        ]
-    return summary
+    aggregated = _aggregate_results(results)
+    return (
+        _build_reproduced_table(aggregated, configured_model_sizes),
+        _build_diff_table(
+            aggregated,
+            table_targets,
+            configured_model_sizes,
+        ),
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default=str(Path(__file__).with_name("reproduce_config.yml")),
+        default="./experiment/arg_ensembling/config.yml",
     )
     args = parser.parse_args()
 
-    config = _load_config(Path(args.config))
-    device = _resolve_device(config.get("device"))
-    global_seed = int(config.get("seed", 7))
-    desired_class = config.get("desired_class")
+    config_path = (PROJECT_ROOT / args.config).resolve()
+    config = _load_config(config_path)
 
-    all_rows: list[StrategyRow] = []
-    for dataset_name, dataset_settings in config["datasets"].items():
-        effective_settings = deepcopy(dataset_settings)
-        effective_settings.setdefault("seed", global_seed)
-        effective_settings.setdefault("desired_class", desired_class)
-        base_cfg = _build_base_experiment_config(dataset_name, effective_settings, device)
-        experiment = Experiment(base_cfg)
-        trainset, testset = _materialize_datasets(experiment)
-
-        model_pool, model_accuracies = _build_model_pool(
-            trainset=trainset,
-            testset=testset,
-            model_cfg=base_cfg["model"],
-            pool_size=int(effective_settings["pool_size"]),
-            model_seeds=[int(value) for value in effective_settings["model_seeds"]],
-        )
-
-        factuals = _select_recourse_factuals(
-            primary_model=model_pool[0],
-            testset=testset,
-            desired_class=desired_class,
-        )
-        if "max_factuals" in effective_settings and effective_settings["max_factuals"] is not None:
-            max_factuals = int(effective_settings["max_factuals"])
-            truncated = factuals.clone()
-            truncated_df = pd.concat(
-                [factuals.get(target=False), factuals.get(target=True)], axis=1
-            ).iloc[:max_factuals].copy(deep=True)
-            truncated.update("testset", True, df=truncated_df)
-            truncated.freeze()
-            factuals = truncated
-
-        repeat_tasks = [
-            (int(ensemble_size), int(repeat))
-            for ensemble_size in effective_settings["ensemble_sizes"]
-            for repeat in range(int(effective_settings["repeats"]))
-        ]
-        for ensemble_size, repeat in tqdm(
-            repeat_tasks,
-            desc=f"{dataset_name}-repeats",
-            leave=True,
-        ):
-            repeat_rows = _run_repeat(
-                dataset_name=dataset_name,
-                ensemble_size=ensemble_size,
-                repeat=repeat,
-                model_pool=model_pool,
-                model_accuracies=model_accuracies,
-                trainset=trainset,
-                factuals=factuals,
-                desired_class=desired_class,
-                seed=global_seed,
-            )
-            all_rows.extend(repeat_rows)
-
-    results = pd.DataFrame([row.__dict__ for row in all_rows])
-    summary = _summarize_results(results)
-
-    print(json.dumps(summary, indent=2))
+    reproduced_table, diff_table = run_reproduction(config)
+    print(f"Experiment: {config['name']}")
+    print("Dataset: COMPAS (paper-faithful local variant)")
+    print()
+    print("Reproduced COMPAS Table 4:")
+    print(reproduced_table.to_string(index=False, float_format=lambda value: f"{value:.3f}"))
+    print()
+    print("Absolute Differences vs Paper Table 4:")
+    print(diff_table.to_string(index=False, float_format=lambda value: f"{value:.3f}"))
 
 
 if __name__ == "__main__":
