@@ -32,7 +32,6 @@ model:
   weight_init: xavier_uniform
   early_stopping_patience: 3
   early_stopping_tol: 1.0e-7
-  save_name: german_cvas_proj_current_mlp
 method:
   name: cvas_proj
   seed: 124

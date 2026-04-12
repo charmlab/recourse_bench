@@ -9,15 +9,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import dataset  # noqa: F401
+import method  # noqa: F401
+import model  # noqa: F401
+import preprocess  # noqa: F401
 import numpy as np
 import pandas as pd
 import torch
 import yaml
-from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
-
-from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiment import Experiment
+from model.mlp import mlp as mlp_module
+from sklearn.model_selection import KFold, train_test_split
+from utils.caching import set_cache_dir
 from utils.registry import get_registry
 
 PROFILE_DEFAULTS = {
@@ -25,16 +27,16 @@ PROFILE_DEFAULTS = {
         "current_epochs": 100,
         "future_epochs": 100,
         "num_samples": 100,
-        "num_future_models": 5,
-        "max_factuals": 10,
-        "rho_neg_values": [0.0, 5.0, 10.0],
+        "num_future_models": 3,
+        "max_ins": 5,
+        "rho_neg_values": [0.0, 5.0],
     },
     "german_reference": {
         "current_epochs": None,
         "future_epochs": None,
         "num_samples": None,
         "num_future_models": 100,
-        "max_factuals": None,
+        "max_ins": 200,
         "rho_neg_values": [float(value) for value in range(11)],
     },
 }
@@ -45,60 +47,87 @@ def _load_config(config_path: Path) -> dict:
         return yaml.safe_load(file)
 
 
-def _apply_device(config: dict, device: str) -> dict:
-    cfg = deepcopy(config)
+def _normalize_config(config: dict) -> dict:
+    normalized = deepcopy(config)
+    preprocess_cfg = list(normalized.get("preprocess", []))
+    if not any(item.get("name", "").lower() == "finalize" for item in preprocess_cfg):
+        preprocess_cfg.append({"name": "finalize"})
+    normalized["preprocess"] = preprocess_cfg
+    return normalized
+
+
+def _resolve_device(device: str) -> str:
+    resolved = str(device).lower()
+    if resolved == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if resolved not in {"cpu", "cuda"}:
+        raise ValueError(f"Unsupported device: {device}")
+    if resolved == "cuda" and not torch.cuda.is_available():
+        raise ValueError("CUDA is not available in the current environment")
+    return resolved
+
+
+def _resolve_profile(profile: str, smoke: bool) -> dict:
+    selected = "smoke" if smoke else profile
+    if selected not in PROFILE_DEFAULTS:
+        raise ValueError(f"Unsupported profile: {selected}")
+    defaults = deepcopy(PROFILE_DEFAULTS[selected])
+    defaults["profile_name"] = selected
+    return defaults
+
+
+def _prepare_config(
+    config: dict,
+    device: str,
+    epochs: int | None,
+    model_seed: int | None,
+) -> dict:
+    cfg = _normalize_config(config)
     cfg["model"]["device"] = device
     cfg["method"]["device"] = device
     cfg["model"]["save_name"] = None
+    if epochs is not None:
+        cfg["model"]["epochs"] = int(epochs)
+    if model_seed is not None:
+        cfg["model"]["seed"] = int(model_seed)
     return cfg
 
 
-def _resolve_profile(profile: str) -> dict:
-    if profile not in PROFILE_DEFAULTS:
-        raise ValueError(f"Unsupported profile: {profile}")
-    return deepcopy(PROFILE_DEFAULTS[profile])
+def _disable_mlp_progress() -> None:
+    def _quiet_tqdm(iterable, **kwargs):
+        return iterable
+
+    mlp_module.tqdm = _quiet_tqdm
 
 
-def _apply_profile_to_configs(
-    current_cfg: dict,
-    future_cfg: dict,
-    profile_defaults: dict,
-) -> tuple[dict, dict]:
-    current = deepcopy(current_cfg)
-    future = deepcopy(future_cfg)
-    if profile_defaults["current_epochs"] is not None:
-        current["model"]["epochs"] = int(profile_defaults["current_epochs"])
-    if profile_defaults["future_epochs"] is not None:
-        future["model"]["epochs"] = int(profile_defaults["future_epochs"])
-    if profile_defaults["num_samples"] is not None:
-        current["method"]["num_samples"] = int(profile_defaults["num_samples"])
-    return current, future
+def _instantiate_dataset(dataset_cfg: dict):
+    cfg = deepcopy(dataset_cfg)
+    name = cfg.pop("name")
+    dataset_class = get_registry("Dataset")[name]
+    return dataset_class(**cfg)
 
 
-def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
-    datasets = [experiment._raw_dataset]
-    for preprocess_step in experiment._preprocess:
-        next_datasets = []
-        for current_dataset in datasets:
-            transformed = preprocess_step.transform(current_dataset)
-            if isinstance(transformed, tuple):
-                next_datasets.extend(list(transformed))
-            else:
-                next_datasets.append(transformed)
-        datasets = next_datasets
-    return experiment._resolve_train_test(datasets)
+def _instantiate_preprocess(preprocess_cfg: list[dict]) -> list:
+    registry = get_registry("PreProcess")
+    instances = []
+    for cfg in preprocess_cfg:
+        item_cfg = deepcopy(cfg)
+        name = item_cfg.pop("name")
+        instances.append(registry[name](**item_cfg))
+    return instances
 
 
 def _materialize_full_dataset(config: dict):
-    cfg = deepcopy(config)
+    cfg = _normalize_config(config)
     cfg["preprocess"] = [
         deepcopy(step)
         for step in cfg.get("preprocess", [])
         if step.get("name", "").lower() not in {"split", "stratified_split"}
     ]
-    experiment = Experiment(cfg)
-    datasets = [experiment._raw_dataset]
-    for preprocess_step in experiment._preprocess:
+
+    dataset_obj = _instantiate_dataset(cfg["dataset"])
+    datasets = [dataset_obj]
+    for preprocess_step in _instantiate_preprocess(cfg.get("preprocess", [])):
         next_datasets = []
         for current_dataset in datasets:
             transformed = preprocess_step.transform(current_dataset)
@@ -107,78 +136,82 @@ def _materialize_full_dataset(config: dict):
             else:
                 next_datasets.append(transformed)
         datasets = next_datasets
+
     if len(datasets) != 1:
-        raise ValueError("Expected exactly one frozen dataset after removing split")
+        raise ValueError("Expected exactly one frozen dataset after removing splits")
     return datasets[0]
 
 
+def _snapshot_frozen_dataset(dataset_obj) -> pd.DataFrame:
+    return pd.concat([dataset_obj.get(target=False), dataset_obj.get(target=True)], axis=1)
+
+
 def _build_frozen_dataset(template_dataset, df: pd.DataFrame, marker: str):
-    dataset = template_dataset.clone()
-    dataset.update(marker, True, df=df.copy(deep=True))
-    dataset.freeze()
-    return dataset
+    ordered_columns = template_dataset.ordered_features()
+    dataset_obj = template_dataset.clone()
+    dataset_obj.update(marker, True, df=df.loc[:, ordered_columns].copy(deep=True))
+    dataset_obj.freeze()
+    return dataset_obj
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
-    prediction = probabilities.argmax(dim=1)
+def _extract_split_settings(config: dict) -> dict[str, object]:
+    for preprocess_cfg in _normalize_config(config).get("preprocess", []):
+        name = str(preprocess_cfg.get("name", "")).lower()
+        if name in {"split", "stratified_split"}:
+            return {
+                "name": name,
+                "split": preprocess_cfg.get("split", 0.2),
+                "seed": preprocess_cfg.get("seed"),
+            }
+    raise ValueError("Expected a split or stratified_split preprocess in the config")
 
-    y = testset.get(target=True).iloc[:, 0]
-    class_to_index = model.get_class_to_index()
-    encoded_target = torch.tensor(
-        [class_to_index[int(value)] for value in y.astype(int).tolist()],
-        dtype=torch.long,
-    )
 
-    accuracy = float((prediction == encoded_target).to(dtype=torch.float32).mean())
-    positive_index = class_to_index.get(1, max(class_to_index.values()))
-    unique_labels = sorted(set(encoded_target.tolist()))
-    if len(unique_labels) < 2:
-        auc = float("nan")
-    else:
-        auc = float(
-            roc_auc_score(
-                encoded_target.numpy(),
-                probabilities[:, positive_index].numpy(),
-            )
+def _split_dataframe(
+    df: pd.DataFrame,
+    target_column: str,
+    split_settings: dict[str, object],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    split = split_settings["split"]
+    seed = split_settings["seed"]
+    split_name = str(split_settings["name"]).lower()
+    target = df.loc[:, target_column]
+    split_kwargs = {
+        "random_state": seed,
+        "shuffle": True,
+    }
+    if split_name == "stratified_split":
+        split_kwargs["stratify"] = target
+
+    if isinstance(split, float):
+        train_df, test_df = train_test_split(
+            df,
+            train_size=1.0 - float(split),
+            **split_kwargs,
         )
-    return {"test_accuracy": accuracy, "test_auc": auc}
+    else:
+        train_df, test_df = train_test_split(
+            df,
+            test_size=int(split),
+            **split_kwargs,
+        )
+
+    return train_df.copy(deep=True), test_df.copy(deep=True)
 
 
-def _build_filtered_testset(testset, keep_mask: pd.Series):
-    filtered = testset.clone()
-    target_column = testset.target_column
-    combined = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
-    filtered_df = combined.loc[keep_mask].copy(deep=True)
-    filtered_df = filtered_df.loc[
-        :, [*testset.get(target=False).columns, target_column]
-    ]
-    filtered.update("testset", True, df=filtered_df)
-    filtered.freeze()
-    return filtered
+def _resolve_fold_training(
+    train_df: pd.DataFrame,
+    fold_index: int,
+    num_splits: int = 5,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if fold_index < 0 or fold_index >= num_splits:
+        raise ValueError(f"fold_index must be in [0, {num_splits - 1}]")
 
-
-def _subset_dataset_rows(dataset, max_rows: int):
-    combined = pd.concat([dataset.get(target=False), dataset.get(target=True)], axis=1)
-    subset_df = combined.iloc[:max_rows].copy(deep=True)
-    subset = dataset.clone()
-    subset.update("testset", True, df=subset_df)
-    subset.freeze()
-    return subset
-
-
-def _select_recourse_factuals(model, testset, desired_class: int | str | None):
-    if desired_class is None:
-        return testset
-
-    class_to_index = model.get_class_to_index()
-    desired_index = class_to_index[desired_class]
-    predictions = model.predict(testset).argmax(dim=1).detach().cpu().numpy()
-    keep_mask = pd.Series(
-        predictions != desired_index,
-        index=testset.get(target=False).index,
+    splits = list(KFold(n_splits=num_splits).split(train_df))
+    train_index, holdout_index = splits[fold_index]
+    return (
+        train_df.iloc[train_index].copy(deep=True),
+        train_df.iloc[holdout_index].copy(deep=True),
     )
-    return _build_filtered_testset(testset, keep_mask)
 
 
 def _instantiate_model(model_cfg: dict):
@@ -195,348 +228,354 @@ def _instantiate_method(method_cfg: dict, target_model):
     return method_class(target_model=target_model, **cfg)
 
 
-def _instantiate_evaluations(evaluation_cfg: list[dict]) -> list:
-    registry = get_registry("Evaluation")
-    instances = []
-    for cfg in evaluation_cfg:
-        item_cfg = deepcopy(cfg)
-        name = item_cfg.pop("name")
-        instances.append(registry[name](**item_cfg))
-    return instances
+def _predict_label_indices(model_obj, features: pd.DataFrame) -> np.ndarray:
+    if features.shape[0] == 0:
+        return np.empty(0, dtype=np.int64)
+    probabilities = model_obj.get_prediction(features, proba=True).detach().cpu().numpy()
+    return probabilities.argmax(axis=1).astype(np.int64, copy=False)
 
 
-def _run_current_experiment(experiment: Experiment) -> dict:
-    trainset, testset = _materialize_datasets(experiment)
+def _ensure_matching_feature_space(current_dataset, future_dataset) -> None:
+    if list(current_dataset.get(target=False).columns) != list(
+        future_dataset.get(target=False).columns
+    ):
+        raise ValueError(
+            "Current and shifted datasets must share the same preprocessed feature columns"
+        )
 
-    experiment._target_model.fit(trainset)
-    model_metrics = _compute_model_metrics(experiment._target_model, testset)
 
-    experiment._method.fit(trainset)
-    factuals = _select_recourse_factuals(
-        experiment._target_model,
-        testset,
-        getattr(experiment._method, "_desired_class", None),
+def _prepare_shared_state(current_cfg: dict, future_cfg: dict) -> dict[str, object]:
+    current_dataset = _materialize_full_dataset(current_cfg)
+    future_dataset = _materialize_full_dataset(future_cfg)
+    _ensure_matching_feature_space(current_dataset, future_dataset)
+
+    split_settings = _extract_split_settings(current_cfg)
+    current_df = _snapshot_frozen_dataset(current_dataset)
+    train_df, test_df = _split_dataframe(
+        current_df,
+        target_column=current_dataset.target_column,
+        split_settings=split_settings,
     )
-    counterfactuals = experiment._method.predict(factuals)
 
-    evaluation_results = [
-        evaluation_step.evaluate(factuals, counterfactuals)
-        for evaluation_step in experiment._evaluation
-    ]
-    metrics = pd.concat(evaluation_results, axis=1)
-    experiment._metrics = metrics
-
+    future_df = _snapshot_frozen_dataset(future_dataset)
     return {
-        "testset": testset,
-        "factuals": factuals,
-        "counterfactuals": counterfactuals,
-        "metrics": metrics,
-        "model_metrics": model_metrics,
+        "current_dataset": current_dataset,
+        "future_dataset": future_dataset,
+        "train_df": train_df,
+        "test_df": test_df,
+        "future_df": future_df,
     }
 
 
-def _run_future_model_experiment(experiment: Experiment) -> dict:
-    trainset, testset = _materialize_datasets(experiment)
-    experiment._target_model.fit(trainset)
-    model_metrics = _compute_model_metrics(experiment._target_model, testset)
-    return {"testset": testset, "model_metrics": model_metrics}
-
-
-def _compute_future_validity(
-    factuals,
-    counterfactuals,
-    future_model,
-    future_testset,
-) -> tuple[float, int, int]:
-    (
-        _factual_features,
-        counterfactual_features,
-        evaluation_mask,
-        success_mask,
-    ) = resolve_evaluation_inputs(factuals, counterfactuals)
-
-    denominator = int(evaluation_mask.sum())
-    selected_success_mask = evaluation_mask & success_mask
-    successful_count = int(selected_success_mask.sum())
-
-    expected_columns = list(future_testset.get(target=False).columns)
-    if counterfactual_features.shape[1] != len(expected_columns):
-        raise ValueError(
-            "Current counterfactual features do not match future model input width"
-        )
-
-    if denominator == 0:
-        return float("nan"), 0, 0
-    if successful_count == 0:
-        return 0.0, denominator, successful_count
-
-    future_features = counterfactual_features.loc[
-        selected_success_mask.to_numpy()
-    ].copy(deep=True)
-    future_features.columns = expected_columns
-    future_prediction = future_model.get_prediction(future_features, proba=True).detach().cpu()
-    positive_index = future_model.get_class_to_index().get(1, 1)
-    future_positive = future_prediction[:, positive_index] >= 0.5
-    future_validity = float(
-        future_positive.to(dtype=torch.float32).sum().item() / denominator
-    )
-    return future_validity, denominator, successful_count
-
-
-def _compute_future_validity_against_model(
-    factuals,
-    counterfactuals,
-    future_model,
-    expected_columns: list[str],
-) -> tuple[float, int, int]:
-    (
-        _factual_features,
-        counterfactual_features,
-        evaluation_mask,
-        success_mask,
-    ) = resolve_evaluation_inputs(factuals, counterfactuals)
-
-    denominator = int(evaluation_mask.sum())
-    selected_success_mask = evaluation_mask & success_mask
-    successful_count = int(selected_success_mask.sum())
-
-    if counterfactual_features.shape[1] != len(expected_columns):
-        raise ValueError(
-            "Current counterfactual features do not match future model input width"
-        )
-
-    if denominator == 0:
-        return float("nan"), 0, 0
-    if successful_count == 0:
-        return 0.0, denominator, successful_count
-
-    future_features = counterfactual_features.loc[
-        selected_success_mask.to_numpy()
-    ].copy(deep=True)
-    future_features.columns = expected_columns
-    future_prediction = future_model.get_prediction(
-        future_features,
-        proba=True,
-    ).detach().cpu()
-    positive_index = future_model.get_class_to_index().get(1, 1)
-    future_positive = future_prediction[:, positive_index] >= 0.5
-    future_validity = float(
-        future_positive.to(dtype=torch.float32).sum().item() / denominator
-    )
-    return future_validity, denominator, successful_count
-
-
-def _prepare_current_state(current_cfg: dict, profile_defaults: dict) -> dict:
-    experiment = Experiment(current_cfg)
-    trainset, testset = _materialize_datasets(experiment)
-
-    current_model = experiment._target_model
-    current_model.fit(trainset)
-    model_metrics = _compute_model_metrics(current_model, testset)
-    evaluation_steps = _instantiate_evaluations(current_cfg["evaluation"])
-
-    factuals = _select_recourse_factuals(
-        current_model,
-        testset,
-        current_cfg["method"].get("desired_class"),
-    )
-    max_factuals = profile_defaults["max_factuals"]
-    if max_factuals is not None and len(factuals) > max_factuals:
-        factuals = _subset_dataset_rows(factuals, max_factuals)
-
-    return {
-        "cfg": current_cfg,
-        "trainset": trainset,
-        "testset": testset,
-        "current_model": current_model,
-        "evaluation_steps": evaluation_steps,
-        "factuals": factuals,
-        "model_metrics": model_metrics,
-    }
-
-
-def _train_future_model_pool(
+def _prepare_future_models(
     future_cfg: dict,
-    profile_defaults: dict,
+    future_dataset,
+    future_df: pd.DataFrame,
     num_future_models: int,
-) -> dict:
+) -> list:
     if num_future_models < 1:
         raise ValueError("num_future_models must be >= 1")
 
-    shifted_dataset = _materialize_full_dataset(future_cfg)
-    full_df = pd.concat(
-        [shifted_dataset.get(target=False), shifted_dataset.get(target=True)],
-        axis=1,
-    )
-    target = full_df.iloc[:, -1]
-    expected_columns = list(shifted_dataset.get(target=False).columns)
-
+    target = future_df.loc[:, future_dataset.target_column]
     future_models = []
-    future_metrics = []
     for future_index in range(num_future_models):
-        train_df, test_df = train_test_split(
-            full_df,
+        train_df, _test_df = train_test_split(
+            future_df,
             train_size=0.8,
             random_state=future_index,
             stratify=target,
+            shuffle=True,
         )
-        trainset = _build_frozen_dataset(shifted_dataset, train_df, "trainset")
-        testset = _build_frozen_dataset(shifted_dataset, test_df, "testset")
-
-        model_cfg = deepcopy(future_cfg["model"])
-        future_model = _instantiate_model(model_cfg)
+        trainset = _build_frozen_dataset(future_dataset, train_df, "trainset")
+        future_model = _instantiate_model(future_cfg["model"])
         future_model.fit(trainset)
-        future_metrics.append(_compute_model_metrics(future_model, testset))
         future_models.append(future_model)
+    return future_models
+
+
+def _build_factual_dataset(
+    template_dataset,
+    present_test_df: pd.DataFrame,
+    fold_train_df: pd.DataFrame,
+    current_model,
+    desired_class: int | str | None,
+    max_ins: int | None,
+):
+    if desired_class is None:
+        raise ValueError(
+            "The reproduction expects method.desired_class to be the favorable class"
+        )
+
+    factual_pool_df = pd.concat([present_test_df, fold_train_df], axis=0)
+    desired_index = current_model.get_class_to_index()[desired_class]
+    predicted_indices = _predict_label_indices(
+        current_model,
+        factual_pool_df.drop(columns=[template_dataset.target_column]),
+    )
+    selected_df = factual_pool_df.iloc[predicted_indices != desired_index].copy(deep=True)
+    if max_ins is not None:
+        selected_df = selected_df.iloc[: int(max_ins)].copy(deep=True)
+    return _build_frozen_dataset(template_dataset, selected_df, "testset")
+
+
+def _compute_instance_metrics(
+    factuals,
+    raw_counterfactuals: pd.DataFrame,
+    current_model,
+    future_models: list,
+    desired_class: int | str,
+) -> dict[str, list[float]]:
+    factual_features = factuals.get(target=False)
+    if raw_counterfactuals.shape[0] != factual_features.shape[0]:
+        raise ValueError("Raw counterfactual rows must match factual rows")
+
+    desired_index = current_model.get_class_to_index()[desired_class]
+    feasible_mask = ~raw_counterfactuals.isna().any(axis=1)
+    costs = np.zeros(factual_features.shape[0], dtype=np.float64)
+    current_validity = np.zeros(factual_features.shape[0], dtype=np.float64)
+    future_validity = np.zeros(factual_features.shape[0], dtype=np.float64)
+    feasibility = feasible_mask.to_numpy(dtype=np.float64, copy=False)
+
+    if bool(feasible_mask.any()):
+        feasible_factuals = factual_features.loc[feasible_mask].copy(deep=True)
+        feasible_counterfactuals = raw_counterfactuals.loc[feasible_mask].copy(deep=True)
+
+        diff = np.abs(
+            feasible_counterfactuals.to_numpy(dtype=np.float64)
+            - feasible_factuals.to_numpy(dtype=np.float64)
+        )
+        costs[feasible_mask.to_numpy()] = diff.sum(axis=1)
+
+        current_prediction = _predict_label_indices(current_model, feasible_counterfactuals)
+        current_validity[feasible_mask.to_numpy()] = (
+            current_prediction == desired_index
+        ).astype(np.float64, copy=False)
+
+        if future_models:
+            future_hits = np.zeros(feasible_counterfactuals.shape[0], dtype=np.float64)
+            for future_model in future_models:
+                future_prediction = _predict_label_indices(
+                    future_model,
+                    feasible_counterfactuals,
+                )
+                future_hits += (
+                    future_prediction == desired_index
+                ).astype(np.float64, copy=False)
+            future_validity[feasible_mask.to_numpy()] = future_hits / float(len(future_models))
 
     return {
-        "future_models": future_models,
-        "expected_columns": expected_columns,
-        "future_metrics": future_metrics,
+        "cost": costs.tolist(),
+        "current_validity": current_validity.tolist(),
+        "future_validity": future_validity.tolist(),
+        "feasible": feasibility.tolist(),
+        "num_factuals": int(factual_features.shape[0]),
     }
 
 
-def _compute_future_validity_across_pool(
-    factuals,
-    counterfactuals,
-    future_models: list,
-    expected_columns: list[str],
-) -> tuple[float, int, int]:
-    future_validities = []
-    denominator = 0
-    successful_count = 0
-
-    for future_model in future_models:
-        future_validity, denominator, successful_count = (
-            _compute_future_validity_against_model(
-                factuals,
-                counterfactuals,
-                future_model,
-                expected_columns,
-            )
-        )
-        future_validities.append(float(future_validity))
-
-    if not future_validities:
-        return float("nan"), denominator, successful_count
-    return float(np.mean(future_validities)), denominator, successful_count
-
-
-def _run_single_surrogate_setting(
-    current_state: dict,
-    future_state: dict,
-    surrogate_method: str,
-    rho_neg: float,
-) -> dict:
-    method_cfg = deepcopy(current_state["cfg"]["method"])
-    method_cfg["surrogate_method"] = surrogate_method
-    method_cfg["rho_neg"] = float(0.0 if surrogate_method == "mpm" else rho_neg)
-    method = _instantiate_method(method_cfg, current_state["current_model"])
-    method.fit(current_state["trainset"])
-
-    counterfactuals = method.predict(current_state["factuals"])
-    evaluation_results = [
-        evaluation_step.evaluate(current_state["factuals"], counterfactuals)
-        for evaluation_step in current_state["evaluation_steps"]
-    ]
-    current_metrics = pd.concat(evaluation_results, axis=1).iloc[0].to_dict()
-    future_validity, num_factuals, num_successful = _compute_future_validity_across_pool(
-        current_state["factuals"],
-        counterfactuals,
-        future_state["future_models"],
-        future_state["expected_columns"],
+def _to_padded_array(values: list[list[float]]) -> np.ndarray:
+    if not values:
+        return np.zeros((0, 0), dtype=np.float64)
+    width = max(len(row) for row in values)
+    return np.array(
+        [row + [0.0] * (width - len(row)) for row in values],
+        dtype=np.float64,
     )
 
-    future_metric_frame = pd.DataFrame(future_state["future_metrics"])
+
+def _summarize_fold_metrics(fold_metrics: list[dict[str, list[float]]]) -> dict[str, float]:
+    if not fold_metrics:
+        raise ValueError("fold_metrics must not be empty")
+
+    cost = _to_padded_array([fold["cost"] for fold in fold_metrics])
+    current = _to_padded_array([fold["current_validity"] for fold in fold_metrics])
+    future = _to_padded_array([fold["future_validity"] for fold in fold_metrics])
+    feasible = _to_padded_array([fold["feasible"] for fold in fold_metrics])
+
+    joint_feasible = np.ones_like(feasible, dtype=np.float64)
+    valid_folds = np.sum(joint_feasible, axis=1) > 0
+
+    fold_cost = np.sum(cost * joint_feasible, axis=1) / np.sum(joint_feasible, axis=1)
+    fold_current = np.sum(current * joint_feasible, axis=1) / np.sum(
+        joint_feasible, axis=1
+    )
+    fold_future = np.sum(future * joint_feasible, axis=1) / np.sum(
+        joint_feasible, axis=1
+    )
+
     return {
-        "surrogate_method": surrogate_method,
-        "rho_neg": float(0.0 if surrogate_method == "mpm" else rho_neg),
-        "num_factuals": int(num_factuals),
-        "num_successful": int(num_successful),
-        "current_validity": float(current_metrics.get("validity", float("nan"))),
-        "future_validity": float(future_validity),
-        "distance_l0": float(current_metrics.get("distance_l0", float("nan"))),
-        "distance_l1": float(current_metrics.get("distance_l1", float("nan"))),
-        "distance_l2": float(current_metrics.get("distance_l2", float("nan"))),
-        "distance_linf": float(current_metrics.get("distance_linf", float("nan"))),
-        "current_model_test_accuracy": float(
-            current_state["model_metrics"]["test_accuracy"]
-        ),
-        "current_model_test_auc": float(current_state["model_metrics"]["test_auc"]),
-        "future_model_test_accuracy_mean": float(
-            future_metric_frame["test_accuracy"].mean()
-        ),
-        "future_model_test_auc_mean": float(future_metric_frame["test_auc"].mean()),
+        "cost_mean": float(np.mean(fold_cost[valid_folds])),
+        "cost_std": float(np.std(fold_cost[valid_folds])),
+        "current_validity_mean": float(np.mean(fold_current[valid_folds])),
+        "current_validity_std": float(np.std(fold_current[valid_folds])),
+        "future_validity_mean": float(np.mean(fold_future[valid_folds])),
+        "future_validity_std": float(np.std(fold_future[valid_folds])),
+        "feasibility_mean": float(np.mean(feasible)),
+        "num_factuals_per_fold": [int(fold["num_factuals"]) for fold in fold_metrics],
     }
+
+
+def _run_single_fold(
+    current_cfg: dict,
+    shared_state: dict[str, object],
+    future_models: list,
+    fold_index: int,
+    surrogate_method: str,
+    rho_neg: float,
+    max_ins: int | None,
+) -> dict[str, list[float]]:
+    fold_train_df, _fold_holdout_df = _resolve_fold_training(
+        shared_state["train_df"],
+        fold_index=fold_index,
+    )
+
+    trainset = _build_frozen_dataset(
+        shared_state["current_dataset"],
+        fold_train_df,
+        "trainset",
+    )
+
+    current_model = _instantiate_model(current_cfg["model"])
+    current_model.fit(trainset)
+
+    factuals = _build_factual_dataset(
+        template_dataset=shared_state["current_dataset"],
+        present_test_df=shared_state["test_df"],
+        fold_train_df=fold_train_df,
+        current_model=current_model,
+        desired_class=current_cfg["method"].get("desired_class"),
+        max_ins=max_ins,
+    )
+
+    method_cfg = deepcopy(current_cfg["method"])
+    method_cfg["surrogate_method"] = surrogate_method
+    method_cfg["rho_neg"] = 0.0 if surrogate_method == "mpm" else float(rho_neg)
+    method_obj = _instantiate_method(method_cfg, current_model)
+    method_obj.fit(trainset)
+    raw_counterfactuals = method_obj.get_unvalidated_counterfactuals(
+        factuals.get(target=False)
+    )
+
+    return _compute_instance_metrics(
+        factuals=factuals,
+        raw_counterfactuals=raw_counterfactuals,
+        current_model=current_model,
+        future_models=future_models,
+        desired_class=current_cfg["method"]["desired_class"],
+    )
+
+
+def _print_aggregate_summary(
+    device: str,
+    surrogate_method: str,
+    rho_neg: float,
+    num_future_models: int,
+    max_ins: int | None,
+    summary: dict[str, float],
+) -> None:
+    print("mode: aggregate_table1")
+    print(f"device: {device}")
+    print(f"method: {surrogate_method}")
+    print(f"rho_neg: {rho_neg:.1f}")
+    print(f"num_future_models: {num_future_models}")
+    print("max_ins: " + ("all" if max_ins is None else str(int(max_ins))))
+    print()
+    print(
+        "method          cost_mean  cost_std  current_mean  current_std  future_mean  future_std  feasible_mean"
+    )
+    print(
+        f"{surrogate_method:<15} "
+        f"{summary['cost_mean']:.6f}  "
+        f"{summary['cost_std']:.6f}  "
+        f"{summary['current_validity_mean']:.6f}  "
+        f"{summary['current_validity_std']:.6f}  "
+        f"{summary['future_validity_mean']:.6f}  "
+        f"{summary['future_validity_std']:.6f}  "
+        f"{summary['feasibility_mean']:.6f}"
+    )
 
 
 def _is_dominated(row: pd.Series, candidates: pd.DataFrame) -> bool:
     for _, other in candidates.iterrows():
         if (
-            float(other["distance_l1"]) <= float(row["distance_l1"])
-            and float(other["future_validity"]) >= float(row["future_validity"])
+            float(other["cost_mean"]) <= float(row["cost_mean"])
+            and float(other["future_mean"]) >= float(row["future_mean"])
             and (
-                float(other["distance_l1"]) < float(row["distance_l1"])
-                or float(other["future_validity"]) > float(row["future_validity"])
+                float(other["cost_mean"]) < float(row["cost_mean"])
+                or float(other["future_mean"]) > float(row["future_mean"])
             )
         ):
             return True
     return False
 
 
-def _format_value(value) -> str:
-    if isinstance(value, (float, np.floating)):
-        if not np.isfinite(value):
-            return "nan"
-        return f"{float(value):.6f}"
-    return str(value)
-
-
-def _print_single_output(output: dict) -> None:
-    for key, value in output.items():
-        print(f"{key}: {_format_value(value)}")
-
-
-def _print_compare_output(
-    results: pd.DataFrame,
-    profile: str,
+def _print_sweep_summary(
     device: str,
+    surrogate_method: str,
     num_future_models: int,
-    max_factuals: int | None,
+    max_ins: int | None,
+    rows: list[dict[str, float]],
 ) -> None:
-    print(f"profile: {profile}")
+    results = pd.DataFrame(rows).sort_values("rho_neg", ignore_index=True)
+
+    print("mode: frontier_sweep")
     print(f"device: {device}")
+    print(f"method: {surrogate_method}")
     print(f"num_future_models: {num_future_models}")
-    print(
-        "max_factuals: "
-        + ("all" if max_factuals is None else str(int(max_factuals)))
-    )
+    print("max_ins: " + ("all" if max_ins is None else str(int(max_ins))))
     print()
     print(results.to_string(index=False))
 
+    pareto_rows = results.loc[
+        ~results.apply(lambda row: _is_dominated(row, results), axis=1)
+    ].reset_index(drop=True)
     print()
-    print("pareto_frontier_by_surrogate:")
-    for surrogate_method, group in results.groupby("surrogate_method", sort=False):
-        ordered = group.sort_values(["distance_l1", "future_validity"]).reset_index(
-            drop=True
-        )
-        pareto_rows = ordered[
-            ~ordered.apply(lambda row: _is_dominated(row, ordered), axis=1)
-        ]
-        print(f"[{surrogate_method}]")
-        print(
-            pareto_rows[
-                [
-                    "rho_neg",
-                    "current_validity",
-                    "future_validity",
-                    "distance_l1",
-                    "num_successful",
-                    "num_factuals",
-                ]
-            ].to_string(index=False)
-        )
-        print()
+    print("pareto_frontier:")
+    print(
+        pareto_rows[
+            [
+                "rho_neg",
+                "cost_mean",
+                "current_mean",
+                "future_mean",
+                "feasible_mean",
+            ]
+        ].to_string(index=False)
+    )
+
+
+def _print_single_fold_debug(
+    device: str,
+    surrogate_method: str,
+    rho_neg: float,
+    fold_index: int,
+    num_future_models: int,
+    max_ins: int | None,
+    fold_metrics: dict[str, list[float]],
+) -> None:
+    cost = np.asarray(fold_metrics["cost"], dtype=np.float64)
+    current = np.asarray(fold_metrics["current_validity"], dtype=np.float64)
+    future = np.asarray(fold_metrics["future_validity"], dtype=np.float64)
+    feasible = np.asarray(fold_metrics["feasible"], dtype=np.float64)
+
+    print("mode: single_fold_debug")
+    print(f"device: {device}")
+    print(f"method: {surrogate_method}")
+    print(f"rho_neg: {rho_neg:.1f}")
+    print(f"fold_index: {fold_index}")
+    print(f"num_future_models: {num_future_models}")
+    print("max_ins: " + ("all" if max_ins is None else str(int(max_ins))))
+    print()
+    print(
+        "rho_neg  num_factuals  cost_mean  current_mean  future_mean  feasible_mean"
+    )
+    print(
+        f"{rho_neg:7.1f}  "
+        f"{fold_metrics['num_factuals']:12d}  "
+        f"{float(np.mean(cost)):.6f}  "
+        f"{float(np.mean(current)):.6f}  "
+        f"{float(np.mean(future)):.6f}  "
+        f"{float(np.mean(feasible)):.6f}"
+    )
 
 
 def main() -> None:
@@ -549,140 +588,167 @@ def main() -> None:
         "--future-config",
         default="./experiment/cvas_proj/german_mlp_cvas_proj_reproduce_future.yaml",
     )
-    parser.add_argument(
-        "--mode",
-        choices=["single", "compare"],
-        default="compare",
-    )
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument(
         "--profile",
-        choices=["smoke", "german_reference"],
+        choices=list(PROFILE_DEFAULTS),
         default="german_reference",
     )
-    parser.add_argument("--surrogate-methods", nargs="*", default=["fr_rmpm"])
-    parser.add_argument("--rho-neg-values", nargs="*", type=float, default=[10.0])
+    parser.add_argument("--smoke", action="store_true")
+    parser.add_argument(
+        "--mode",
+        choices=["aggregate_table1", "frontier_sweep", "single_fold_debug"],
+        default="aggregate_table1",
+    )
+    parser.add_argument("--surrogate-method", default="fr_rmpm")
+    parser.add_argument("--rho-neg", type=float, default=None)
+    parser.add_argument("--rho-neg-values", nargs="*", type=float, default=None)
     parser.add_argument("--num-future-models", type=int, default=None)
+    parser.add_argument("--max-ins", type=int, default=None)
     parser.add_argument("--max-factuals", type=int, default=None)
+    parser.add_argument("--fold-index", type=int, default=0)
+    parser.add_argument("--model-seed", type=int, default=123)
     args = parser.parse_args()
 
-    device = "cpu"
-    profile_defaults = _resolve_profile(args.profile)
+    _disable_mlp_progress()
 
-    current_cfg_base = _apply_device(
+    profile_defaults = _resolve_profile(args.profile, args.smoke)
+    device = _resolve_device(args.device)
+
+    current_cfg = _prepare_config(
         _load_config((PROJECT_ROOT / args.current_config).resolve()),
-        device,
+        device=device,
+        epochs=profile_defaults["current_epochs"],
+        model_seed=args.model_seed,
     )
-    future_cfg_base = _apply_device(
+    future_cfg = _prepare_config(
         _load_config((PROJECT_ROOT / args.future_config).resolve()),
-        device,
+        device=device,
+        epochs=profile_defaults["future_epochs"],
+        model_seed=args.model_seed,
     )
-    current_cfg, future_cfg = _apply_profile_to_configs(
-        current_cfg_base,
-        future_cfg_base,
-        profile_defaults,
+    if profile_defaults["num_samples"] is not None:
+        current_cfg["method"]["num_samples"] = int(profile_defaults["num_samples"])
+
+    set_cache_dir(current_cfg.get("caching", {}).get("path", "./cache/"))
+
+    max_ins = args.max_ins
+    if max_ins is None and args.max_factuals is not None:
+        max_ins = int(args.max_factuals)
+    if max_ins is None:
+        max_ins = profile_defaults["max_ins"]
+    if max_ins is not None and max_ins < 1:
+        raise ValueError("max_ins must be >= 1 when provided")
+
+    surrogate_method = str(args.surrogate_method).lower()
+    shared_state = _prepare_shared_state(current_cfg, future_cfg)
+    num_future_models = (
+        int(args.num_future_models)
+        if args.num_future_models is not None
+        else int(profile_defaults["num_future_models"])
+    )
+    future_models = _prepare_future_models(
+        future_cfg=future_cfg,
+        future_dataset=shared_state["future_dataset"],
+        future_df=shared_state["future_df"],
+        num_future_models=num_future_models,
     )
 
-    if args.mode == "single":
-        current_experiment = Experiment(current_cfg)
-        current_results = _run_current_experiment(current_experiment)
-
-        future_experiment = Experiment(future_cfg)
-        future_results = _run_future_model_experiment(future_experiment)
-
-        future_validity, num_factuals, num_successful = _compute_future_validity(
-            current_results["factuals"],
-            current_results["counterfactuals"],
-            future_experiment._target_model,
-            future_results["testset"],
+    if args.mode == "aggregate_table1":
+        if args.rho_neg_values:
+            raise ValueError("--rho-neg-values is only supported in frontier_sweep mode")
+        rho_neg = (
+            float(args.rho_neg)
+            if args.rho_neg is not None
+            else float(current_cfg["method"]["rho_neg"])
         )
-
-        current_metrics = current_results["metrics"].iloc[0].to_dict()
-        output = {
-            "mode": args.mode,
-            "profile": args.profile,
-            "device": device,
-            "current_model_test_accuracy": float(
-                current_results["model_metrics"]["test_accuracy"]
-            ),
-            "current_model_test_auc": float(
-                current_results["model_metrics"]["test_auc"]
-            ),
-            "current_validity": float(current_metrics.get("validity", float("nan"))),
-            "distance_l0": float(current_metrics.get("distance_l0", float("nan"))),
-            "distance_l1": float(current_metrics.get("distance_l1", float("nan"))),
-            "distance_l2": float(current_metrics.get("distance_l2", float("nan"))),
-            "distance_linf": float(
-                current_metrics.get("distance_linf", float("nan"))
-            ),
-            "future_model_test_accuracy": float(
-                future_results["model_metrics"]["test_accuracy"]
-            ),
-            "future_model_test_auc": float(
-                future_results["model_metrics"]["test_auc"]
-            ),
-            "future_validity": future_validity,
-            "num_factuals": num_factuals,
-            "num_successful": num_successful,
-        }
-        _print_single_output(output)
+        fold_metrics = [
+            _run_single_fold(
+                current_cfg=current_cfg,
+                shared_state=shared_state,
+                future_models=future_models,
+                fold_index=fold_index,
+                surrogate_method=surrogate_method,
+                rho_neg=rho_neg,
+                max_ins=max_ins,
+            )
+            for fold_index in range(5)
+        ]
+        summary = _summarize_fold_metrics(fold_metrics)
+        _print_aggregate_summary(
+            device=device,
+            surrogate_method=surrogate_method,
+            rho_neg=rho_neg,
+            num_future_models=num_future_models,
+            max_ins=max_ins,
+            summary=summary,
+        )
         return
 
-    if args.num_future_models is not None:
-        profile_defaults["num_future_models"] = int(args.num_future_models)
-    if args.max_factuals is not None:
-        profile_defaults["max_factuals"] = int(args.max_factuals)
+    if args.mode == "single_fold_debug":
+        if args.rho_neg_values:
+            raise ValueError("--rho-neg-values is only supported in frontier_sweep mode")
+        rho_neg = (
+            float(args.rho_neg)
+            if args.rho_neg is not None
+            else float(current_cfg["method"]["rho_neg"])
+        )
+        fold_metrics = _run_single_fold(
+            current_cfg=current_cfg,
+            shared_state=shared_state,
+            future_models=future_models,
+            fold_index=int(args.fold_index),
+            surrogate_method=surrogate_method,
+            rho_neg=rho_neg,
+            max_ins=max_ins,
+        )
+        _print_single_fold_debug(
+            device=device,
+            surrogate_method=surrogate_method,
+            rho_neg=rho_neg,
+            fold_index=int(args.fold_index),
+            num_future_models=num_future_models,
+            max_ins=max_ins,
+            fold_metrics=fold_metrics,
+        )
+        return
 
-    surrogate_methods = (
-        list(args.surrogate_methods)
-        if args.surrogate_methods
-        else ["mpm", "quad_rmpm", "bw_rmpm", "fr_rmpm"]
-    )
     rho_neg_values = (
         [float(value) for value in args.rho_neg_values]
         if args.rho_neg_values
         else list(profile_defaults["rho_neg_values"])
     )
-
-    current_state = _prepare_current_state(current_cfg, profile_defaults)
-    future_state = _train_future_model_pool(
-        future_cfg,
-        profile_defaults,
-        num_future_models=int(profile_defaults["num_future_models"]),
-    )
-
     rows = []
-    for surrogate_method in surrogate_methods:
-        if surrogate_method == "mpm":
-            rows.append(
-                _run_single_surrogate_setting(
-                    current_state=current_state,
-                    future_state=future_state,
-                    surrogate_method=surrogate_method,
-                    rho_neg=0.0,
-                )
+    for rho_neg in rho_neg_values:
+        fold_metrics = [
+            _run_single_fold(
+                current_cfg=current_cfg,
+                shared_state=shared_state,
+                future_models=future_models,
+                fold_index=fold_index,
+                surrogate_method=surrogate_method,
+                rho_neg=float(rho_neg),
+                max_ins=max_ins,
             )
-            continue
+            for fold_index in range(5)
+        ]
+        summary = _summarize_fold_metrics(fold_metrics)
+        rows.append(
+            {
+                "rho_neg": float(rho_neg),
+                "cost_mean": summary["cost_mean"],
+                "current_mean": summary["current_validity_mean"],
+                "future_mean": summary["future_validity_mean"],
+                "feasible_mean": summary["feasibility_mean"],
+            }
+        )
 
-        for rho_neg in rho_neg_values:
-            rows.append(
-                _run_single_surrogate_setting(
-                    current_state=current_state,
-                    future_state=future_state,
-                    surrogate_method=surrogate_method,
-                    rho_neg=float(rho_neg),
-                )
-            )
-
-    results = pd.DataFrame(rows).sort_values(
-        ["surrogate_method", "rho_neg"],
-        ignore_index=True,
-    )
-    _print_compare_output(
-        results=results,
-        profile=args.profile,
+    _print_sweep_summary(
         device=device,
-        num_future_models=int(profile_defaults["num_future_models"]),
-        max_factuals=profile_defaults["max_factuals"],
+        surrogate_method=surrogate_method,
+        num_future_models=num_future_models,
+        max_ins=max_ins,
+        rows=rows,
     )
 
 

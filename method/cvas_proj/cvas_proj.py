@@ -202,20 +202,30 @@ class CvasProjMethod(MethodObject):
             return None
         return candidate
 
-    def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+    def _resolve_factual_targets(
+        self,
+        factuals: pd.DataFrame,
+    ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
         if factuals.isna().any(axis=None):
             raise ValueError("Input factuals cannot contain NaN")
 
-        factuals = factuals.loc[:, self._feature_names].copy(deep=True)
-        original_prediction = self._adapter.predict_label_indices(factuals)
+        factual_features = factuals.loc[:, self._feature_names].copy(deep=True)
+        original_prediction = self._adapter.predict_label_indices(factual_features)
         target_indices = resolve_target_indices(
             self._target_model,
             original_prediction=original_prediction,
             desired_class=self._desired_class,
         )
+        return factual_features, original_prediction, target_indices
 
+    def _build_candidate_frame(
+        self,
+        factuals: pd.DataFrame,
+        original_prediction: np.ndarray,
+        target_indices: np.ndarray,
+    ) -> pd.DataFrame:
         rows: list[pd.Series] = []
         with seed_context(self._seed):
             for row_position, (row_index, row) in enumerate(factuals.iterrows()):
@@ -243,7 +253,27 @@ class CvasProjMethod(MethodObject):
                 else:
                     rows.append(pd.Series(candidate, index=self._feature_names))
 
-        candidates = pd.DataFrame(rows, index=factuals.index, columns=self._feature_names)
+        return pd.DataFrame(rows, index=factuals.index, columns=self._feature_names)
+
+    def get_unvalidated_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+        factuals, original_prediction, target_indices = self._resolve_factual_targets(
+            factuals
+        )
+        return self._build_candidate_frame(
+            factuals=factuals,
+            original_prediction=original_prediction,
+            target_indices=target_indices,
+        )
+
+    def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+        factuals, original_prediction, target_indices = self._resolve_factual_targets(
+            factuals
+        )
+        candidates = self._build_candidate_frame(
+            factuals=factuals,
+            original_prediction=original_prediction,
+            target_indices=target_indices,
+        )
         return validate_counterfactuals(
             self._target_model,
             factuals,
