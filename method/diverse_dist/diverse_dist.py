@@ -122,62 +122,60 @@ class DiverseDistMethod(MethodObject):
         rows: list[pd.Series] = []
         traces: list[DiverseDistTrace] = []
 
-        with seed_context(self._seed):
-            for row_index, (_, row) in enumerate(factuals.iterrows()):
-                factual_array = row.to_numpy(dtype=np.float32, copy=True)
-                if self._desired_class is None:
-                    target_class_index = 1 - int(original_prediction[row_index])
-                else:
-                    target_class_index = int(self._class_to_index[self._desired_class])
+        for row_index, (_, row) in enumerate(factuals.iterrows()):
+            factual_array = row.to_numpy(dtype=np.float32, copy=True)
+            if self._desired_class is None:
+                target_class_index = 1 - int(original_prediction[row_index])
+            else:
+                target_class_index = int(self._class_to_index[self._desired_class])
 
-                if int(original_prediction[row_index]) == target_class_index:
-                    rows.append(
-                        pd.Series(np.nan, index=self._feature_names, dtype="float64")
-                    )
-                    traces.append(
-                        DiverseDistTrace(
-                            status="already_desired_class",
-                            target_class_index=int(target_class_index),
-                            original_class_index=int(original_prediction[row_index]),
-                            candidate_indices=[],
-                            candidate_distances=[],
-                            selected_candidate_indices=[],
-                            selected_candidate_distances=[],
-                            counterfactuals=[],
-                            chosen_counterfactual=None,
-                        )
-                    )
-                    continue
-
-                counterfactuals_set, trace = generate_diverse_counterfactuals(
-                    model_adapter=self._adapter,
-                    factual=factual_array,
-                    original_class_index=int(original_prediction[row_index]),
-                    target_class_index=int(target_class_index),
-                    alpha=self._alpha,
-                    total_cfs=self._total_cfs,
-                    beta=self._beta,
-                    gamma=self._gamma,
-                    norm=self._norm,
-                    candidate_selection=self._candidate_selection,
-                    opt=self._opt,
-                    kdtrees=self._kdtrees,
-                    class_points=self._class_points,
-                    class_indices=self._class_indices,
+            if int(original_prediction[row_index]) == target_class_index:
+                rows.append(
+                    pd.Series(np.nan, index=self._feature_names, dtype="float64")
                 )
-                traces.append(trace)
-                if trace.chosen_counterfactual is None:
-                    rows.append(
-                        pd.Series(np.nan, index=self._feature_names, dtype="float64")
+                traces.append(
+                    DiverseDistTrace(
+                        status="already_desired_class",
+                        target_class_index=int(target_class_index),
+                        original_class_index=int(original_prediction[row_index]),
+                        candidate_indices=[],
+                        candidate_distances=[],
+                        selected_candidate_indices=[],
+                        selected_candidate_distances=[],
+                        counterfactuals=[],
+                        chosen_counterfactual=None,
                     )
-                else:
-                    rows.append(
-                        pd.Series(
-                            trace.chosen_counterfactual.astype(np.float64, copy=False),
-                            index=self._feature_names,
-                        )
-                    )
+                )
+                continue
 
+            _, trace = generate_diverse_counterfactuals(
+                model_adapter=self._adapter,
+                factual=factual_array,
+                original_class_index=int(original_prediction[row_index]),
+                target_class_index=int(target_class_index),
+                alpha=self._alpha,
+                total_cfs=self._total_cfs,
+                beta=self._beta,
+                gamma=self._gamma,
+                norm=self._norm,
+                candidate_selection=self._candidate_selection,
+                opt=self._opt,
+                kdtrees=self._kdtrees,
+                class_points=self._class_points,
+                class_indices=self._class_indices,
+            )
+            traces.append(trace)
+            if trace.chosen_counterfactual is None:
+                rows.append(
+                    pd.Series(np.nan, index=self._feature_names, dtype="float64")
+                )
+            else:
+                rows.append(
+                    pd.Series(
+                        trace.chosen_counterfactual.astype(np.float64, copy=False),
+                        index=self._feature_names,
+                    )
+                )
         candidates = pd.DataFrame(
             rows,
             index=factuals.index,

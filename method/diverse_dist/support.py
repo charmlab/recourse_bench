@@ -81,10 +81,13 @@ class DiverseDistModelAdapter:
         self,
         X: pd.DataFrame | np.ndarray,
     ) -> np.ndarray:
-        array = to_numpy_features(X, self._feature_names)
-        tensor = torch.tensor(array, dtype=torch.float32, device=self._device)
+        array = np.ascontiguousarray(
+            to_numpy_features(X, self._feature_names),
+            dtype=np.float32,
+        )
+        tensor = torch.from_numpy(array).to(self._device)
         self._raw_model.eval()
-        with torch.no_grad():
+        with torch.inference_mode():
             logits = self._raw_model(tensor)
             if self._output_activation == "sigmoid":
                 if logits.ndim == 1:
@@ -114,7 +117,7 @@ def build_class_kdtrees(
         class_points[class_index] = train_array[indices]
         class_indices[class_index] = indices
 
-    if TrustScore is not None:
+    if TrustScore is not None and len(class_points) == int(num_classes):
         trustscore = TrustScore()
         trustscore.fit(train_array, predicted_labels, classes=int(num_classes))
         for class_index in class_points:
@@ -267,42 +270,62 @@ def select_diverse_candidates_distance(
     return selected_indices, selected_distances, selected_points
 
 
-def compute_counterfactual_on_segment(
+def resolve_binary_search_iterations(
+    dist_max: float,
+    gamma: float,
+) -> int:
+    if dist_max <= 0.0:
+        return 0
+    return max(
+        0,
+        int(np.ceil(np.log2(max(float(dist_max), 1e-12) / float(gamma)))),
+    )
+
+
+def compute_counterfactuals_on_segments(
     model_adapter: DiverseDistModelAdapter,
     factual: np.ndarray,
-    candidate: np.ndarray,
+    candidates: Sequence[np.ndarray] | np.ndarray,
     original_class_index: int,
     gamma: float,
     dist_max: float,
     opt: bool,
-) -> np.ndarray | None:
-    candidate_array = np.asarray(candidate, dtype=np.float32).reshape(-1)
-    candidate_prediction = int(
-        model_adapter.predict_label_indices(candidate_array.reshape(1, -1))[0]
-    )
-    if candidate_prediction == int(original_class_index):
-        return None
+) -> list[np.ndarray]:
+    candidate_array = np.asarray(candidates, dtype=np.float32)
+    if candidate_array.size == 0:
+        return []
+    if candidate_array.ndim == 1:
+        candidate_array = candidate_array.reshape(1, -1)
 
     if not opt:
-        return candidate_array.copy()
+        return [candidate.copy() for candidate in candidate_array]
 
-    cf = candidate_array.copy()
-    if dist_max <= 0.0:
-        return cf
+    iterations = resolve_binary_search_iterations(dist_max=dist_max, gamma=gamma)
+    counterfactuals = candidate_array.copy()
+    if iterations == 0:
+        return [candidate.copy() for candidate in counterfactuals]
 
-    iterations = max(0, int(np.ceil(np.log2(max(float(dist_max), 1e-12) / float(gamma)))))
-    lower, upper = 0.0, 1.0
+    lower = np.zeros(candidate_array.shape[0], dtype=np.float32)
+    upper = np.ones(candidate_array.shape[0], dtype=np.float32)
+    factual_array = np.asarray(factual, dtype=np.float32).reshape(1, -1)
+    original_class_index = int(original_class_index)
+
     for _ in range(iterations):
         midpoint = 0.5 * (lower + upper)
-        probe = midpoint * factual + (1.0 - midpoint) * candidate_array
-        prediction = int(model_adapter.predict_label_indices(probe.reshape(1, -1))[0])
-        if prediction == int(original_class_index):
-            upper = midpoint
-        else:
-            lower = midpoint
-            cf = probe.astype(np.float32, copy=True)
+        probe = (
+            midpoint[:, None] * factual_array
+            + (1.0 - midpoint)[:, None] * candidate_array
+        )
+        prediction = model_adapter.predict_label_indices(probe)
+        same_class = prediction == original_class_index
+        upper[same_class] = midpoint[same_class]
 
-    return cf
+        flipped = ~same_class
+        lower[flipped] = midpoint[flipped]
+        if flipped.any():
+            counterfactuals[flipped] = probe[flipped].astype(np.float32, copy=False)
+
+    return [candidate.copy() for candidate in counterfactuals]
 
 
 def choose_best_counterfactual(
@@ -391,19 +414,15 @@ def generate_diverse_counterfactuals(
         )
 
     dist_max = float(candidate_distances[-1]) if candidate_distances.size else 0.0
-    counterfactuals: list[np.ndarray] = []
-    for selected_point in selected_points:
-        counterfactual = compute_counterfactual_on_segment(
-            model_adapter=model_adapter,
-            factual=factual,
-            candidate=selected_point,
-            original_class_index=original_class_index,
-            gamma=gamma,
-            dist_max=dist_max,
-            opt=opt,
-        )
-        if counterfactual is not None:
-            counterfactuals.append(counterfactual.astype(np.float32, copy=True))
+    counterfactuals = compute_counterfactuals_on_segments(
+        model_adapter=model_adapter,
+        factual=factual,
+        candidates=selected_points,
+        original_class_index=original_class_index,
+        gamma=gamma,
+        dist_max=dist_max,
+        opt=opt,
+    )
 
     chosen_counterfactual = choose_best_counterfactual(
         factual=factual,

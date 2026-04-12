@@ -1,0 +1,5 @@
+- The main gap is the target model, not the evaluation protocol. The rebuilt runner now matches the paper’s diabetes protocol closely in experiment/diverse_dist/reproduce.py:304, but the repo model is still
+    a retrained PyTorch MLP, while the authors’ reference numbers come from a different trained classifier. Since diverse_dist works off the learned decision boundary, any model shift directly changes k-     
+    distance, k-diversity, and set-distance metrics.                                                                                                                                                            
+- That model mismatch is visible in the accuracy drift. The paper reports diabetes accuracy around 0.70, while the rebuilt run produced 0.7532. That means the classifier boundary we are explaining is not   
+    the same one the paper explained, so exact counterfactual statistics should not be expected. 
