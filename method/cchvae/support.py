@@ -12,10 +12,18 @@ from model.linear.linear import LinearModel
 from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
 from model.randomforest.randomforest import RandomForestModel
+from model.sklearn_logistic_regression.sklearn_logistic_regression import (
+    SklearnLogisticRegressionModel,
+)
 from preprocess.preprocess_utils import resolve_feature_metadata
 
 TorchModelTypes = (LinearModel, MlpModel)
-BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
+BlackBoxModelTypes = (
+    LinearModel,
+    MlpModel,
+    RandomForestModel,
+    SklearnLogisticRegressionModel,
+)
 
 
 def ensure_supported_target_model(

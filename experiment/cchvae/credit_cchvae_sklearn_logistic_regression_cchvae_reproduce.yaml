@@ -1,0 +1,40 @@
+name: credit_cchvae_sklearn_logistic_regression_cchvae_reproduce
+logger:
+  level: INFO
+  path: ./logs/credit_cchvae_sklearn_logistic_regression_cchvae_reproduce.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit_cchvae
+preprocess:
+  - name: split
+    seed: 619
+    split: 0.2
+  - name: finalize
+model:
+  name: sklearn_logistic_regression
+  seed: 619
+  device: cpu
+  solver: lbfgs
+  max_iter: 1000
+  cv: 5
+  scoring: roc_auc
+  n_jobs: -1
+method:
+  name: cchvae
+  seed: 619
+  device: cpu
+  desired_class: 0
+  dim_latent_s: 3
+  dim_latent_z: 2
+  dim_latent_y: 5
+  epochs: 80
+  learning_rate: 0.001
+  batch_size: 100
+  search_samples: 1000
+  p_norm: 2
+  step_size: 0.5
+  max_step: 500
+  degree_active: 1.0
+evaluation:
+  - name: validity

@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from dataset.dataset_object import DatasetObject
 from model.model_object import ModelObject, process_nan
+from model.model_utils import resolve_device
 from utils.registry import register
 from utils.seed import seed_context
 
@@ -28,9 +29,12 @@ class RandomForestModel(ModelObject):
             random_state=seed,
         )
         self._seed = seed
-        self._device = device.lower()
+        self._device = resolve_device(device)
         self._need_grad = False
         self._is_trained = False
+
+        if self._device != "cpu":
+            raise ValueError("RandomForestModel only supports cpu")
 
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:

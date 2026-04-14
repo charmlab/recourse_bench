@@ -1,0 +1,62 @@
+name: credit_cchvae
+target_column: SeriousDlqin2yrs
+feature_order:
+  - age
+  - NumberOfDependents
+  - RevolvingUtilizationOfUnsecuredLines
+  - NumberOfTime30-59DaysPastDueNotWorse
+  - DebtRatio
+  - MonthlyIncome
+  - NumberOfOpenCreditLinesAndLoans
+  - NumberOfTimes90DaysLate
+  - NumberRealEstateLoansOrLines
+  - NumberOfTime60-89DaysPastDueNotWorse
+  - SeriousDlqin2yrs
+raw_feature_type:
+  age: numerical
+  NumberOfDependents: numerical
+  RevolvingUtilizationOfUnsecuredLines: numerical
+  NumberOfTime30-59DaysPastDueNotWorse: numerical
+  DebtRatio: numerical
+  MonthlyIncome: numerical
+  NumberOfOpenCreditLinesAndLoans: numerical
+  NumberOfTimes90DaysLate: numerical
+  NumberRealEstateLoansOrLines: numerical
+  NumberOfTime60-89DaysPastDueNotWorse: numerical
+  SeriousDlqin2yrs: binary
+cchvae_feature_type:
+  age: count
+  NumberOfDependents: count
+  RevolvingUtilizationOfUnsecuredLines: pos
+  NumberOfTime30-59DaysPastDueNotWorse: count
+  DebtRatio: pos
+  MonthlyIncome: pos
+  NumberOfOpenCreditLinesAndLoans: count
+  NumberOfTimes90DaysLate: count
+  NumberRealEstateLoansOrLines: count
+  NumberOfTime60-89DaysPastDueNotWorse: count
+  SeriousDlqin2yrs: count
+raw_feature_mutability:
+  age: false
+  NumberOfDependents: false
+  RevolvingUtilizationOfUnsecuredLines: true
+  NumberOfTime30-59DaysPastDueNotWorse: true
+  DebtRatio: true
+  MonthlyIncome: true
+  NumberOfOpenCreditLinesAndLoans: true
+  NumberOfTimes90DaysLate: true
+  NumberRealEstateLoansOrLines: true
+  NumberOfTime60-89DaysPastDueNotWorse: true
+  SeriousDlqin2yrs: false
+raw_feature_actionability:
+  age: none
+  NumberOfDependents: none
+  RevolvingUtilizationOfUnsecuredLines: any
+  NumberOfTime30-59DaysPastDueNotWorse: any
+  DebtRatio: any
+  MonthlyIncome: any
+  NumberOfOpenCreditLinesAndLoans: any
+  NumberOfTimes90DaysLate: any
+  NumberRealEstateLoansOrLines: any
+  NumberOfTime60-89DaysPastDueNotWorse: any
+  SeriousDlqin2yrs: none
