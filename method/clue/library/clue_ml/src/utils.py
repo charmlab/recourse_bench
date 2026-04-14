@@ -108,7 +108,12 @@ class BaseNet(object):
 
     def load(self, filename):
         log.info("Reading %s\n" % filename)
-        state_dict = torch.load(filename, weights_only=False)
+        map_location = "cuda" if getattr(self, "cuda", False) else "cpu"
+        state_dict = torch.load(
+            filename,
+            weights_only=False,
+            map_location=map_location,
+        )
         self.epoch = state_dict["epoch"]
         self.lr = state_dict["lr"]
         self.model = state_dict["model"]
