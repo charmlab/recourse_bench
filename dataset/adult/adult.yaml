@@ -56,3 +56,45 @@ raw_feature_actionability:
   CapitalLoss: any
   HoursPerWeek: any
   Label: none
+mace_feature_type:
+  Sex: binary
+  Age: numeric-int
+  NativeCountry: binary
+  WorkClass: categorical
+  EducationNumber: numeric-int
+  EducationLevel: ordinal
+  MaritalStatus: categorical
+  Occupation: categorical
+  Relationship: categorical
+  CapitalGain: numeric-real
+  CapitalLoss: numeric-real
+  HoursPerWeek: numeric-int
+  Label: binary
+mace_feature_mutability:
+  Sex: true
+  Age: true
+  NativeCountry: true
+  WorkClass: true
+  EducationNumber: true
+  EducationLevel: true
+  MaritalStatus: true
+  Occupation: true
+  Relationship: true
+  CapitalGain: true
+  CapitalLoss: true
+  HoursPerWeek: true
+  Label: false
+mace_feature_actionability:
+  Sex: any
+  Age: any
+  NativeCountry: any
+  WorkClass: any
+  EducationNumber: any
+  EducationLevel: any
+  MaritalStatus: any
+  Occupation: any
+  Relationship: any
+  CapitalGain: any
+  CapitalLoss: any
+  HoursPerWeek: any
+  Label: none

@@ -1,3 +1,4 @@
+from preprocess.balance import BalancePreProcess
 from preprocess.common import (
     EncodePreProcess,
     FinalizePreProcess,
