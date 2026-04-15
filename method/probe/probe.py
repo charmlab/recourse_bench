@@ -13,7 +13,7 @@ from method.probe.utils import (
     infer_categorical_groups,
     probe_optimize,
 )
-from method.wachter.support import validate_counterfactuals
+from method.probe.support import validate_counterfactuals
 from model.model_object import ModelObject
 from model.model_utils import logits_to_prediction
 from preprocess.preprocess_utils import resolve_feature_metadata
