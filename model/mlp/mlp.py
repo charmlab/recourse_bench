@@ -28,6 +28,7 @@ class MlpModel(ModelObject):
         learning_rate: float = 0.01,
         batch_size: int | None = 16,
         layers: list[int] | None = None,
+        l2_lambda: float = 0.0,
         optimizer: str = "adam",
         criterion: str = "cross_entropy",
         output_activation: str = "softmax",
@@ -51,6 +52,7 @@ class MlpModel(ModelObject):
             None if batch_size is None else int(batch_size)
         )
         self._layers: list[int] = list(layers or [32, 16])
+        self._l2_lambda: float = float(l2_lambda)
         self._optimizer_name: str = optimizer
         self._criterion_name: str = criterion.lower()
         self._output_activation_name: str = output_activation.lower()
@@ -69,6 +71,8 @@ class MlpModel(ModelObject):
 
         if self._batch_size is not None and self._batch_size < 1:
             raise ValueError("batch_size must be >= 1")
+        if self._l2_lambda < 0.0:
+            raise ValueError("l2_lambda must be >= 0")
         if self._weight_decay < 0:
             raise ValueError("weight_decay must be >= 0")
         if self._loss_reduction not in {"mean", "sum"}:
@@ -182,6 +186,12 @@ class MlpModel(ModelObject):
                         else logits
                     )
                     loss = criterion(loss_input, batch_y)
+                    if self._l2_lambda > 0.0:
+                        l2_norm = sum(
+                            parameter.pow(2.0).sum()
+                            for parameter in self._model.parameters()
+                        )
+                        loss = loss + self._l2_lambda * l2_norm
                     loss.backward()
                     optimizer.step()
 
