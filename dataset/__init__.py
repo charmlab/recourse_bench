@@ -7,6 +7,7 @@ from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from dataset.compas_clue.compas_clue import CompasClueDataset
 from dataset.credit.credit import CreditDataset
 from dataset.credit_cchvae.credit_cchvae import CreditCchvaeDataset
+from dataset.diabetes.diabetes import DiabetesDataset
 from dataset.dataset_object import DatasetObject
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
