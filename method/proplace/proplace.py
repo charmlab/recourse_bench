@@ -68,8 +68,6 @@ class ProplaceMethod(MethodObject):
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
-        if not getattr(self._target_model, "_is_trained", False):
-            raise RuntimeError("Target model must be trained before ProplaceMethod")
         if self._delta < 0.0:
             raise ValueError("delta must be >= 0")
         if self._k < 1:
@@ -88,6 +86,8 @@ class ProplaceMethod(MethodObject):
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:
             raise ValueError("trainset is required for ProplaceMethod.fit()")
+        if not getattr(self._target_model, "_is_trained", False):
+            raise RuntimeError("Target model must be trained before ProplaceMethod.fit()")
 
         with seed_context(self._seed):
             self._dataset_spec, train_array = build_proplace_dataset(trainset)
