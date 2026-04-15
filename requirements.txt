@@ -12,3 +12,10 @@ torch==2.10.0+cu126
 torchvision==0.25.0+cu126
 tqdm==4.67.2
 z3-solver==4.16.0.0
+gurobipy==13.0.1
+adversarial-robustness-toolbox==1.20.1
+clingo==5.8.0
+cvxpy==1.8.2
+# NOTE: the alibi package will not work with the version of numpy above. However, cvspy requires the newer version.
+# therefore, when utulizing certain methods (i.e. diverse_dist) you will need to downgrade numpy manually as pip will fail.
+alibi==0.9.6
