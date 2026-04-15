@@ -1,0 +1,157 @@
+active_profile: paper
+
+data:
+  dataset_name: compas_carla
+  raw_path: dataset/compas_carla/compas_carla.csv
+  target_column: score
+  undesired_class: 0
+  desired_class: 1
+  raw_feature_order:
+    - age
+    - two_year_recid
+    - c_charge_degree
+    - race
+    - sex
+    - priors_count
+    - length_of_stay
+  continuous_feature_order:
+    - age
+    - two_year_recid
+    - priors_count
+    - length_of_stay
+  categorical_feature_order:
+    - c_charge_degree
+    - race
+    - sex
+  encoding_mode: scalar
+  encoded_feature_order:
+    - age
+    - two_year_recid
+    - priors_count
+    - length_of_stay
+    - c_charge_degree
+    - race
+    - sex
+  categorical_values:
+    c_charge_degree:
+      - F
+      - M
+    race:
+      - African-American
+      - Other
+    sex:
+      - Female
+      - Male
+  raw_feature_type:
+    age: numerical
+    two_year_recid: numerical
+    c_charge_degree: categorical
+    race: categorical
+    sex: categorical
+    priors_count: numerical
+    length_of_stay: numerical
+    score: binary
+  raw_feature_mutability:
+    age: true
+    two_year_recid: true
+    c_charge_degree: true
+    race: false
+    sex: false
+    priors_count: true
+    length_of_stay: true
+    score: false
+  raw_feature_actionability:
+    age: same-or-increase
+    two_year_recid: any
+    c_charge_degree: any
+    race: none
+    sex: none
+    priors_count: same-or-increase
+    length_of_stay: same-or-increase
+    score: none
+  reference_feature_types:
+    age: ordered
+    two_year_recid: ordered
+    c_charge_degree: unordered
+    race: fixed
+    sex: fixed
+    priors_count: ordered
+    length_of_stay: ordered
+  reference_feature_change_restriction:
+    age: 1
+    two_year_recid: 0
+    c_charge_degree: 0
+    race: -2
+    sex: -2
+    priors_count: 1
+    length_of_stay: 1
+  balance:
+    seed: 1
+  split:
+    split_seed: 1
+    val_fraction: 0.1
+    nominal_provisional_factual_count: 1000
+    target_factual_count: 491
+  evaluation:
+    cost_threshold: 1.0
+    coverage_threshold: 100.0
+    invalid_cost: 99999.0
+    variance: 0.001
+    alpha: null
+
+model:
+  device: auto
+  seed: 1234
+  epochs: 2000
+  learning_rate: 0.00001
+  batch_size: 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  use_reference_checkpoint: false
+  reference_checkpoint_path: reference/EMC-COLS-recourse/trained_models/compas_binary-default.ckpt
+  hidden_layers:
+    - 20
+
+methods:
+  - name: COLS
+    desired_class: 1
+    num_cfs: 10
+    num_mcmc: 1000
+    budget: 5000
+    num_parallel_runs: 1
+    hamming_dist: 2
+    perturb_type: all
+    init_type: ham_2
+    iter_type: best
+    alpha: null
+    variance: 0.001
+    invalid_cost: 99999.0
+
+reproduction:
+  run_seeds:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  paper_targets:
+    COLS:
+      FS@1: 82.23
+      PAC: 0.24
+      Cov: 82.23
+      Div: 29.32
+      Prox: 77.82
+      Spars: 70.05
+      Val: 95.48
+
+profiles:
+  paper: {}
+  fast_debug:
+    methods:
+      COLS:
+        num_mcmc: 50
+        budget: 100
+    reproduction:
+      run_seeds:
+        - 1
