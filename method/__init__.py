@@ -7,6 +7,7 @@ from method.clue.clue import ClueMethod
 from method.cogs.cogs import CogsMethod
 from method.cols.cols import ColsMethod
 from method.dice.dice import DiceMethod
+from method.diverse_dist.diverse_dist import DiverseDistMethod
 from method.face.face import FaceMethod
 from method.gs.gs import GsMethod
 from method.larr.larr import LarrMethod
