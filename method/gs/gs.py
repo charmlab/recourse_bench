@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+from tqdm import tqdm
 
 from dataset.dataset_object import DatasetObject
 from method.gs.search import growing_spheres_search
@@ -9,6 +10,7 @@ from method.gs.support import (
     RecourseModelAdapter,
     ensure_supported_target_model,
     resolve_feature_groups,
+    resolve_target_indices,
     validate_counterfactuals,
 )
 from method.method_object import MethodObject
@@ -27,6 +29,7 @@ class GsMethod(MethodObject):
         desired_class: int | str | None = None,
         n_search_samples: int = 1000,
         p_norm: int = 2,
+        eta: float | None = None,
         step: float = 0.2,
         max_iter: int = 1000,
         **kwargs,
@@ -40,7 +43,8 @@ class GsMethod(MethodObject):
         self._desired_class = desired_class
         self._n_search_samples = int(n_search_samples)
         self._p_norm = int(p_norm)
-        self._step = float(step)
+        resolved_eta = step if eta is None else eta
+        self._eta = float(resolved_eta)
         self._max_iter = int(max_iter)
 
         if self._device != self._target_model._device:
@@ -49,8 +53,8 @@ class GsMethod(MethodObject):
             raise ValueError("n_search_samples must be >= 1")
         if self._p_norm not in {1, 2}:
             raise ValueError("p_norm must be either 1 or 2")
-        if self._step <= 0:
-            raise ValueError("step must be > 0")
+        if self._eta <= 0:
+            raise ValueError("eta/step must be > 0")
         if self._max_iter < 1:
             raise ValueError("max_iter must be >= 1")
 
@@ -77,7 +81,19 @@ class GsMethod(MethodObject):
         factuals = factuals.loc[:, self._feature_names].copy(deep=True)
         rows = []
         with seed_context(self._seed):
-            for _, row in factuals.iterrows():
+            original_prediction = self._adapter.predict_label_indices(factuals)
+            target_prediction = resolve_target_indices(
+                target_model=self._target_model,
+                original_prediction=original_prediction,
+                desired_class=self._desired_class,
+            )
+            iterator = zip(factuals.iterrows(), target_prediction, strict=True)
+            for (index, row), target_label in tqdm(
+                iterator,
+                total=factuals.shape[0],
+                desc="gs-search",
+                leave=False,
+            ):
                 rows.append(
                     growing_spheres_search(
                         row,
@@ -87,9 +103,10 @@ class GsMethod(MethodObject):
                         self._categorical,
                         self._feature_names,
                         self._adapter,
+                        target_label=int(target_label),
                         n_search_samples=self._n_search_samples,
                         p_norm=self._p_norm,
-                        step=self._step,
+                        eta=self._eta,
                         max_iter=self._max_iter,
                     )
                 )

@@ -163,10 +163,10 @@ class RecourseModelAdapter:
             return probabilities.argmax(dim=1).detach().cpu().numpy()
 
         features = self.get_ordered_features(X)
-        probabilities = self._target_model.get_prediction(features, proba=True)
-        if isinstance(probabilities, torch.Tensor):
-            return probabilities.detach().cpu().numpy().argmax(axis=1)
-        return np.asarray(probabilities).argmax(axis=1)
+        prediction = self._target_model.get_prediction(features, proba=False)
+        if isinstance(prediction, torch.Tensor):
+            return prediction.detach().cpu().numpy().argmax(axis=1)
+        return np.asarray(prediction).argmax(axis=1)
 
 
 def differentiable_predict_proba(

@@ -22,85 +22,93 @@ def growing_spheres_search(
     binary_cols,
     feature_order,
     model,
+    target_label=None,
     n_search_samples=1000,
     p_norm=2,
-    step=0.2,
+    eta=0.2,
     max_iter=1000,
 ):
-    keys_correct = feature_order
-    keys_mutable_continuous = list(set(keys_mutable) - set(binary_cols))
-    keys_mutable_binary = list(set(keys_mutable) - set(continuous_cols))
+    keys_correct = list(feature_order)
+    keys_mutable_continuous = [
+        feature for feature in keys_mutable if feature not in set(binary_cols)
+    ]
+    keys_mutable_binary = [
+        feature for feature in keys_mutable if feature not in set(continuous_cols)
+    ]
 
-    instance_immutable_replicated = np.repeat(
-        instance[keys_immutable].values.reshape(1, -1), n_search_samples, axis=0
+    factual = (
+        instance.values if isinstance(instance, pd.Series) else np.asarray(instance)
     )
-    instance_replicated = np.repeat(
-        instance.values.reshape(1, -1), n_search_samples, axis=0
-    )
-    instance_mutable_replicated_continuous = np.repeat(
-        instance[keys_mutable_continuous].values.reshape(1, -1),
-        n_search_samples,
-        axis=0,
-    )
+    factual = factual.astype(float, copy=False)
+    if factual.ndim != 1:
+        factual = factual.reshape(-1)
 
-    low = 0
-    high = low + step
-    count = 0
-    counterfactuals_found = False
-    candidate_counterfactual_star = np.empty(instance_replicated.shape[1])
-    candidate_counterfactual_star[:] = np.nan
+    instance_label = int(model.predict_label_indices(factual.reshape(1, -1))[0])
+    target_label = instance_label if target_label is None else int(target_label)
 
-    instance_label = np.argmax(model.predict_proba(instance.values.reshape(1, -1)))
+    candidate_counterfactual_star = np.full(factual.shape[0], np.nan, dtype=float)
+    iteration_count = 0
+    current_eta = float(eta)
 
-    while (not counterfactuals_found) and (count < max_iter):
-        count += 1
-        candidate_counterfactuals_continuous, _ = hyper_sphere_coordinates(
-            n_search_samples,
-            instance_mutable_replicated_continuous,
-            high,
-            low,
-            p_norm,
+    while iteration_count < max_iter:
+        iteration_count += 1
+        initial_ball = _sample_candidates(
+            instance=instance,
+            keys_immutable=keys_immutable,
+            keys_mutable_continuous=keys_mutable_continuous,
+            keys_mutable_binary=keys_mutable_binary,
+            feature_order=keys_correct,
+            n_search_samples=n_search_samples,
+            low=0.0,
+            high=current_eta,
+            p_norm=p_norm,
         )
-        candidate_counterfactuals_binary = np.random.binomial(
-            n=1, p=0.5, size=n_search_samples * len(keys_mutable_binary)
-        ).reshape(n_search_samples, -1)
+        initial_enemies = _select_enemies(
+            candidates=initial_ball,
+            factual=factual,
+            model=model,
+            instance_label=instance_label,
+            target_label=target_label,
+            distance_features=keys_mutable_continuous,
+            feature_order=keys_correct,
+        )
+        if initial_enemies[0].shape[0] == 0:
+            break
+        current_eta /= 2.0
+        if current_eta <= np.finfo(float).eps:
+            break
 
-        candidate_counterfactuals = pd.DataFrame(
-            np.c_[
-                instance_immutable_replicated,
-                candidate_counterfactuals_continuous,
-                candidate_counterfactuals_binary,
+    low = current_eta
+    high = current_eta * 2.0
+    while iteration_count < max_iter:
+        iteration_count += 1
+        shell_candidates = _sample_candidates(
+            instance=instance,
+            keys_immutable=keys_immutable,
+            keys_mutable_continuous=keys_mutable_continuous,
+            keys_mutable_binary=keys_mutable_binary,
+            feature_order=keys_correct,
+            n_search_samples=n_search_samples,
+            low=low,
+            high=high,
+            p_norm=p_norm,
+        )
+        enemy_candidates, enemy_distances = _select_enemies(
+            candidates=shell_candidates,
+            factual=factual,
+            model=model,
+            instance_label=instance_label,
+            target_label=target_label,
+            distance_features=keys_mutable_continuous,
+            feature_order=keys_correct,
+        )
+        if enemy_candidates.shape[0] > 0:
+            candidate_counterfactual_star = enemy_candidates[
+                int(np.argmin(enemy_distances))
             ]
-        )
-        candidate_counterfactuals.columns = (
-            keys_immutable + keys_mutable_continuous + keys_mutable_binary
-        )
-        candidate_counterfactuals = candidate_counterfactuals[keys_correct]
-
-        if p_norm == 1:
-            distances = np.abs(
-                (candidate_counterfactuals.values - instance_replicated)
-            ).sum(axis=1)
-        elif p_norm == 2:
-            distances = np.square(
-                (candidate_counterfactuals.values - instance_replicated)
-            ).sum(axis=1)
-        else:
-            raise ValueError("Distance not defined yet")
-
-        y_candidate_logits = model.predict_proba(candidate_counterfactuals.values)
-        y_candidate = np.argmax(y_candidate_logits, axis=1)
-        indices = np.where(y_candidate != instance_label)
-        candidate_counterfactuals = candidate_counterfactuals.values[indices]
-        candidate_dist = distances[indices]
-
-        if len(candidate_dist) > 0:
-            min_index = np.argmin(candidate_dist)
-            candidate_counterfactual_star = candidate_counterfactuals[min_index]
-            counterfactuals_found = True
-
+            break
         low = high
-        high = low + step
+        high = high + current_eta
 
     return feature_selection(
         instance,
@@ -108,21 +116,129 @@ def growing_spheres_search(
         model,
         keys_mutable,
         feature_order,
+        target_label=target_label,
     )
 
 
-def feature_selection(
-    instance, candidate_counterfactual, model, keys_mutable, feature_order
+def _sample_candidates(
+    instance,
+    keys_immutable,
+    keys_mutable_continuous,
+    keys_mutable_binary,
+    feature_order,
+    n_search_samples,
+    low,
+    high,
+    p_norm,
 ):
-    instance = instance.values if isinstance(instance, pd.Series) else instance
-    instance_label = np.argmax(model.predict_proba(instance.reshape(1, -1)))
+    instance_immutable_replicated = np.repeat(
+        instance[keys_immutable].values.reshape(1, -1), n_search_samples, axis=0
+    )
+    if keys_mutable_continuous:
+        instance_mutable_replicated_continuous = np.repeat(
+            instance[keys_mutable_continuous].values.reshape(1, -1),
+            n_search_samples,
+            axis=0,
+        )
+        candidate_counterfactuals_continuous, _ = hyper_sphere_coordinates(
+            n_search_samples,
+            instance_mutable_replicated_continuous,
+            high,
+            low,
+            p_norm,
+        )
+    else:
+        candidate_counterfactuals_continuous = np.empty((n_search_samples, 0))
+
+    if keys_mutable_binary:
+        candidate_counterfactuals_binary = np.random.binomial(
+            n=1,
+            p=0.5,
+            size=n_search_samples * len(keys_mutable_binary),
+        ).reshape(n_search_samples, -1)
+    else:
+        candidate_counterfactuals_binary = np.empty((n_search_samples, 0))
+
+    candidate_counterfactuals = pd.DataFrame(
+        np.c_[
+            instance_immutable_replicated,
+            candidate_counterfactuals_continuous,
+            candidate_counterfactuals_binary,
+        ]
+    )
+    candidate_counterfactuals.columns = (
+        list(keys_immutable) + list(keys_mutable_continuous) + list(keys_mutable_binary)
+    )
+    return candidate_counterfactuals.loc[:, list(feature_order)]
+
+
+def _select_enemies(
+    candidates,
+    factual,
+    model,
+    instance_label,
+    target_label,
+    distance_features,
+    feature_order,
+):
+    if distance_features:
+        distance_indices = [feature_order.index(feature) for feature in distance_features]
+        distances = LA.norm(
+            candidates.values[:, distance_indices]
+            - factual.reshape(1, -1)[:, distance_indices],
+            ord=2,
+            axis=1,
+        )
+    else:
+        distances = np.zeros(candidates.shape[0], dtype=float)
+    predictions = model.predict_label_indices(candidates.values)
+    enemy_mask = predictions == int(target_label)
+    if int(target_label) == int(instance_label):
+        enemy_mask = predictions != int(instance_label)
+    return candidates.values[enemy_mask], distances[enemy_mask]
+
+
+def feature_selection(
+    instance,
+    candidate_counterfactual,
+    model,
+    keys_mutable,
+    feature_order,
+    target_label=None,
+):
+    if np.isnan(candidate_counterfactual).any():
+        return candidate_counterfactual
+
+    factual = (
+        instance.values if isinstance(instance, pd.Series) else np.asarray(instance)
+    )
+    factual = factual.astype(float, copy=False)
+    if factual.ndim != 1:
+        factual = factual.reshape(-1)
+
+    instance_label = int(model.predict_label_indices(factual.reshape(1, -1))[0])
+    if target_label is None:
+        target_label = instance_label
+
     mutable_indices = [feature_order.index(feature) for feature in keys_mutable]
+    current = candidate_counterfactual.astype(float, copy=True)
+    best = current.copy()
 
-    for idx in mutable_indices:
-        temp_counterfactual = candidate_counterfactual.copy()
-        temp_counterfactual[idx] = instance[idx]
-        new_label = np.argmax(model.predict_proba(temp_counterfactual.reshape(1, -1)))
-        if new_label != instance_label:
-            candidate_counterfactual[idx] = instance[idx]
+    while True:
+        current_label = int(model.predict_label_indices(current.reshape(1, -1))[0])
+        is_enemy = current_label == int(target_label)
+        if int(target_label) == int(instance_label):
+            is_enemy = current_label != int(instance_label)
+        if not is_enemy:
+            break
 
-    return candidate_counterfactual
+        best = current.copy()
+        changed_indices = [
+            idx for idx in mutable_indices if current[idx] != factual[idx]
+        ]
+        if not changed_indices:
+            break
+        changed_indices.sort(key=lambda idx: abs(current[idx] - factual[idx]))
+        current[changed_indices[0]] = factual[changed_indices[0]]
+
+    return best
