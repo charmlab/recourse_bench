@@ -1,0 +1,85 @@
+name: compas_arg_ensembling_table4_reproduction
+logger:
+  level: INFO
+  path: null
+caching:
+  path: ./cache/
+
+dataset:
+  name: compas_carla
+  path: ./dataset/compas_carla/
+
+reproduction:
+  seed: 3333
+  outer_split_random_state: 10
+  max_test_points: 500
+  outer_test_size: 0.2
+  pool_target_size: 150
+  repeats: 5
+  model_sizes:
+    - 10
+    - 20
+    - 30
+  hidden_layer_sizes:
+    - [15, 15]
+    - [20, 15]
+    - [20, 20]
+    - [30, 20]
+    - [30, 25]
+  simplicity_scores:
+    - 0.0
+    - 0.25
+    - 0.5
+    - 0.75
+    - 1.0
+  inner_split: 0.2
+  sklearn:
+    learning_rate: adaptive
+    batch_size: 64
+    learning_rate_init: 0.02
+    max_iter: 200
+  table4_targets:
+    avg:
+      10: {acc: 0.855, simp: 0.570}
+      20: {acc: 0.855, simp: 0.558}
+      30: {acc: 0.855, simp: 0.533}
+    Sn:
+      10: {acc: 0.856, simp: 0.495}
+      20: {acc: 0.858, simp: 0.490}
+      30: {acc: 0.859, simp: 0.493}
+    Sv:
+      10: {acc: 0.856, simp: 0.495}
+      20: {acc: 0.858, simp: 0.490}
+      30: {acc: 0.859, simp: 0.493}
+    Sa,d:
+      10: {acc: 0.860, simp: 0.492}
+      20: {acc: 0.858, simp: 0.479}
+      30: {acc: 0.858, simp: 0.480}
+    Sa,d-A:
+      10: {acc: 0.863, simp: 0.436}
+      20: {acc: 0.866, simp: 0.619}
+      30: {acc: 0.869, simp: 0.583}
+    Sa,d-S:
+      10: {acc: 0.861, simp: 0.699}
+      20: {acc: 0.857, simp: 0.586}
+      30: {acc: 0.856, simp: 0.551}
+    Sa,d-AS:
+      10: {acc: 0.864, simp: 0.567}
+      20: {acc: 0.856, simp: 0.519}
+      30: {acc: 0.856, simp: 0.518}
+    Sa,s:
+      10: {acc: 0.860, simp: 0.492}
+      20: {acc: 0.858, simp: 0.476}
+      30: {acc: 0.858, simp: 0.479}
+    Sa,s-A:
+      10: {acc: 0.863, simp: 0.436}
+      20: {acc: 0.866, simp: 0.619}
+      30: {acc: 0.869, simp: 0.583}
+    Sa,s-S:
+      10: {acc: 0.861, simp: 0.698}
+      20: {acc: 0.857, simp: 0.587}
+      30: {acc: 0.856, simp: 0.545}
+    Sa,s-AS:
+      10: {acc: 0.864, simp: 0.585}
+      20: {acc: 0.856, simp: 0.529}
+      30: {acc: 0.856, simp: 0.532}
