@@ -8,13 +8,14 @@ from method.diverse_dist.support import (
     DiverseDistModelAdapter,
     DiverseDistTrace,
     build_class_kdtrees,
+    ensure_supported_target_model,
     generate_diverse_counterfactuals,
     normalize_candidate_selection,
     normalize_norm,
     to_numpy_features,
+    validate_counterfactuals,
 )
 from method.method_object import MethodObject
-from method.wachter.support import ensure_supported_target_model, validate_counterfactuals
 from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
 from utils.registry import register

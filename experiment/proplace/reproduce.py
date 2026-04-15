@@ -35,6 +35,7 @@ from method.proplace.support import (
 from utils.caching import set_cache_dir
 from utils.logger import setup_logger
 from utils.registry import get_registry
+from utils.seed import seed_context
 
 REFERENCE_PROPLACE_ROW = {
     "validity": 1.0,

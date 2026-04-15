@@ -8,7 +8,6 @@ import pandas as pd
 import torch
 from sklearn.neighbors import KDTree
 
-from method.wachter.support import ensure_supported_target_model
 from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
 
@@ -29,6 +28,21 @@ class DiverseDistTrace:
     selected_candidate_distances: list[float]
     counterfactuals: list[np.ndarray]
     chosen_counterfactual: np.ndarray | None
+
+
+def ensure_supported_target_model(
+    target_model: ModelObject,
+    supported_types: Sequence[type[ModelObject]],
+    method_name: str,
+) -> None:
+    if isinstance(target_model, tuple(supported_types)):
+        return
+
+    supported_names = ", ".join(cls.__name__ for cls in supported_types)
+    raise TypeError(
+        f"{method_name} supports target models [{supported_names}] only, "
+        f"received {target_model.__class__.__name__}"
+    )
 
 
 def normalize_candidate_selection(candidate_selection: str) -> str:
@@ -56,6 +70,28 @@ def to_numpy_features(values: pd.DataFrame | np.ndarray, feature_names: Sequence
     if array.ndim == 1:
         array = array.reshape(1, -1)
     return array
+
+
+def resolve_target_indices(
+    target_model: ModelObject,
+    original_prediction: np.ndarray,
+    desired_class: int | str | None,
+) -> np.ndarray:
+    class_to_index = target_model.get_class_to_index()
+    if desired_class is not None:
+        if desired_class not in class_to_index:
+            raise ValueError("desired_class is invalid for the trained target model")
+        return np.full(
+            shape=original_prediction.shape,
+            fill_value=int(class_to_index[desired_class]),
+            dtype=np.int64,
+        )
+
+    if len(class_to_index) != 2:
+        raise ValueError(
+            "desired_class=None is supported for binary classification only"
+        )
+    return 1 - original_prediction.astype(np.int64, copy=False)
 
 
 class DiverseDistModelAdapter:
@@ -99,6 +135,41 @@ class DiverseDistModelAdapter:
             else:
                 probabilities = torch.softmax(logits, dim=1)
         return probabilities.argmax(dim=1).detach().cpu().numpy()
+
+
+def validate_counterfactuals(
+    target_model: ModelObject,
+    factuals: pd.DataFrame,
+    candidates: pd.DataFrame,
+    desired_class: int | str | None = None,
+) -> pd.DataFrame:
+    if list(candidates.columns) != list(factuals.columns):
+        candidates = candidates.reindex(columns=factuals.columns)
+    candidates = candidates.copy(deep=True)
+
+    if candidates.shape[0] != factuals.shape[0]:
+        raise ValueError("Candidates must preserve the number of factual rows")
+
+    valid_rows = ~candidates.isna().any(axis=1)
+    if not bool(valid_rows.any()):
+        return candidates
+
+    adapter = DiverseDistModelAdapter(target_model, factuals.columns)
+    original_prediction = adapter.predict_label_indices(factuals)
+    target_prediction = resolve_target_indices(
+        target_model=target_model,
+        original_prediction=original_prediction,
+        desired_class=desired_class,
+    )
+
+    candidate_prediction = adapter.predict_label_indices(candidates.loc[valid_rows])
+    success_mask = pd.Series(False, index=candidates.index, dtype=bool)
+    success_mask.loc[valid_rows] = (
+        candidate_prediction.astype(np.int64, copy=False)
+        == target_prediction[valid_rows.to_numpy()]
+    )
+    candidates.loc[~success_mask, :] = np.nan
+    return candidates
 
 
 def build_class_kdtrees(
