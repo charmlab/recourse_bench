@@ -1,4 +1,5 @@
 from dataset.adult.adult import AdultDataset
+from dataset.adult_cogs.adult_cogs import AdultCoGSDataset
 from dataset.boston_housing.boston_housing import BostonHousingDataset
 from dataset.breast_cancer.breast_cancer import BreastCancerDataset
 from dataset.compas.compas import CompasDataset

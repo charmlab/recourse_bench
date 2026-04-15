@@ -2,6 +2,7 @@ from method.cchvae.cchvae import CchvaeMethod
 from method.cfrl.cfrl import CfrlMethod
 from method.cfvae.cfvae import CfvaeMethod
 from method.clue.clue import ClueMethod
+from method.cogs.cogs import CogsMethod
 from method.dice.dice import DiceMethod
 from method.face.face import FaceMethod
 from method.gs.gs import GsMethod

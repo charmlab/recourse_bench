@@ -21,12 +21,14 @@ class RandomForestModel(ModelObject):
         max_depth: int | None = None,
         min_samples_split: int = 2,
         n_jobs: int | None = None,
+        max_features: str | int | float | None = "sqrt",
         **kwargs,
     ):
         self._model: RandomForestClassifier = RandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
             min_samples_split=min_samples_split,
+            max_features=max_features,
             random_state=seed,
             n_jobs=n_jobs,
         )

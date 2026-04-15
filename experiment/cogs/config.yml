@@ -1,0 +1,57 @@
+name: cogs_adult_reproduce
+logger:
+  level: INFO
+  path: ./logs/cogs_adult_reproduce.log
+caching:
+  path: ./cache/
+
+dataset:
+  name: adult_cogs
+
+preprocess:
+  - name: encode
+    seed: 42
+    encoding: mapping
+  - name: split
+    seed: 42
+    split: 0.2
+
+model:
+  name: randomforest
+  seed: 42
+  n_estimators: 100
+  max_depth: 8
+  min_samples_split: 2
+
+method:
+  name: cogs
+  seed: 42
+  desired_class: 1
+  evolution_type: classic
+  population_size: 200
+  n_generations: 30
+  mutation_probability: inv_mutable_genotype_length
+  num_features_mutation_strength: 0.25
+  init_temperature: 0.8
+  selection_name: tournament_2
+  noisy_evaluations: false
+  verbose: false
+
+evaluation: []
+
+reproduction:
+  desired_class: 1
+  sample_seed: 42
+  n_reps: 5
+  rf_search:
+    enabled: true
+    cv_folds: 5
+    n_estimators:
+      - 50
+      - 500
+    min_samples_split:
+      - 2
+      - 8
+    max_features:
+      - sqrt
+      - null
