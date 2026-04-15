@@ -9,6 +9,7 @@ from dataset.credit_cchvae.credit_cchvae import CreditCchvaeDataset
 from dataset.dataset_object import DatasetObject
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
+from dataset.german_sns.german_sns import GermanSnsDataset
 from dataset.news_popularity.news_popularity import NewsPopularityDataset
 from dataset.synthetic_face.synthetic_face import SyntheticFaceDataset
 from dataset.toydata.toydata import ToydataDataset

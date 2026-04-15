@@ -12,5 +12,6 @@ from method.probe.probe import ProbeMethod
 from method.proplace.proplace import ProplaceMethod
 from method.rbr.rbr import RbrMethod
 from method.roar.roar import RoarMethod
+from method.sns.sns import SnsMethod
 from method.toy.toy import ToyMethod
 from method.trex.trex import TrexMethod
