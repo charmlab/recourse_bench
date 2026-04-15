@@ -380,18 +380,68 @@ class ScalePreProcess(PreProcessObject):
                 feature_ranges[column] = float(df[column].max() - df[column].min())
         return feature_ranges
 
+    @staticmethod
+    def _compute_scaling_stats(
+        df: pd.DataFrame,
+        target_column: str,
+        feature_type: dict[str, str],
+        selected_modes: dict[str, str],
+    ) -> dict[str, dict[str, float | str]]:
+        scaling_stats: dict[str, dict[str, float | str]] = {}
+        for column, mode in selected_modes.items():
+            if column == target_column:
+                continue
+            if feature_type.get(column, "").lower() != "numerical":
+                continue
+
+            series = df[column].astype("float64")
+            if mode == "standardize":
+                scaling_stats[column] = {
+                    "mode": mode,
+                    "mean": float(series.mean()),
+                    "std": float(series.std(ddof=0)),
+                }
+            elif mode == "normalize":
+                scaling_stats[column] = {
+                    "mode": mode,
+                    "min": float(series.min()),
+                    "max": float(series.max()),
+                }
+            elif mode == "none":
+                scaling_stats[column] = {"mode": mode}
+            else:
+                raise ValueError(
+                    f"Unsupported scaling option for feature {column}: {mode}"
+                )
+        return scaling_stats
+
+    def set_refset(self, refset: DatasetObject | None) -> None:
+        self._refset = refset
+        self._cached_scaling_stats = None
+
+    @staticmethod
+    def _resolve_ref_df(refset: DatasetObject) -> pd.DataFrame:
+        if getattr(refset, "_freeze", False):
+            return pd.concat(
+                [refset.get(target=False), refset.get(target=True)], axis=1
+            )
+        return refset.snapshot()
+
     def __init__(
         self,
         seed: int | None = None,
         scaling: str | None = "standardize",
         override: dict[str, str] | None = None,
         range: bool = True,
+        refset: DatasetObject | None = None,
         **kwargs,
     ):
         self._seed = seed
         self._scaling: str | None = self._resolve_scaling(scaling)
         self._override: dict[str, str] | None = self._resolve_override(override)
         self._range: bool = range
+        self._refset: DatasetObject | None = refset
+        self._cached_scaling_stats: dict[str, dict[str, float | str]] | None = None
 
     def transform(self, input: DatasetObject) -> DatasetObject:
         with seed_context(self._seed):
@@ -421,20 +471,42 @@ class ScalePreProcess(PreProcessObject):
                 override=self._override,
             )
 
+            scaling_stats: dict[str, dict[str, float | str]] | None = None
+            if self._refset is not None:
+                if self._cached_scaling_stats is None:
+                    ref_df = self._resolve_ref_df(self._refset)
+                    ref_target_column = self._refset.target_column
+                    ref_feature_type, _, _ = resolve_feature_metadata(self._refset)
+                    self._cached_scaling_stats = self._compute_scaling_stats(
+                        df=ref_df,
+                        target_column=ref_target_column,
+                        feature_type=ref_feature_type,
+                        selected_modes=selected_modes,
+                    )
+                scaling_stats = self._cached_scaling_stats
+
             scaled_df = df.copy(deep=True)
             for column, mode in selected_modes.items():
                 series = scaled_df[column].astype("float64")
 
                 if mode == "standardize":
-                    mean_value = float(series.mean())
-                    std_value = float(series.std(ddof=0))
+                    if scaling_stats is None:
+                        mean_value = float(series.mean())
+                        std_value = float(series.std(ddof=0))
+                    else:
+                        mean_value = float(scaling_stats[column]["mean"])
+                        std_value = float(scaling_stats[column]["std"])
                     if std_value == 0.0:
                         scaled_df[column] = 0.0
                     else:
                         scaled_df[column] = (series - mean_value) / std_value
                 elif mode == "normalize":
-                    min_value = float(series.min())
-                    max_value = float(series.max())
+                    if scaling_stats is None:
+                        min_value = float(series.min())
+                        max_value = float(series.max())
+                    else:
+                        min_value = float(scaling_stats[column]["min"])
+                        max_value = float(scaling_stats[column]["max"])
                     scale_value = max_value - min_value
                     if scale_value == 0.0:
                         scaled_df[column] = 0.0

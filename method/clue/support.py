@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence
 
 import numpy as np
@@ -8,29 +8,23 @@ import pandas as pd
 import torch
 
 from dataset.dataset_object import DatasetObject
-from model.linear.linear import LinearModel
-from model.mlp.mlp import MlpModel
+from method.clue.library.clue_ml.src.probability import decompose_entropy_cat
+from model.mlp_bayesian.mlp_bayesian import MlpBayesianModel
 from model.model_object import ModelObject
-from model.randomforest.randomforest import RandomForestModel
-from preprocess.preprocess_utils import resolve_feature_metadata
-
-TorchModelTypes = (LinearModel, MlpModel)
-BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
+from preprocess.preprocess_utils import dataset_has_attr
 
 
 def ensure_supported_target_model(
     target_model: ModelObject,
-    supported_types: Sequence[type[ModelObject]],
     method_name: str,
 ) -> None:
-    if isinstance(target_model, tuple(supported_types)):
-        return
-
-    supported_names = ", ".join(cls.__name__ for cls in supported_types)
-    raise TypeError(
-        f"{method_name} supports target models [{supported_names}] only, "
-        f"received {target_model.__class__.__name__}"
-    )
+    if not isinstance(target_model, MlpBayesianModel):
+        raise TypeError(
+            f"{method_name} supports MlpBayesianModel only, "
+            f"received {target_model.__class__.__name__}"
+        )
+    if not bool(getattr(target_model, "_bayesian", False)):
+        raise ValueError(f"{method_name} requires target_model._bayesian=True")
 
 
 def to_feature_dataframe(
@@ -50,203 +44,131 @@ def to_feature_dataframe(
     return pd.DataFrame(array, columns=list(feature_names))
 
 
-@dataclass
-class FeatureGroups:
-    feature_names: list[str]
-    continuous: list[str]
-    categorical: list[str]
-    binary: list[str]
-    immutable: list[str]
-    mutable: list[str]
-    mutable_mask: np.ndarray
+def resolve_feature_names(dataset: DatasetObject) -> list[str]:
+    return list(dataset.get(target=False).columns)
 
 
-def resolve_feature_groups(dataset: DatasetObject) -> FeatureGroups:
-    feature_df = dataset.get(target=False)
-    feature_names = list(feature_df.columns)
-    feature_type, feature_mutability, feature_actionability = resolve_feature_metadata(
-        dataset
-    )
+def resolve_input_dim_vec(dataset: DatasetObject) -> list[int]:
+    feature_names = list(dataset.get(target=False).columns)
+    if not dataset_has_attr(dataset, "encoding"):
+        return [1] * len(feature_names)
 
-    continuous: list[str] = []
-    categorical: list[str] = []
-    binary: list[str] = []
-    immutable: list[str] = []
-    mutable: list[str] = []
+    encoding_map = dataset.attr("encoding")
+    source_by_column: dict[str, str] = {}
+    for source_feature, encoded_columns in encoding_map.items():
+        for encoded_column in encoded_columns:
+            source_by_column[encoded_column] = source_feature
 
+    input_dim_vec: list[int] = []
+    current_source: str | None = None
+    current_width = 0
     for feature_name in feature_names:
-        feature_kind = str(feature_type[feature_name]).lower()
-        is_mutable = bool(feature_mutability[feature_name])
-        actionability = str(feature_actionability[feature_name]).lower()
-
-        if feature_kind == "numerical":
-            continuous.append(feature_name)
-        else:
-            categorical.append(feature_name)
-            if feature_kind == "binary":
-                binary.append(feature_name)
-
-        if (not is_mutable) or actionability in {"none", "same"}:
-            immutable.append(feature_name)
-        else:
-            mutable.append(feature_name)
-
-    mutable_mask = np.array(
-        [feature_name in set(mutable) for feature_name in feature_names], dtype=bool
-    )
-    return FeatureGroups(
-        feature_names=feature_names,
-        continuous=continuous,
-        categorical=categorical,
-        binary=binary,
-        immutable=immutable,
-        mutable=mutable,
-        mutable_mask=mutable_mask,
-    )
+        source_feature = source_by_column.get(feature_name, feature_name)
+        if current_source is None:
+            current_source = source_feature
+            current_width = 1
+            continue
+        if source_feature == current_source:
+            current_width += 1
+            continue
+        input_dim_vec.append(current_width)
+        current_source = source_feature
+        current_width = 1
+    if current_source is not None:
+        input_dim_vec.append(current_width)
+    return input_dim_vec
 
 
-class RecourseModelAdapter:
-    def __init__(self, target_model: ModelObject, feature_names: Sequence[str]):
+def resolve_vae_checkpoint_path(path: str | None) -> Path | None:
+    if path is None:
+        return None
+    resolved = Path(path)
+    if resolved.is_dir():
+        resolved = resolved / "theta_best.dat"
+    return resolved
+
+
+class ClueModelAdapter:
+    def __init__(self, target_model: MlpBayesianModel, feature_names: Sequence[str]):
         self._target_model = target_model
         self._feature_names = list(feature_names)
-        class_to_index = target_model.get_class_to_index()
-        self._index_to_class = {
-            index: class_value for class_value, index in class_to_index.items()
-        }
-        self.classes_ = np.array(
-            [self._index_to_class[index] for index in sorted(self._index_to_class)]
-        )
 
-    def get_ordered_features(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> pd.DataFrame:
-        return to_feature_dataframe(X, self._feature_names)
+    def sample_predict(
+        self,
+        X: torch.Tensor | np.ndarray | pd.DataFrame,
+        grad: bool = False,
+    ) -> torch.Tensor:
+        if isinstance(X, torch.Tensor):
+            tensor = X
+        else:
+            features = to_feature_dataframe(X, self._feature_names)
+            tensor = torch.tensor(
+                features.to_numpy(dtype="float32"),
+                dtype=torch.float32,
+                device=self._target_model._device,
+            )
+        return self._target_model.sample_predict(tensor, Nsamples=0, grad=grad)
 
     def predict_proba(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
+        self, X: torch.Tensor | np.ndarray | pd.DataFrame
     ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            return differentiable_predict_proba(self._target_model, X)
+        if isinstance(X, torch.Tensor):
+            return self.sample_predict(X, grad=X.requires_grad).mean(dim=0)
 
-        features = self.get_ordered_features(X)
+        features = to_feature_dataframe(X, self._feature_names)
         prediction = self._target_model.get_prediction(features, proba=True)
-        if isinstance(prediction, torch.Tensor):
-            return prediction.detach().cpu().numpy()
-        return np.asarray(prediction)
-
-    def predict(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1)
-
-        features = self.get_ordered_features(X)
-        prediction = self._target_model.get_prediction(features, proba=False)
-        if isinstance(prediction, torch.Tensor):
-            label_indices = prediction.detach().cpu().numpy().argmax(axis=1)
-        else:
-            label_indices = np.asarray(prediction).argmax(axis=1)
-        return np.asarray([self._index_to_class[int(index)] for index in label_indices])
+        return prediction.detach().cpu().numpy()
 
     def predict_label_indices(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
+        self, X: torch.Tensor | np.ndarray | pd.DataFrame
     ) -> np.ndarray:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1).detach().cpu().numpy()
-
-        features = self.get_ordered_features(X)
-        probabilities = self._target_model.get_prediction(features, proba=True)
+        probabilities = self.predict_proba(X)
         if isinstance(probabilities, torch.Tensor):
-            return probabilities.detach().cpu().numpy().argmax(axis=1)
+            return probabilities.argmax(dim=1).detach().cpu().numpy()
         return np.asarray(probabilities).argmax(axis=1)
 
+    def entropy_tensor(self, X: torch.Tensor) -> torch.Tensor:
+        prob_samples = self.sample_predict(X, grad=X.requires_grad)
+        total_entropy, _, _ = decompose_entropy_cat(prob_samples)
+        return total_entropy
 
-def differentiable_predict_proba(
-    target_model: ModelObject,
-    X: torch.Tensor,
-) -> torch.Tensor:
-    ensure_supported_target_model(
-        target_model,
-        TorchModelTypes,
-        "differentiable_predict_proba",
-    )
-    model = getattr(target_model, "_model", None)
-    if model is None:
-        raise RuntimeError("Target model has not been initialized")
-
-    device = target_model._device
-    logits = model(X.to(device))
-    output_activation = getattr(target_model, "_output_activation_name", "softmax")
-    output_activation = str(output_activation).lower()
-    if logits.ndim == 1:
-        logits = logits.unsqueeze(0)
-
-    if output_activation == "sigmoid":
-        positive_probability = torch.sigmoid(logits)
-        return torch.cat([1.0 - positive_probability, positive_probability], dim=1)
-    return torch.softmax(logits, dim=1)
-
-
-def resolve_target_indices(
-    target_model: ModelObject,
-    original_prediction: np.ndarray,
-    desired_class: int | str | None,
-) -> np.ndarray:
-    class_to_index = target_model.get_class_to_index()
-    if desired_class is not None:
-        if desired_class not in class_to_index:
-            raise ValueError("desired_class is invalid for the trained target model")
-        return np.full(
-            shape=original_prediction.shape,
-            fill_value=int(class_to_index[desired_class]),
-            dtype=np.int64,
-        )
-
-    if len(class_to_index) != 2:
-        raise ValueError(
-            "desired_class=None is supported for binary classification only"
-        )
-    return 1 - original_prediction.astype(np.int64, copy=False)
+    def entropy_numpy(self, X: pd.DataFrame | np.ndarray) -> np.ndarray:
+        probabilities = self.predict_proba(X)
+        if isinstance(probabilities, torch.Tensor):
+            probs = probabilities.detach().cpu().numpy()
+        else:
+            probs = probabilities
+        return -(probs * np.log(probs + 1e-10)).sum(axis=1)
 
 
 def validate_counterfactuals(
-    target_model: ModelObject,
+    target_model: MlpBayesianModel,
     factuals: pd.DataFrame,
     candidates: pd.DataFrame,
-    desired_class: int | str | None = None,
+    feature_names: Sequence[str],
+    entropy_margin: float = 1e-8,
 ) -> pd.DataFrame:
-    if list(candidates.columns) != list(factuals.columns):
-        candidates = candidates.reindex(columns=factuals.columns)
-    candidates = candidates.copy(deep=True)
+    aligned_candidates = candidates.reindex(
+        index=factuals.index, columns=list(feature_names)
+    )
+    aligned_candidates = aligned_candidates.copy(deep=True)
 
-    if candidates.shape[0] != factuals.shape[0]:
-        raise ValueError("Candidates must preserve the number of factual rows")
-
-    valid_rows = ~candidates.isna().any(axis=1)
+    valid_rows = ~aligned_candidates.isna().any(axis=1)
     if not bool(valid_rows.any()):
-        return candidates
+        return aligned_candidates
 
-    adapter = RecourseModelAdapter(target_model, factuals.columns)
-    original_prediction = adapter.predict_label_indices(factuals)
-    target_prediction = resolve_target_indices(
-        target_model=target_model,
-        original_prediction=original_prediction,
-        desired_class=desired_class,
-    )
+    adapter = ClueModelAdapter(target_model, feature_names)
+    factual_subset = factuals.loc[valid_rows]
+    candidate_subset = aligned_candidates.loc[valid_rows]
 
-    candidate_prediction = adapter.predict_label_indices(candidates.loc[valid_rows])
-    success_mask = pd.Series(False, index=candidates.index, dtype=bool)
-    success_mask.loc[valid_rows] = (
-        candidate_prediction.astype(np.int64, copy=False)
-        == target_prediction[valid_rows.to_numpy()]
+    factual_entropy = adapter.entropy_numpy(factual_subset)
+    candidate_entropy = adapter.entropy_numpy(candidate_subset)
+    factual_prediction = adapter.predict_label_indices(factual_subset)
+    candidate_prediction = adapter.predict_label_indices(candidate_subset)
+
+    success_mask = (candidate_entropy + entropy_margin < factual_entropy) & (
+        candidate_prediction == factual_prediction
     )
-    candidates.loc[~success_mask, :] = np.nan
-    return candidates
+    invalid_index = candidate_subset.index[~success_mask]
+    aligned_candidates.loc[invalid_index, :] = np.nan
+    return aligned_candidates

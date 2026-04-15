@@ -3,6 +3,7 @@ from dataset.boston_housing.boston_housing import BostonHousingDataset
 from dataset.breast_cancer.breast_cancer import BreastCancerDataset
 from dataset.compas.compas import CompasDataset
 from dataset.compas_carla.compas_carla import CompasCarlaDataset
+from dataset.compas_clue.compas_clue import CompasClueDataset
 from dataset.credit.credit import CreditDataset
 from dataset.credit_cchvae.credit_cchvae import CreditCchvaeDataset
 from dataset.dataset_object import DatasetObject

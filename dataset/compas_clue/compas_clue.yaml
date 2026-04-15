@@ -1,0 +1,38 @@
+name: compas_clue
+target_column: two_year_recid
+feature_order:
+- age_cat
+- race
+- sex
+- c_charge_degree
+- is_recid
+- priors_count
+- time_served
+- two_year_recid
+raw_feature_type:
+  age_cat: categorical
+  race: categorical
+  sex: categorical
+  c_charge_degree: categorical
+  is_recid: categorical
+  priors_count: numerical
+  time_served: numerical
+  two_year_recid: binary
+raw_feature_mutability:
+  age_cat: false
+  race: false
+  sex: false
+  c_charge_degree: true
+  is_recid: true
+  priors_count: true
+  time_served: true
+  two_year_recid: false
+raw_feature_actionability:
+  age_cat: none
+  race: none
+  sex: none
+  c_charge_degree: any
+  is_recid: any
+  priors_count: any
+  time_served: any
+  two_year_recid: none

@@ -196,15 +196,12 @@ class CLUE(BaseNet):
         self.original_x = torch.Tensor(original_x)
 
         self.prob_BNN = prob_BNN
-        # self.cuda = cuda
-        self.cuda = torch.cuda.is_available()
+        self.cuda = bool(cuda and torch.cuda.is_available())
         if self.cuda:
             self.original_x = self.original_x.cuda()
-            # self.z_init = self.z_init.cuda()
             if self.desired_preds is not None:
-                # self.desired_preds = self.desired_preds.cuda()
-                self.desired_preds = torch.from_numpy(self.desired_preds).cuda()
-        else:
+                self.desired_preds = torch.as_tensor(self.desired_preds).cuda()
+        elif self.desired_preds is not None:
             self.desired_preds = torch.from_numpy(self.desired_preds)
 
         self.cond_mask = cond_mask
@@ -218,7 +215,7 @@ class CLUE(BaseNet):
             self.z_dim = VAE.latent_dim
             if z_init is not None:
                 self.z_init = torch.Tensor(z_init)
-                if cuda:
+                if self.cuda:
                     self.z_init = self.z_init.cuda()
                 self.z = nn.Parameter(self.z_init)
                 self.trainable_params.append(self.z)

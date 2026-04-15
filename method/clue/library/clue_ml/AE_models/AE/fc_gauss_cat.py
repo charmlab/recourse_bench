@@ -138,7 +138,8 @@ class VAE_gauss_cat_net(BaseNet):
 
     def create_net(self):
         torch.manual_seed(42)
-        torch.cuda.manual_seed(42)
+        if self.cuda and torch.cuda.is_available():
+            torch.cuda.manual_seed(42)
         self.model = VAE_gauss_cat(
             self.input_dim_vec, self.width, self.depth, self.latent_dim, self.pred_sig
         )

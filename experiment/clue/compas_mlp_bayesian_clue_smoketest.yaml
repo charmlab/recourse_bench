@@ -1,0 +1,59 @@
+name: compas_mlp_bayesian_clue_smoketest
+logger:
+  level: INFO
+  path: ./logs/compas_mlp_bayesian_clue_smoketest.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas_clue
+preprocess:
+  - name: split
+    seed: 42
+    split: 0.1
+  - name: scale
+    seed: 42
+    scaling: standardize
+    range: true
+  - name: encode
+    seed: 42
+    encoding: onehot
+  - name: reorder
+    seed: 42
+    order:
+      - age_cat_cat_25 - 45
+      - age_cat_cat_Greater than 45
+      - age_cat_cat_Less than 25
+      - race_cat_African-American
+      - race_cat_Asian
+      - race_cat_Caucasian
+      - race_cat_Hispanic
+      - race_cat_Native American
+      - race_cat_Other
+      - sex_cat_Female
+      - sex_cat_Male
+      - c_charge_degree_cat_F
+      - c_charge_degree_cat_M
+      - is_recid_cat_0
+      - is_recid_cat_1
+      - priors_count
+      - time_served
+model:
+  name: mlp_bayesian
+  seed: 42
+  device: cpu
+  layers: [200, 200]
+  pretrained_path: ./reference/clueweights/notebooks/saves/fc_BNN_NEW_compas_models/state_dicts.pkl
+  bayesian: true
+method:
+  name: clue
+  seed: 42
+  device: cpu
+  pretrained_path: ./reference/clueweights/notebooks/saves/fc_preact_VAE_NEW(300)_compas_models/theta_best.dat
+  lr: 0.01
+  min_steps: 3
+  max_steps: 5
+  early_stop_patience: 3
+evaluation:
+  - name: distance
+    metrics: [l1]
+  - name: validity
