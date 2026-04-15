@@ -1,36 +1,36 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Mapping, Sequence
 
 import numpy as np
 import pandas as pd
 import torch
 
 from dataset.dataset_object import DatasetObject
-from model.linear.linear import LinearModel
-from model.mlp.mlp import MlpModel
+from method.probe.utils import (
+    CategoricalGroup,
+    build_thermometer_patterns,
+    infer_binary_feature_indices,
+    infer_categorical_groups,
+)
 from model.model_object import ModelObject
-from model.randomforest.randomforest import RandomForestModel
-from preprocess.preprocess_utils import resolve_feature_metadata
-
-TorchModelTypes = (LinearModel, MlpModel)
-BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
+from preprocess.preprocess_utils import dataset_has_attr, resolve_feature_metadata
 
 
-def ensure_supported_target_model(
+def ensure_model_supports_gradients(
     target_model: ModelObject,
-    supported_types: Sequence[type[ModelObject]],
     method_name: str,
 ) -> None:
-    if isinstance(target_model, tuple(supported_types)):
+    if bool(getattr(target_model, "_need_grad", False)):
         return
+    raise TypeError(f"{method_name} requires target_model._need_grad == True")
 
-    supported_names = ", ".join(cls.__name__ for cls in supported_types)
-    raise TypeError(
-        f"{method_name} supports target models [{supported_names}] only, "
-        f"received {target_model.__class__.__name__}"
-    )
+
+def ensure_binary_classifier(target_model: ModelObject, method_name: str) -> None:
+    class_to_index = target_model.get_class_to_index()
+    if len(class_to_index) != 2:
+        raise ValueError(f"{method_name} supports binary classification only")
 
 
 def to_feature_dataframe(
@@ -125,9 +125,7 @@ class RecourseModelAdapter:
     def predict_proba(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
     ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
+        if isinstance(X, torch.Tensor):
             return differentiable_predict_proba(self._target_model, X)
 
         features = self.get_ordered_features(X)
@@ -139,9 +137,7 @@ class RecourseModelAdapter:
     def predict(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
     ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
+        if isinstance(X, torch.Tensor):
             probabilities = differentiable_predict_proba(self._target_model, X)
             return probabilities.argmax(dim=1)
 
@@ -156,9 +152,7 @@ class RecourseModelAdapter:
     def predict_label_indices(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
     ) -> np.ndarray:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
+        if isinstance(X, torch.Tensor):
             probabilities = differentiable_predict_proba(self._target_model, X)
             return probabilities.argmax(dim=1).detach().cpu().numpy()
 
@@ -173,17 +167,11 @@ def differentiable_predict_proba(
     target_model: ModelObject,
     X: torch.Tensor,
 ) -> torch.Tensor:
-    ensure_supported_target_model(
-        target_model,
-        TorchModelTypes,
-        "differentiable_predict_proba",
-    )
-    model = getattr(target_model, "_model", None)
-    if model is None:
-        raise RuntimeError("Target model has not been initialized")
+    ensure_model_supports_gradients(target_model, "differentiable_predict_proba")
+    logits = target_model(X.to(target_model._device))
+    if not isinstance(logits, torch.Tensor):
+        raise TypeError("Target model forward pass must return a torch.Tensor")
 
-    device = target_model._device
-    logits = model(X.to(device))
     output_activation = getattr(target_model, "_output_activation_name", "softmax")
     output_activation = str(output_activation).lower()
     if logits.ndim == 1:
@@ -250,3 +238,243 @@ def validate_counterfactuals(
     )
     candidates.loc[~success_mask, :] = np.nan
     return candidates
+
+
+def get_encoding_map(dataset: DatasetObject) -> dict[str, list[str]] | None:
+    if not dataset_has_attr(dataset, "encoding"):
+        return None
+    raw_encoding = dataset.attr("encoding")
+    return {
+        str(feature_name): [str(column) for column in columns]
+        for feature_name, columns in raw_encoding.items()
+    }
+
+
+def resolve_categorical_groups(
+    dataset: DatasetObject,
+    feature_names: Sequence[str],
+) -> list[CategoricalGroup]:
+    encoding_map = get_encoding_map(dataset)
+    return infer_categorical_groups(feature_names, encoding_map)
+
+
+def resolve_binary_feature_value_map(
+    train_features: pd.DataFrame,
+    feature_names: Sequence[str],
+    feature_type: Mapping[str, str],
+    categorical_groups: Sequence[CategoricalGroup],
+) -> dict[int, np.ndarray]:
+    binary_indices = infer_binary_feature_indices(
+        feature_names,
+        feature_type,
+        categorical_groups,
+    )
+    value_map: dict[int, np.ndarray] = {}
+    for feature_index in binary_indices:
+        feature_name = feature_names[feature_index]
+        unique_values = sorted(pd.Index(train_features[feature_name].unique()).tolist())
+        if len(unique_values) > 2:
+            raise ValueError(
+                f"Binary feature {feature_name} has more than two observed values"
+            )
+        value_map[feature_index] = np.asarray(unique_values, dtype=np.float32)
+    return value_map
+
+
+def compute_feature_bounds(
+    train_features: pd.DataFrame,
+    feature_names: Sequence[str],
+) -> tuple[np.ndarray, np.ndarray]:
+    lower_bounds = (
+        train_features.loc[:, list(feature_names)]
+        .min(axis=0)
+        .to_numpy(dtype=np.float32)
+    )
+    upper_bounds = (
+        train_features.loc[:, list(feature_names)]
+        .max(axis=0)
+        .to_numpy(dtype=np.float32)
+    )
+    return lower_bounds, upper_bounds
+
+
+def compute_feature_weights(
+    train_features: pd.DataFrame,
+    feature_names: Sequence[str],
+    continuous_feature_names: Sequence[str],
+    feature_weights: str | Mapping[str, float],
+) -> np.ndarray:
+    if isinstance(feature_weights, Mapping):
+        return np.asarray(
+            [
+                float(feature_weights.get(feature_name, 1.0))
+                for feature_name in feature_names
+            ],
+            dtype=np.float32,
+        )
+
+    feature_weights_name = str(feature_weights).lower()
+    if feature_weights_name != "inverse_mad":
+        raise ValueError(
+            "DiceMethod supports feature_weights='inverse_mad' or dict[str, float] only"
+        )
+
+    continuous_set = set(continuous_feature_names)
+    resolved_weights: list[float] = []
+    for feature_name in feature_names:
+        if feature_name not in continuous_set:
+            resolved_weights.append(1.0)
+            continue
+        series = train_features[feature_name].astype("float64")
+        median = float(series.median())
+        mad = float(np.median(np.abs(series.to_numpy() - median)))
+        if mad <= 0.0:
+            resolved_weights.append(1.0)
+        else:
+            resolved_weights.append(round(1.0 / mad, 2))
+    return np.asarray(resolved_weights, dtype=np.float32)
+
+
+def compute_sparsity_thresholds(
+    train_features: pd.DataFrame,
+    continuous_feature_names: Sequence[str],
+    quantile: float,
+) -> dict[str, float]:
+    thresholds: dict[str, float] = {}
+    for feature_name in continuous_feature_names:
+        series = train_features[feature_name].astype("float64")
+        median = float(series.median())
+        deviations = np.abs(series.to_numpy() - median)
+        mad = float(np.median(deviations))
+        non_zero_deviations = deviations[deviations > 0.0]
+        if non_zero_deviations.size == 0:
+            threshold = mad
+        else:
+            quantile_value = float(np.quantile(non_zero_deviations, quantile))
+            if mad <= 0.0:
+                threshold = quantile_value
+            else:
+                threshold = min(mad, quantile_value)
+        thresholds[feature_name] = float(max(threshold, 0.0))
+    return thresholds
+
+
+def project_binary_features(
+    instance: torch.Tensor,
+    binary_feature_value_map: Mapping[int, np.ndarray],
+) -> torch.Tensor:
+    if not binary_feature_value_map:
+        return instance
+
+    squeeze_output = False
+    if instance.ndim == 1:
+        instance = instance.unsqueeze(0)
+        squeeze_output = True
+
+    projected = instance.clone()
+    for feature_index, raw_values in binary_feature_value_map.items():
+        allowed_values = torch.as_tensor(
+            raw_values,
+            dtype=projected.dtype,
+            device=projected.device,
+        )
+        distances = torch.abs(
+            projected[:, feature_index].unsqueeze(1) - allowed_values.unsqueeze(0)
+        )
+        nearest_indices = distances.argmin(dim=1)
+        projected[:, feature_index] = allowed_values.index_select(0, nearest_indices)
+
+    if squeeze_output:
+        return projected.squeeze(0)
+    return projected
+
+
+def project_categorical_groups(
+    instance: torch.Tensor,
+    categorical_groups: Sequence[CategoricalGroup],
+    tie_random: bool = False,
+) -> torch.Tensor:
+    if not categorical_groups:
+        return instance
+
+    squeeze_output = False
+    if instance.ndim == 1:
+        instance = instance.unsqueeze(0)
+        squeeze_output = True
+
+    projected = instance.clone()
+    for group in categorical_groups:
+        group_indices = list(group.indices)
+        group_values = projected[:, group_indices]
+
+        if group.encoding == "thermometer":
+            patterns = build_thermometer_patterns(
+                len(group_indices),
+                device=projected.device,
+                dtype=projected.dtype,
+            )
+            squared_distance = torch.sum(
+                (group_values.unsqueeze(1) - patterns.unsqueeze(0)) ** 2,
+                dim=2,
+            )
+            best_pattern = squared_distance.argmin(dim=1)
+            projected[:, group_indices] = patterns.index_select(0, best_pattern)
+            continue
+
+        winners = []
+        for row_index in range(group_values.shape[0]):
+            row = group_values[row_index]
+            max_value = torch.max(row)
+            winner_indices = torch.nonzero(
+                torch.isclose(row, max_value),
+                as_tuple=False,
+            ).squeeze(1)
+            if winner_indices.numel() == 1 or not tie_random:
+                winners.append(int(winner_indices[0].item()))
+            else:
+                random_choice = torch.randint(
+                    low=0,
+                    high=winner_indices.numel(),
+                    size=(1,),
+                    device=projected.device,
+                ).item()
+                winners.append(int(winner_indices[random_choice].item()))
+
+        group_projection = torch.zeros_like(group_values)
+        row_indices = torch.arange(group_values.shape[0], device=projected.device)
+        group_projection[
+            row_indices, torch.tensor(winners, device=projected.device)
+        ] = 1.0
+        projected[:, group_indices] = group_projection
+
+    if squeeze_output:
+        return projected.squeeze(0)
+    return projected
+
+
+def project_discrete_feature_space(
+    instance: torch.Tensor,
+    categorical_groups: Sequence[CategoricalGroup],
+    binary_feature_value_map: Mapping[int, np.ndarray],
+    tie_random: bool = False,
+) -> torch.Tensor:
+    projected = project_categorical_groups(
+        instance,
+        categorical_groups=categorical_groups,
+        tie_random=tie_random,
+    )
+    projected = project_binary_features(
+        projected,
+        binary_feature_value_map=binary_feature_value_map,
+    )
+    return projected
+
+
+def deduplicate_counterfactuals(counterfactuals: pd.DataFrame) -> pd.DataFrame:
+    if counterfactuals.empty:
+        return counterfactuals.copy(deep=True)
+    rounded = counterfactuals.copy(deep=True)
+    numeric_columns = rounded.select_dtypes(include=["number"]).columns
+    rounded.loc[:, numeric_columns] = rounded.loc[:, numeric_columns].round(6)
+    rounded = rounded.drop_duplicates(ignore_index=True)
+    return rounded
