@@ -1,0 +1,54 @@
+name: german_mlp_cvas_proj_reproduce_future
+logger:
+  level: INFO
+  path: ./logs/german_mlp_cvas_proj_reproduce_future.log
+caching:
+  path: ./cache/
+dataset:
+  name: german_roar
+preprocess:
+  - name: cvas_german_reference
+    seed: 42
+    paired_dataset_name: german
+  - name: stratified_split
+    seed: 42
+    split: 0.2
+model:
+  name: mlp
+  seed: 42
+  device: cpu
+  epochs: 1000
+  learning_rate: 0.001
+  batch_size: 1000
+  layers:
+    - 20
+    - 50
+    - 20
+  optimizer: adam
+  weight_decay: 0.1
+  criterion: bce
+  loss_reduction: sum
+  output_activation: sigmoid
+  xavier_uniform_init: true
+  early_stop_patience: 3
+  early_stop_tol: 1.0e-7
+method:
+  name: cvas_proj
+  seed: 124
+  device: cpu
+  desired_class: 1
+  surrogate_method: fr_rmpm
+  rho_neg: 10.0
+  rho_pos: 0.0
+  perturb_radius: 0.2
+  num_samples: 1000
+  num_boundary_neighbors: 10
+  line_search_steps: 100
+  threshold_shift: 0.0
+  projection_epsilon: 0.1
+  surrogate_solver: CLARABEL
+  projection_solver: HIGHS
+  row_seed_strategy: fixed
+evaluation:
+  - name: validity
+  - name: distance

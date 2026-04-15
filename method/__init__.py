@@ -6,6 +6,7 @@ from method.cfvae.cfvae import CfvaeMethod
 from method.clue.clue import ClueMethod
 from method.cogs.cogs import CogsMethod
 from method.cols.cols import ColsMethod
+from method.cvas_proj.cvas_proj import CvasProjMethod
 from method.dice.dice import DiceMethod
 from method.diverse_dist.diverse_dist import DiverseDistMethod
 from method.face.face import FaceMethod
