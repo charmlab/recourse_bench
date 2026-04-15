@@ -1,1 +1,0 @@
-from method.gravitational.gravitational import GravitationalMethod
