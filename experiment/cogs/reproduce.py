@@ -33,8 +33,10 @@ def _load_config(config_path: Path) -> dict:
 
 def _apply_device(config: dict, device: str) -> dict:
     cfg = deepcopy(config)
-    cfg["model"]["device"] = device
-    cfg["method"]["device"] = device
+    model_name = str(cfg["model"]["name"]).lower()
+    resolved_device = "cpu" if model_name == "randomforest" else device
+    cfg["model"]["device"] = resolved_device
+    cfg["method"]["device"] = resolved_device
     return cfg
 
 

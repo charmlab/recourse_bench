@@ -75,7 +75,9 @@ def _load_scaled_diabetes(config: dict) -> tuple[DiabetesDataset, pd.DataFrame, 
 
     min_vals = df[feature_columns].min(axis=0)
     max_vals = df[feature_columns].max(axis=0)
-    scaled_df = df.copy(deep=True)
+    scaled_df = df.astype({column: "float64" for column in feature_columns}).copy(
+        deep=True
+    )
     scaled_df.loc[:, feature_columns] = (
         scaled_df.loc[:, feature_columns] - min_vals
     ) / (max_vals - min_vals)
