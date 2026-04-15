@@ -61,6 +61,62 @@ class FeatureGroups:
     mutable_mask: np.ndarray
 
 
+@dataclass
+class ActionabilityRules:
+    feature_names: list[str]
+    rules: list[str]
+    tolerance: float = 1e-8
+
+    def pairwise_feasibility(self, values: np.ndarray) -> np.ndarray:
+        if values.ndim != 2:
+            raise ValueError("values must be two-dimensional")
+
+        mask = np.ones((values.shape[0], values.shape[0]), dtype=bool)
+        for feature_index, rule in enumerate(self.rules):
+            current = values[:, feature_index]
+            if rule in {"none", "same"}:
+                mask &= np.isclose(
+                    current[:, None],
+                    current[None, :],
+                    atol=self.tolerance,
+                )
+            elif rule == "same-or-increase":
+                mask &= current[None, :] >= (current[:, None] - self.tolerance)
+            elif rule == "same-or-decrease":
+                mask &= current[None, :] <= (current[:, None] + self.tolerance)
+            elif rule == "any":
+                continue
+            else:
+                raise ValueError(f"Unsupported FACE actionability rule: {rule}")
+        return mask
+
+    def source_feasibility(
+        self,
+        source: np.ndarray,
+        destinations: np.ndarray,
+    ) -> np.ndarray:
+        if source.ndim != 1:
+            raise ValueError("source must be one-dimensional")
+        if destinations.ndim != 2:
+            raise ValueError("destinations must be two-dimensional")
+
+        mask = np.ones(destinations.shape[0], dtype=bool)
+        for feature_index, rule in enumerate(self.rules):
+            current = destinations[:, feature_index]
+            source_value = source[feature_index]
+            if rule in {"none", "same"}:
+                mask &= np.isclose(current, source_value, atol=self.tolerance)
+            elif rule == "same-or-increase":
+                mask &= current >= (source_value - self.tolerance)
+            elif rule == "same-or-decrease":
+                mask &= current <= (source_value + self.tolerance)
+            elif rule == "any":
+                continue
+            else:
+                raise ValueError(f"Unsupported FACE actionability rule: {rule}")
+        return mask
+
+
 def resolve_feature_groups(dataset: DatasetObject) -> FeatureGroups:
     feature_df = dataset.get(target=False)
     feature_names = list(feature_df.columns)
@@ -102,6 +158,24 @@ def resolve_feature_groups(dataset: DatasetObject) -> FeatureGroups:
         immutable=immutable,
         mutable=mutable,
         mutable_mask=mutable_mask,
+    )
+
+
+def resolve_actionability_rules(dataset: DatasetObject) -> ActionabilityRules:
+    feature_df = dataset.get(target=False)
+    feature_names = list(feature_df.columns)
+    _, feature_mutability, feature_actionability = resolve_feature_metadata(dataset)
+
+    rules: list[str] = []
+    for feature_name in feature_names:
+        if not bool(feature_mutability[feature_name]):
+            rules.append("none")
+            continue
+        rules.append(str(feature_actionability[feature_name]).lower())
+
+    return ActionabilityRules(
+        feature_names=feature_names,
+        rules=rules,
     )
 
 
