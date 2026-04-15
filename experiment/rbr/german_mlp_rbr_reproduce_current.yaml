@@ -1,0 +1,50 @@
+name: german_mlp_rbr_reproduce_current
+experiment:
+  seed: 42
+  num_factuals: 5
+  factual_selection: all
+  train_split: 0.8
+  split_random_state: 42
+logger:
+  level: INFO
+  path: ./logs/german_mlp_rbr_reproduce_current.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+model:
+  name: mlp
+  seed: 42
+  device: cpu
+  epochs: 1000
+  learning_rate: 0.001
+  batch_size: null
+  layers:
+    - 20
+    - 50
+    - 20
+  optimizer: adam
+  criterion: bce
+  output_activation: sigmoid
+  save_name: null
+  weight_decay: 0.1
+  loss_reduction: sum
+  xavier_uniform_init: true
+  early_stop_tol: 1.0e-7
+  early_stop_patience: 3
+method:
+  name: rbr
+  seed: 42
+  device: cpu
+  desired_class: 1
+  num_samples: 200
+  perturb_radius: 0.2
+  delta_plus: 1.0
+  sigma: 1.0
+  epsilon_op: 0.5
+  epsilon_pe: 1.0
+  max_iter: 1000
+  clamp: false
+  enforce_encoding: false
+  random_state: 42
+  verbose: false
