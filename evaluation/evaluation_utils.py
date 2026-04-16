@@ -6,6 +6,15 @@ import torch
 from dataset.dataset_object import DatasetObject
 
 
+def dataset_has_attr(dataset: DatasetObject, flag: str) -> bool:
+    try:
+        dataset.attr(flag)
+    except AttributeError:
+        return False
+    else:
+        return True
+
+
 def resolve_evaluation_inputs(
     factuals: DatasetObject, counterfactuals: DatasetObject
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
@@ -59,6 +68,12 @@ def resolve_evaluation_inputs(
         evaluation_mask,
         success_mask,
     )
+
+
+def resolve_ref_df(refset: DatasetObject) -> pd.DataFrame:
+    if getattr(refset, "_freeze", False):
+        return pd.concat([refset.get(target=False), refset.get(target=True)], axis=1)
+    return refset.snapshot()
 
 
 def to_float_tensor(df: pd.DataFrame) -> torch.Tensor:

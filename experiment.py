@@ -151,8 +151,24 @@ class Experiment:
         for cfg in self._cfg.get("evaluation", []):
             item_cfg = deepcopy(cfg)
             name = item_cfg.pop("name")
-            evaluation_objects.append(registry[name](**item_cfg))
+            uses_default_refset = False
+            if name == "knn" and "refset" not in item_cfg:
+                item_cfg["refset"] = self._raw_dataset
+                uses_default_refset = True
+
+            evaluation_object = registry[name](**item_cfg)
+            if uses_default_refset:
+                setattr(evaluation_object, "_default_refset", True)
+            evaluation_objects.append(evaluation_object)
         return evaluation_objects
+
+    def _bind_evaluation_context(self, trainset) -> None:
+        for evaluation_step in self._evaluation:
+            if not getattr(evaluation_step, "_default_refset", False):
+                continue
+            if not hasattr(evaluation_step, "set_refset"):
+                continue
+            evaluation_step.set_refset(trainset)
 
     def _resolve_train_test(self, datasets: list):
         trainsets = [
@@ -168,11 +184,13 @@ class Experiment:
             )
 
         if trainsets and testsets:
+            self._bind_evaluation_context(trainsets[0])
             return trainsets[0], testsets[0]
         if len(datasets) == 1:
             self._logger.warning(
                 "No split preprocess found; using the same frozen dataset for train and test"
             )
+            self._bind_evaluation_context(datasets[0])
             return datasets[0], datasets[0]
 
         self._fatal("Could not resolve train/test datasets after preprocessing")
