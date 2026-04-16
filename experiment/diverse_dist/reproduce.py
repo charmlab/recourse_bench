@@ -35,13 +35,6 @@ from utils.logger import setup_logger
 from utils.registry import get_registry
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
-REFERENCE_RESULTS_ROOT = (
-    PROJECT_ROOT
-    / "reference"
-    / "robust_counterfactuals_aaai24"
-    / "results"
-    / "final_results"
-)
 
 
 @dataclass(frozen=True)
@@ -228,44 +221,7 @@ def _format_mean_std(mean: float, std: float) -> str:
     return f"{mean:.2f} ± {std:.2f}"
 
 
-def _parse_mean_std_line(line: str) -> tuple[float, float]:
-    value = line.split(":", maxsplit=1)[1].strip().rstrip(".")
-    mean_text, std_text = [item.strip() for item in value.split(",", maxsplit=1)]
-    return float(mean_text), float(std_text)
-
-
-def _parse_reference_result(path: Path) -> dict[str, float]:
-    targets: dict[str, float] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        if line.startswith("Valid cfx:"):
-            targets["validity"] = float(line.split(":", maxsplit=1)[1].strip().rstrip("."))
-        elif line.startswith("Avg k-distance:"):
-            mean, std = _parse_mean_std_line(line)
-            targets["k_distance_mean"] = mean
-            targets["k_distance_std"] = std
-        elif line.startswith("Avg k-diversity:"):
-            mean, std = _parse_mean_std_line(line)
-            targets["k_diversity_mean"] = mean
-            targets["k_diversity_std"] = std
-        elif line.startswith("Avg match-distance:"):
-            mean, std = _parse_mean_std_line(line)
-            targets["set_distance_sum_mean"] = mean
-            targets["set_distance_sum_std"] = std
-        elif line.startswith("Avg match-b-distance:"):
-            mean, std = _parse_mean_std_line(line)
-            targets["set_distance_max_mean"] = mean
-            targets["set_distance_max_std"] = std
-        elif line.startswith("Avg time:"):
-            mean, std = _parse_mean_std_line(line)
-            targets["time_mean"] = mean
-            targets["time_std"] = std
-    return targets
-
-
-def _load_paper_targets(config: dict) -> dict[Condition, dict[str, float]]:
+def _load_target_metrics(config: dict) -> dict[Condition, dict[str, float]]:
     targets: dict[Condition, dict[str, float]] = {}
     for opt in config["reproduction"]["opt_settings"]:
         target_group = "opt_true" if bool(opt) else "opt_false"
@@ -273,31 +229,6 @@ def _load_paper_targets(config: dict) -> dict[Condition, dict[str, float]]:
             targets[Condition(norm=int(norm), opt=bool(opt))] = deepcopy(
                 config["reproduction"]["paper_targets"][target_group][f"l{int(norm)}"]
             )
-    return targets
-
-
-def _load_repository_targets() -> dict[Condition, dict[str, float]]:
-    targets: dict[Condition, dict[str, float]] = {}
-    for condition in (
-        Condition(norm=1, opt=True),
-        Condition(norm=2, opt=True),
-        Condition(norm=1, opt=False),
-        Condition(norm=2, opt=False),
-    ):
-        if condition.opt:
-            relative_path = (
-                "ours_angle_based_min"
-                f"/ours_diabetes_norm{condition.norm}_beta0.5_gamma0.1.txt"
-            )
-        else:
-            relative_path = (
-                "ours_angle_based_nomin"
-                f"/ours_diabetes_norm{condition.norm}_beta0.5.txt"
-            )
-
-        path = REFERENCE_RESULTS_ROOT / relative_path
-        if path.exists():
-            targets[condition] = _parse_reference_result(path)
     return targets
 
 
@@ -443,8 +374,7 @@ def _evaluate_condition(
 def _build_comparison_row(
     condition: Condition,
     observed: dict[str, float | int],
-    repository_target: dict[str, float] | None,
-    paper_target: dict[str, float] | None,
+    target_metrics: dict[str, float] | None,
 ) -> dict[str, object]:
     row: dict[str, object] = {
         "opt": bool(condition.opt),
@@ -475,50 +405,27 @@ def _build_comparison_row(
         "skipped_noise": int(observed["skipped_noise_label_mismatch"]),
     }
 
-    if repository_target is not None:
-        row["repo_validity"] = f"{repository_target['validity']:.1f}%"
-        row["repo_k_distance"] = _format_mean_std(
-            repository_target["k_distance_mean"],
-            repository_target["k_distance_std"],
+    if target_metrics is not None:
+        row["target_validity"] = f"{target_metrics['validity']:.1f}%"
+        row["target_k_distance"] = _format_mean_std(
+            target_metrics["k_distance_mean"],
+            target_metrics["k_distance_std"],
         )
-        row["repo_k_diversity"] = _format_mean_std(
-            repository_target["k_diversity_mean"],
-            repository_target["k_diversity_std"],
+        row["target_k_diversity"] = _format_mean_std(
+            target_metrics["k_diversity_mean"],
+            target_metrics["k_diversity_std"],
         )
-        row["repo_set_d_sum"] = _format_mean_std(
-            repository_target["set_distance_sum_mean"],
-            repository_target["set_distance_sum_std"],
+        row["target_set_d_sum"] = _format_mean_std(
+            target_metrics["set_distance_sum_mean"],
+            target_metrics["set_distance_sum_std"],
         )
-        row["repo_set_d_max"] = _format_mean_std(
-            repository_target["set_distance_max_mean"],
-            repository_target["set_distance_max_std"],
+        row["target_set_d_max"] = _format_mean_std(
+            target_metrics["set_distance_max_mean"],
+            target_metrics["set_distance_max_std"],
         )
-        row["repo_time"] = _format_mean_std(
-            repository_target["time_mean"],
-            repository_target["time_std"],
-        )
-
-    if paper_target is not None:
-        row["paper_validity"] = f"{paper_target['validity']:.1f}%"
-        row["paper_k_distance"] = _format_mean_std(
-            paper_target["k_distance_mean"],
-            paper_target["k_distance_std"],
-        )
-        row["paper_k_diversity"] = _format_mean_std(
-            paper_target["k_diversity_mean"],
-            paper_target["k_diversity_std"],
-        )
-        row["paper_set_d_sum"] = _format_mean_std(
-            paper_target["set_distance_sum_mean"],
-            paper_target["set_distance_sum_std"],
-        )
-        row["paper_set_d_max"] = _format_mean_std(
-            paper_target["set_distance_max_mean"],
-            paper_target["set_distance_max_std"],
-        )
-        row["paper_time"] = _format_mean_std(
-            paper_target["time_mean"],
-            paper_target["time_std"],
+        row["target_time"] = _format_mean_std(
+            target_metrics["time_mean"],
+            target_metrics["time_std"],
         )
 
     return row
@@ -526,8 +433,7 @@ def _build_comparison_row(
 
 def _print_comparison(
     observed_results: dict[Condition, dict[str, float | int]],
-    repository_targets: dict[Condition, dict[str, float]],
-    paper_targets: dict[Condition, dict[str, float]],
+    target_metrics: dict[Condition, dict[str, float]],
 ) -> None:
     rows = []
     for condition, observed in observed_results.items():
@@ -535,13 +441,12 @@ def _print_comparison(
             _build_comparison_row(
                 condition=condition,
                 observed=observed,
-                repository_target=repository_targets.get(condition),
-                paper_target=paper_targets.get(condition),
+                target_metrics=target_metrics.get(condition),
             )
         )
 
     comparison = pd.DataFrame(rows)
-    print("Observed metrics")
+    print("Observed metrics vs config targets")
     print(comparison.to_string(index=False))
 
 
@@ -590,8 +495,7 @@ def main() -> None:
         test_accuracy,
     )
 
-    paper_targets = _load_paper_targets(config)
-    repository_targets = _load_repository_targets()
+    target_metrics = _load_target_metrics(config)
 
     observed_results: dict[Condition, dict[str, float | int]] = {}
     for opt in config["reproduction"]["opt_settings"]:
@@ -617,8 +521,7 @@ def main() -> None:
     print(f"Test accuracy: {test_accuracy:.4f}")
     _print_comparison(
         observed_results=observed_results,
-        repository_targets=repository_targets,
-        paper_targets=paper_targets,
+        target_metrics=target_metrics,
     )
 
 
