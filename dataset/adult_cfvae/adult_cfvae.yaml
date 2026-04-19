@@ -1,0 +1,56 @@
+name: adult_cfvae
+target_column: income
+feature_order:
+- age
+- hours_per_week
+- workclass
+- education
+- marital_status
+- occupation
+- race
+- gender
+- income
+raw_feature_type:
+  age: numerical
+  workclass: categorical
+  education: categorical
+  marital_status: categorical
+  occupation: categorical
+  race: categorical
+  gender: categorical
+  hours_per_week: numerical
+  income: binary
+raw_feature_mutability:
+  age: true
+  workclass: true
+  education: true
+  marital_status: true
+  occupation: true
+  race: false
+  gender: false
+  hours_per_week: true
+  income: false
+raw_feature_actionability:
+  age: same-or-increase
+  workclass: any
+  education: same-or-increase
+  marital_status: any
+  occupation: any
+  race: none
+  gender: none
+  hours_per_week: any
+  income: none
+cfvae_continuous_bounds:
+  age:
+  - 17.0
+  - 90.0
+  hours_per_week:
+  - 1.0
+  - 99.0
+scale_bounds:
+  age:
+  - 17.0
+  - 90.0
+  hours_per_week:
+  - 1.0
+  - 99.0

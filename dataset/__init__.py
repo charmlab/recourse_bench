@@ -1,4 +1,5 @@
 from dataset.adult.adult import AdultDataset
+from dataset.adult_cfvae.adult_cfvae import AdultCfvaeDataset
 from dataset.adult_cogs.adult_cogs import AdultCoGSDataset
 from dataset.boston_housing.boston_housing import BostonHousingDataset
 from dataset.breast_cancer.breast_cancer import BreastCancerDataset
@@ -7,8 +8,8 @@ from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from dataset.compas_clue.compas_clue import CompasClueDataset
 from dataset.credit.credit import CreditDataset
 from dataset.credit_cchvae.credit_cchvae import CreditCchvaeDataset
-from dataset.diabetes.diabetes import DiabetesDataset
 from dataset.dataset_object import DatasetObject
+from dataset.diabetes.diabetes import DiabetesDataset
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
 from dataset.german_sns.german_sns import GermanSnsDataset
