@@ -1,1 +1,1 @@
-from method.cfrl.cfrl import CfrlMethod
+from .cfrl import CFRL

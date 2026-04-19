@@ -11,11 +11,9 @@ from dataset.dataset_object import DatasetObject
 from model.linear.linear import LinearModel
 from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
-from model.randomforest.randomforest import RandomForestModel
-from preprocess.preprocess_utils import resolve_feature_metadata
+from preprocess.preprocess_utils import dataset_has_attr, resolve_feature_metadata
 
 TorchModelTypes = (LinearModel, MlpModel)
-BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
 
 
 def ensure_supported_target_model(
@@ -25,6 +23,10 @@ def ensure_supported_target_model(
 ) -> None:
     if isinstance(target_model, tuple(supported_types)):
         return
+    if isinstance(target_model, ModelObject) and bool(
+        getattr(target_model, "_need_grad", False)
+    ):
+        return
 
     supported_names = ", ".join(cls.__name__ for cls in supported_types)
     raise TypeError(
@@ -33,166 +35,126 @@ def ensure_supported_target_model(
     )
 
 
-def to_feature_dataframe(
-    values: pd.DataFrame | np.ndarray | torch.Tensor,
-    feature_names: Sequence[str],
-) -> pd.DataFrame:
-    if isinstance(values, pd.DataFrame):
-        return values.loc[:, list(feature_names)].copy(deep=True)
-
-    if isinstance(values, torch.Tensor):
-        array = values.detach().cpu().numpy()
-    else:
-        array = np.asarray(values)
-
-    if array.ndim == 1:
-        array = array.reshape(1, -1)
-    return pd.DataFrame(array, columns=list(feature_names))
-
-
 @dataclass
 class FeatureGroups:
     feature_names: list[str]
     continuous: list[str]
-    categorical: list[str]
-    binary: list[str]
-    immutable: list[str]
-    mutable: list[str]
-    mutable_mask: np.ndarray
+    binary_scalar: list[str]
+    onehot_groups: list[list[str]]
+    binary_value_ranges: dict[str, tuple[float, float]]
 
 
 def resolve_feature_groups(dataset: DatasetObject) -> FeatureGroups:
     feature_df = dataset.get(target=False)
     feature_names = list(feature_df.columns)
-    feature_type, feature_mutability, feature_actionability = resolve_feature_metadata(
-        dataset
-    )
+    feature_type, _, _ = resolve_feature_metadata(dataset)
 
+    if any("_therm_" in feature_name for feature_name in feature_names):
+        raise ValueError("CfvaeMethod does not support thermometer-encoded features")
+
+    onehot_groups: list[list[str]] = []
+    if dataset_has_attr(dataset, "encoding"):
+        encoding = dataset.attr("encoding")
+        for encoded_columns in encoding.values():
+            if not isinstance(encoded_columns, list):
+                continue
+            group = [column for column in encoded_columns if column in feature_names]
+            if len(group) <= 1:
+                continue
+            if not all("_cat_" in column for column in group):
+                raise ValueError(
+                    "CfvaeMethod supports onehot-encoded categorical features only"
+                )
+            onehot_groups.append(group)
+
+    onehot_feature_names = {
+        feature_name for group in onehot_groups for feature_name in group
+    }
     continuous: list[str] = []
-    categorical: list[str] = []
-    binary: list[str] = []
-    immutable: list[str] = []
-    mutable: list[str] = []
+    binary_scalar: list[str] = []
+    binary_value_ranges: dict[str, tuple[float, float]] = {}
 
     for feature_name in feature_names:
         feature_kind = str(feature_type[feature_name]).lower()
-        is_mutable = bool(feature_mutability[feature_name])
-        actionability = str(feature_actionability[feature_name]).lower()
-
         if feature_kind == "numerical":
+            series = feature_df[feature_name].astype("float64")
+            if float(series.min()) < -1e-6 or float(series.max()) > 1.0 + 1e-6:
+                raise ValueError(
+                    "CfvaeMethod expects normalized continuous features in [0, 1]"
+                )
             continuous.append(feature_name)
-        else:
-            categorical.append(feature_name)
-            if feature_kind == "binary":
-                binary.append(feature_name)
+            continue
 
-        if (not is_mutable) or actionability in {"none", "same"}:
-            immutable.append(feature_name)
-        else:
-            mutable.append(feature_name)
+        if feature_kind == "categorical":
+            raise ValueError(
+                "CfvaeMethod requires fully numeric features; apply encode(onehot) first"
+            )
+        if feature_kind != "binary":
+            raise ValueError(f"Unsupported feature type for CFVAE: {feature_kind}")
+        if feature_name in onehot_feature_names:
+            continue
 
-    mutable_mask = np.array(
-        [feature_name in set(mutable) for feature_name in feature_names], dtype=bool
-    )
+        unique_values = sorted(
+            pd.Series(feature_df[feature_name])
+            .dropna()
+            .astype("float64")
+            .unique()
+            .tolist()
+        )
+        if len(unique_values) != 2:
+            raise ValueError(
+                "CfvaeMethod expects scalar binary features to contain exactly two values"
+            )
+
+        low_value = float(unique_values[0])
+        high_value = float(unique_values[1])
+        if low_value == high_value:
+            raise ValueError("Scalar binary feature values must not be identical")
+
+        binary_scalar.append(feature_name)
+        binary_value_ranges[feature_name] = (low_value, high_value)
+
     return FeatureGroups(
         feature_names=feature_names,
         continuous=continuous,
-        categorical=categorical,
-        binary=binary,
-        immutable=immutable,
-        mutable=mutable,
-        mutable_mask=mutable_mask,
+        binary_scalar=binary_scalar,
+        onehot_groups=onehot_groups,
+        binary_value_ranges=binary_value_ranges,
     )
 
 
-class RecourseModelAdapter:
-    def __init__(self, target_model: ModelObject, feature_names: Sequence[str]):
-        self._target_model = target_model
-        self._feature_names = list(feature_names)
-        class_to_index = target_model.get_class_to_index()
-        self._index_to_class = {
-            index: class_value for class_value, index in class_to_index.items()
-        }
-        self.classes_ = np.array(
-            [self._index_to_class[index] for index in sorted(self._index_to_class)]
-        )
+def resolve_continuous_ranges(
+    dataset: DatasetObject,
+    continuous_features: Sequence[str],
+) -> dict[str, float]:
+    stored_ranges: dict[str, float] = {}
+    if dataset_has_attr(dataset, "range"):
+        candidate_ranges = dataset.attr("range")
+        if isinstance(candidate_ranges, dict):
+            stored_ranges = candidate_ranges
 
-    def get_ordered_features(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> pd.DataFrame:
-        return to_feature_dataframe(X, self._feature_names)
-
-    def predict_proba(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            return differentiable_predict_proba(self._target_model, X)
-
-        features = self.get_ordered_features(X)
-        prediction = self._target_model.get_prediction(features, proba=True)
-        if isinstance(prediction, torch.Tensor):
-            return prediction.detach().cpu().numpy()
-        return np.asarray(prediction)
-
-    def predict(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1)
-
-        features = self.get_ordered_features(X)
-        prediction = self._target_model.get_prediction(features, proba=False)
-        if isinstance(prediction, torch.Tensor):
-            label_indices = prediction.detach().cpu().numpy().argmax(axis=1)
-        else:
-            label_indices = np.asarray(prediction).argmax(axis=1)
-        return np.asarray([self._index_to_class[int(index)] for index in label_indices])
-
-    def predict_label_indices(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1).detach().cpu().numpy()
-
-        features = self.get_ordered_features(X)
-        probabilities = self._target_model.get_prediction(features, proba=True)
-        if isinstance(probabilities, torch.Tensor):
-            return probabilities.detach().cpu().numpy().argmax(axis=1)
-        return np.asarray(probabilities).argmax(axis=1)
+    feature_df = dataset.get(target=False)
+    resolved_ranges: dict[str, float] = {}
+    for feature_name in continuous_features:
+        feature_range = stored_ranges.get(feature_name)
+        if feature_range is None:
+            series = feature_df[feature_name].astype("float64")
+            feature_range = float(series.max() - series.min())
+        feature_range = float(feature_range)
+        if feature_range <= 0.0:
+            feature_range = 1.0
+        resolved_ranges[feature_name] = feature_range
+    return resolved_ranges
 
 
-def differentiable_predict_proba(
+def predict_label_indices(
     target_model: ModelObject,
-    X: torch.Tensor,
-) -> torch.Tensor:
-    ensure_supported_target_model(
-        target_model,
-        TorchModelTypes,
-        "differentiable_predict_proba",
-    )
-    model = getattr(target_model, "_model", None)
-    if model is None:
-        raise RuntimeError("Target model has not been initialized")
-
-    device = target_model._device
-    logits = model(X.to(device))
-    output_activation = getattr(target_model, "_output_activation_name", "softmax")
-    output_activation = str(output_activation).lower()
-    if logits.ndim == 1:
-        logits = logits.unsqueeze(0)
-
-    if output_activation == "sigmoid":
-        positive_probability = torch.sigmoid(logits)
-        return torch.cat([1.0 - positive_probability, positive_probability], dim=1)
-    return torch.softmax(logits, dim=1)
+    X: pd.DataFrame,
+) -> np.ndarray:
+    probabilities = target_model.get_prediction(X, proba=True)
+    if isinstance(probabilities, torch.Tensor):
+        return probabilities.detach().cpu().numpy().argmax(axis=1)
+    return np.asarray(probabilities).argmax(axis=1)
 
 
 def resolve_target_indices(
@@ -234,15 +196,16 @@ def validate_counterfactuals(
     if not bool(valid_rows.any()):
         return candidates
 
-    adapter = RecourseModelAdapter(target_model, factuals.columns)
-    original_prediction = adapter.predict_label_indices(factuals)
+    original_prediction = predict_label_indices(target_model, factuals)
     target_prediction = resolve_target_indices(
         target_model=target_model,
         original_prediction=original_prediction,
         desired_class=desired_class,
     )
 
-    candidate_prediction = adapter.predict_label_indices(candidates.loc[valid_rows])
+    candidate_prediction = predict_label_indices(
+        target_model, candidates.loc[valid_rows]
+    )
     success_mask = pd.Series(False, index=candidates.index, dtype=bool)
     success_mask.loc[valid_rows] = (
         candidate_prediction.astype(np.int64, copy=False)

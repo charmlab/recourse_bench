@@ -6,8 +6,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader  # pyright: ignore[reportPrivateImportUsage]
-from torch.utils.data import Dataset  # pyright: ignore[reportPrivateImportUsage]
+from torch.utils.data import \
+    DataLoader  # pyright: ignore[reportPrivateImportUsage]
+from torch.utils.data import \
+    Dataset  # pyright: ignore[reportPrivateImportUsage]
 
 if TYPE_CHECKING:
     from .cfrl_base import NormalActionNoise
@@ -414,7 +416,7 @@ def data_generator(
     **kwargs,
 ):
     """
-    Constructs a data generator for CFRL training.
+    Constructs a tensorflow data generator.
 
     Parameters
     ----------
@@ -759,7 +761,7 @@ def update_actor_critic(
 
 
 def to_numpy(
-    X: Optional[Union[List, np.ndarray, torch.Tensor]],
+    X: Optional[Union[List, np.ndarray, torch.Tensor]]
 ) -> Optional[Union[List, np.ndarray]]:
     """
     Converts given tensor to `numpy` array.

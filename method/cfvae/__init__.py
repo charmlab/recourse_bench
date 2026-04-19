@@ -1,1 +1,1 @@
-from method.cfvae.cfvae import CfvaeMethod
+from .cfvae import CfvaeMethod

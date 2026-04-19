@@ -290,9 +290,7 @@ class EncodePreProcess(PreProcessObject):
                         for encoded_column in new_columns:
                             encoded_sources[encoded_column] = column
                     elif mode == "mapping":
-                        encoded, value_mapping = self._build_mapping(
-                            df[column], column
-                        )
+                        encoded, value_mapping = self._build_mapping(df[column], column)
                         new_columns = list(encoded.columns)
                         self._ensure_output_columns_available(
                             new_columns, seen_columns, remaining_columns
@@ -494,6 +492,11 @@ class ScalePreProcess(PreProcessObject):
             df = input.snapshot()
             target_column = input.target_column
             feature_type, _, _ = resolve_feature_metadata(input)
+            fixed_scale_bounds = {}
+            if dataset_has_attr(input, "scale_bounds"):
+                candidate_bounds = input.attr("scale_bounds")
+                if isinstance(candidate_bounds, dict):
+                    fixed_scale_bounds = candidate_bounds
 
             if self._range:
                 if dataset_has_attr(input, "range"):
@@ -546,8 +549,20 @@ class ScalePreProcess(PreProcessObject):
                         scaled_df[column] = (series - mean_value) / std_value
                 elif mode == "normalize":
                     if scaling_stats is None:
-                        min_value = float(series.min())
-                        max_value = float(series.max())
+                        bounds = fixed_scale_bounds.get(column)
+                        if bounds is not None:
+                            if (
+                                not isinstance(bounds, (list, tuple))
+                                or len(bounds) != 2
+                            ):
+                                raise ValueError(
+                                    "scale_bounds entries must be [min, max] pairs"
+                                )
+                            min_value = float(bounds[0])
+                            max_value = float(bounds[1])
+                        else:
+                            min_value = float(series.min())
+                            max_value = float(series.max())
                     else:
                         min_value = float(scaling_stats[column]["min"])
                         max_value = float(scaling_stats[column]["max"])
