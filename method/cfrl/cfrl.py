@@ -104,6 +104,7 @@ class CfrlMethod(MethodObject):
         immutable_features: list[str] | None = None,
         constrained_ranges: dict[str, list[float]] | None = None,
         train: bool = True,
+        store_reproduction_artifacts: bool = False,
         save_path: str | None = None,
         **kwargs,
     ):
@@ -140,6 +141,7 @@ class CfrlMethod(MethodObject):
             }
         )
         self._train_enabled = bool(train)
+        self._store_reproduction_artifacts = bool(store_reproduction_artifacts)
         self._save_path = save_path
 
         self._schema: CfrlSchema | None = None
@@ -150,6 +152,9 @@ class CfrlMethod(MethodObject):
         self._encoder_preprocessor: Callable[[np.ndarray], np.ndarray] | None = None
         self._decoder_inv_preprocessor: Callable[[np.ndarray], np.ndarray] | None = None
         self._cf_model: CFRLExplainer | None = None
+        self._immutable_features: list[str] = []
+        self._numeric_stats: dict[int, tuple[float, float]] = {}
+        self._train_reference_array: np.ndarray | None = None
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
@@ -299,6 +304,16 @@ class CfrlMethod(MethodObject):
                 immutable_features=self._immutable_features_override,
                 constrained_ranges=self._constrained_ranges_override,
             )
+            self._immutable_features = list(immutable_features)
+            self._train_reference_array = X_zero.astype(np.float32, copy=True)
+            self._numeric_stats = {
+                idx: (
+                    float(X_zero[:, idx].mean()),
+                    float(X_zero[:, idx].std()),
+                )
+                for idx in range(len(self._schema.feature_names))
+                if idx not in self._schema.category_map
+            }
 
             preds_shape = predictor(X_zero[:1]).shape
             num_classes = preds_shape[1] if len(preds_shape) == 2 else 1
@@ -328,32 +343,49 @@ class CfrlMethod(MethodObject):
             self._cf_model.fit(X_zero.astype(np.float32))
             self._is_trained = True
 
-    def _generate_counterfactual_row(
-        self, factual_row: pd.DataFrame, target_class: int
-    ) -> pd.DataFrame:
+    def _generate_counterfactual_batch(
+        self, factuals: pd.DataFrame
+    ) -> tuple[np.ndarray, pd.DataFrame, pd.DataFrame]:
         if self._schema is None or self._cf_model is None:
             raise RuntimeError("CFRL method has not been initialized")
 
-        zero_input = frame_to_cfrl_array(factual_row, self._schema).astype(np.float32)
+        zero_input = frame_to_cfrl_array(factuals, self._schema).astype(np.float32)
+        target_classes = resolve_target_indices(
+            target_model=self._target_model,
+            factuals=factuals,
+            desired_class=self._desired_class,
+        )
         explanation = self._cf_model.explain(
             X=zero_input,
-            Y_t=np.array([target_class]),
+            Y_t=target_classes,
             C=[],
         )
         cf_data = explanation.get("cf", {}).get("X")
         if cf_data is None:
-            return factual_row.copy(deep=True)
+            raw_counterfactuals = factuals.copy(deep=True)
+            return (
+                zero_input.copy(),
+                raw_counterfactuals,
+                raw_counterfactuals.copy(deep=True),
+            )
 
         cf_array = np.asarray(cf_data, dtype=np.float32)
         if cf_array.ndim == 3:
             cf_array = cf_array[:, 0, :]
         cf_array = np.atleast_2d(cf_array)
 
-        return cfrl_to_benchmark_frame(
+        raw_counterfactuals = cfrl_to_benchmark_frame(
             cf_array,
             self._schema,
-            index=factual_row.index,
+            index=factuals.index,
         )
+        validated = validate_counterfactuals(
+            target_model=self._target_model,
+            factuals=factuals,
+            candidates=raw_counterfactuals,
+            desired_class=self._desired_class,
+        )
+        return cf_array, raw_counterfactuals, validated
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         if not self._is_trained:
@@ -370,30 +402,74 @@ class CfrlMethod(MethodObject):
             )
 
         factuals = factuals.loc[:, self._feature_columns].copy(deep=True)
-        target_indices = resolve_target_indices(
-            target_model=self._target_model,
-            factuals=factuals,
-            desired_class=self._desired_class,
-        )
-
-        results: list[pd.DataFrame] = []
         with seed_context(self._seed):
             set_seed(self._seed if self._seed is not None else 13)
-            for row_position, (_, row) in enumerate(factuals.iterrows()):
-                factual_row = pd.DataFrame([row], columns=self._feature_columns)
-                cf_row = self._generate_counterfactual_row(
-                    factual_row=factual_row,
-                    target_class=int(target_indices[row_position]),
-                )
-                cf_row.index = factual_row.index
-                results.append(cf_row)
+            _, _, validated = self._generate_counterfactual_batch(factuals)
+        return validated.reindex(index=factuals.index, columns=self._feature_columns)
 
-        candidates = pd.concat(results, axis=0).reindex(
-            index=factuals.index, columns=self._feature_columns
+    def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
+        if not self._store_reproduction_artifacts:
+            return super().predict(testset, batch_size=batch_size)
+
+        if not self._is_trained:
+            raise RuntimeError("Method is not trained")
+        if getattr(testset, "counterfactual", False):
+            raise ValueError("testset must not already be marked as counterfactual")
+
+        factuals = (
+            testset.get(target=False).loc[:, self._feature_columns].copy(deep=True)
         )
-        return validate_counterfactuals(
-            target_model=self._target_model,
-            factuals=factuals,
-            candidates=candidates,
-            desired_class=self._desired_class,
+        with seed_context(self._seed):
+            set_seed(self._seed if self._seed is not None else 13)
+            raw_counterfactual_array, raw_counterfactuals, validated = (
+                self._generate_counterfactual_batch(factuals)
+            )
+
+        target_column = testset.target_column
+        counterfactual_target = pd.DataFrame(
+            -1.0,
+            index=validated.index,
+            columns=[target_column],
         )
+        counterfactual_df = pd.concat([validated, counterfactual_target], axis=1)
+        counterfactual_df = counterfactual_df.reindex(
+            columns=testset.ordered_features()
+        )
+
+        output = testset.clone()
+        output.update("counterfactual", True, df=counterfactual_df)
+
+        if self._desired_class is not None:
+            class_to_index = self._target_model.get_class_to_index()
+            prediction = self._target_model.predict(testset, batch_size=batch_size)
+            predicted_label = prediction.argmax(dim=1).cpu().numpy()
+            evaluation_filter = pd.DataFrame(
+                predicted_label != class_to_index[self._desired_class],
+                index=counterfactual_df.index,
+                columns=["evaluation_filter"],
+                dtype=bool,
+            )
+            output.update("evaluation_filter", evaluation_filter)
+
+        output.update("cfrl_raw_counterfactuals", raw_counterfactuals)
+        output.update(
+            "cfrl_raw_counterfactual_array",
+            raw_counterfactual_array.astype(np.float32, copy=True),
+        )
+        output.update("cfrl_feature_names", list(self._feature_names))
+        output.update(
+            "cfrl_categorical_indices",
+            list(self._schema.categorical_indices if self._schema is not None else []),
+        )
+        output.update("cfrl_immutable_features", list(self._immutable_features))
+        output.update("cfrl_numeric_stats", dict(self._numeric_stats))
+        output.update(
+            "cfrl_train_reference",
+            (
+                None
+                if self._train_reference_array is None
+                else self._train_reference_array.copy()
+            ),
+        )
+        output.freeze()
+        return output

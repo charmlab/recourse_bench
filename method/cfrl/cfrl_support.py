@@ -100,6 +100,11 @@ def build_cfrl_schema(trainset: DatasetObject) -> CfrlSchema:
     raw_feature_type = trainset.attr("raw_feature_type")
     raw_feature_mutability = trainset.attr("raw_feature_mutability")
     raw_feature_actionability = trainset.attr("raw_feature_actionability")
+    category_values_map = (
+        trainset.attr("cfrl_category_values")
+        if dataset_has_attr(trainset, "cfrl_category_values")
+        else {}
+    )
     encoding_map = (
         trainset.attr("encoding") if dataset_has_attr(trainset, "encoding") else {}
     )
@@ -165,14 +170,22 @@ def build_cfrl_schema(trainset: DatasetObject) -> CfrlSchema:
             else:
                 encoding_kind = "scalar"
                 if raw_kind == "categorical":
-                    categories = tuple(
-                        sorted(
-                            {
-                                _normalize_category_key(value)
-                                for value in feature_df[source_name].dropna().tolist()
-                            }
+                    if source_name in category_values_map:
+                        categories = tuple(
+                            _normalize_category_key(value)
+                            for value in category_values_map[source_name]
                         )
-                    )
+                    else:
+                        categories = tuple(
+                            sorted(
+                                {
+                                    _normalize_category_key(value)
+                                    for value in feature_df[source_name]
+                                    .dropna()
+                                    .tolist()
+                                }
+                            )
+                        )
                 else:
                     categories = tuple()
         else:
