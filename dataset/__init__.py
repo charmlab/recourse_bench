@@ -1,4 +1,5 @@
 from dataset.adult.adult import AdultDataset
+from dataset.adult_cfrl.adult_cfrl import AdultCfrlDataset
 from dataset.adult_cfvae.adult_cfvae import AdultCfvaeDataset
 from dataset.adult_cogs.adult_cogs import AdultCoGSDataset
 from dataset.boston_housing.boston_housing import BostonHousingDataset
