@@ -470,28 +470,8 @@ class CfrlPaperMetricsEvaluation(EvaluationObject):
             shared_ref_enc = _encode_with_weights(
                 train_pre, shared_w1, shared_w2, shared_w3
             )
-            shared_mmd = self._rbf_mmd(shared_cf_enc, shared_ref_enc, rng)
-
-            separate_cf_w1 = rng.standard_normal(
-                (hidden_input_dim, h1_dim)
-            ) / math.sqrt(max(1, hidden_input_dim))
-            separate_cf_w2 = rng.standard_normal((h1_dim, h2_dim)) / math.sqrt(h1_dim)
-            separate_cf_w3 = rng.standard_normal((h2_dim, h3_dim)) / math.sqrt(h2_dim)
-            separate_ref_w1 = rng.standard_normal(
-                (hidden_input_dim, h1_dim)
-            ) / math.sqrt(max(1, hidden_input_dim))
-            separate_ref_w2 = rng.standard_normal((h1_dim, h2_dim)) / math.sqrt(h1_dim)
-            separate_ref_w3 = rng.standard_normal((h2_dim, h3_dim)) / math.sqrt(h2_dim)
-
-            separate_cf_enc = _encode_with_weights(
-                cf_pre, separate_cf_w1, separate_cf_w2, separate_cf_w3
-            )
-            separate_ref_enc = _encode_with_weights(
-                train_pre, separate_ref_w1, separate_ref_w2, separate_ref_w3
-            )
-            separate_mmd = self._rbf_mmd(separate_cf_enc, separate_ref_enc, rng)
-
-            mmd_per_class[int(cls)] = 0.5 * (shared_mmd + separate_mmd)
+            # Use the same random encoder for both samples before computing MMD.
+            mmd_per_class[int(cls)] = self._rbf_mmd(shared_cf_enc, shared_ref_enc, rng)
 
         results = {
             "accuracy": float(accuracy),
@@ -644,8 +624,8 @@ def run_experiment() -> Dict[str, object]:
             0.10 * 3,
             0.06 * 3,
             1e-6,
-            0.06 * 3,
-            0.13 * 5,
+            0.06 * 6,
+            0.13 * 3,
         ]
     ],
 )
