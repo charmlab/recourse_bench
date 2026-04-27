@@ -7,6 +7,7 @@ from method.claproar.claproar import ClaproarMethod
 from method.clue.clue import ClueMethod
 from method.cogs.cogs import CogsMethod
 from method.cols.cols import ColsMethod
+from method.cruds.cruds import CrudsMethod
 from method.cvas_proj.cvas_proj import CvasProjMethod
 from method.dice.dice import DiceMethod
 from method.diverse_dist.diverse_dist import DiverseDistMethod

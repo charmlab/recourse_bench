@@ -1,0 +1,40 @@
+name: credit_linear_cruds_smoke
+logger:
+  level: INFO
+  path: ./logs/credit_linear_cruds_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit
+preprocess:
+  - name: balance
+    seed: 7
+    strategy: downsample
+    round_to: 250
+    shuffle: true
+    range: true
+  - name: scale
+    seed: 7
+    scaling: standardize
+  - name: encode
+    seed: 7
+    encoding: onehot
+  - name: split
+    seed: 7
+    split: 0.3
+    sample: 256
+model:
+  name: linear
+  seed: 7
+  device: cpu
+  epochs: 10
+method:
+  name: cruds
+  seed: 7
+  device: cpu
+  desired_class: 1
+  max_iter: 100
+  vae_epochs: 1
+evaluation:
+  - name: validity
+  - name: distance
