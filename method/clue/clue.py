@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sys
-import types
 from pathlib import Path
 
 import numpy as np
@@ -10,16 +8,11 @@ import torch
 
 from dataset.dataset_object import DatasetObject
 from method.clue.library import CLUE, VAE_gauss_cat_net, training
-from method.clue.library.clue_ml.AE_models.AE import fc_gauss_cat as vendored_vae_fc
-from method.clue.library.clue_ml.AE_models.AE import models as vendored_vae_models
-from method.clue.library.clue_ml.src import gauss_cat as vendored_gauss_cat
-from method.clue.library.clue_ml.src import layers as vendored_layers
-from method.clue.library.clue_ml.src import probability as vendored_probability
-from method.clue.library.clue_ml.src import radam as vendored_radam
-from method.clue.library.clue_ml.src import utils as vendored_utils
-from method.clue.library.clue_ml.src.utils import Ln_distance
+from method.clue.library.clue_ml.src.utils import (
+    Ln_distance,
+    register_checkpoint_aliases,
+)
 from method.clue.support import (
-    ClueModelAdapter,
     ensure_supported_target_model,
     resolve_feature_names,
     resolve_input_dim_vec,
@@ -27,7 +20,6 @@ from method.clue.support import (
     validate_counterfactuals,
 )
 from method.method_object import MethodObject
-from model.mlp_bayesian.mlp_bayesian import MlpBayesianModel
 from model.model_object import ModelObject
 from utils.caching import get_cache_dir
 from utils.registry import register
@@ -66,6 +58,7 @@ class ClueMethod(MethodObject):
         learning_rate: float = 1e-4,
         **kwargs,
     ):
+        del kwargs
         ensure_supported_target_model(target_model, "ClueMethod")
         if desired_class is not None:
             raise ValueError("ClueMethod does not support desired_class")
@@ -128,21 +121,7 @@ class ClueMethod(MethodObject):
 
     @staticmethod
     def _register_checkpoint_aliases() -> None:
-        if "src" not in sys.modules:
-            src_package = types.ModuleType("src")
-            src_package.__path__ = []  # type: ignore[attr-defined]
-            sys.modules["src"] = src_package
-        if "VAE" not in sys.modules:
-            vae_package = types.ModuleType("VAE")
-            vae_package.__path__ = []  # type: ignore[attr-defined]
-            sys.modules["VAE"] = vae_package
-        sys.modules.setdefault("src.utils", vendored_utils)
-        sys.modules.setdefault("src.radam", vendored_radam)
-        sys.modules.setdefault("src.probability", vendored_probability)
-        sys.modules.setdefault("src.gauss_cat", vendored_gauss_cat)
-        sys.modules.setdefault("src.layers", vendored_layers)
-        sys.modules.setdefault("VAE.fc_gauss_cat", vendored_vae_fc)
-        sys.modules.setdefault("VAE.models", vendored_vae_models)
+        register_checkpoint_aliases()
 
     def _build_or_load_vae(self, train_features: np.ndarray, dataset_name: str) -> None:
         checkpoint_path = self._resolve_vae_model_path(dataset_name)
@@ -191,7 +170,6 @@ class ClueMethod(MethodObject):
         with seed_context(self._seed):
             self._feature_names = resolve_feature_names(trainset)
             self._input_dim_vec = resolve_input_dim_vec(trainset)
-            self._adapter = ClueModelAdapter(self._target_model, self._feature_names)
 
             train_features_df = trainset.get(target=False).loc[:, self._feature_names]
             try:
@@ -210,22 +188,104 @@ class ClueMethod(MethodObject):
             return self._distance_weight
         return 2.0 / float(feature_dim)
 
+    def _generate_raw_counterfactual_array(
+        self,
+        factual_array: np.ndarray,
+        *,
+        uncertainty_weight: float,
+        aleatoric_weight: float,
+        epistemic_weight: float,
+        prior_weight: float,
+        distance_weight: float,
+        latent_l2_weight: float,
+        prediction_similarity_weight: float,
+        lr: float,
+        min_steps: int,
+        max_steps: int,
+        early_stop_patience: int,
+        num_explanations: int,
+        sample_std: float,
+    ) -> np.ndarray:
+        x_init = np.asarray(factual_array, dtype=np.float32).copy()
+        if self._device == "cuda" and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        x_init_tensor = torch.tensor(
+            x_init,
+            dtype=torch.float32,
+            device=self._device,
+        )
+        z_init = (
+            self._vae.recongnition(x_init_tensor, flatten=False)
+            .loc.detach()
+            .cpu()
+            .numpy()
+        )
+        clue_runner = CLUE(
+            self._vae,
+            self._target_model,
+            x_init,
+            uncertainty_weight=uncertainty_weight,
+            aleatoric_weight=aleatoric_weight,
+            epistemic_weight=epistemic_weight,
+            prior_weight=prior_weight,
+            distance_weight=distance_weight,
+            latent_L2_weight=latent_l2_weight,
+            prediction_similarity_weight=prediction_similarity_weight,
+            lr=lr,
+            desired_preds=None,
+            cond_mask=None,
+            distance_metric=Ln_distance(n=1, dim=(1)),
+            z_init=z_init,
+            norm_MNIST=False,
+            flatten_BNN=False,
+            regression=False,
+            prob_BNN=True,
+            cuda=self._device == "cuda",
+        )
+        if num_explanations == 1:
+            _, x_vec, _, _, _, _, _ = clue_runner.optimise(
+                min_steps=min_steps,
+                max_steps=max_steps,
+                n_early_stop=early_stop_patience,
+            )
+            return x_vec[-1].astype(np.float32, copy=False)
+
+        full_x_vec, _, _, _, _, _, _ = clue_runner.sample_explanations(
+            n_explanations=num_explanations,
+            init_std=sample_std,
+            min_steps=min_steps,
+            max_steps=max_steps,
+            n_early_stop=early_stop_patience,
+        )
+        return full_x_vec[0, -1].astype(np.float32, copy=False)
+
     def _select_best_counterfactuals(
         self,
         factual_array: np.ndarray,
         candidate_arrays: list[np.ndarray],
     ) -> np.ndarray:
-        factual_df = pd.DataFrame(factual_array, columns=self._feature_names)
-        factual_entropy = self._adapter.entropy_numpy(factual_df)
-        factual_prediction = self._adapter.predict_label_indices(factual_df)
+        factual_frame = pd.DataFrame(factual_array, columns=self._feature_names)
+        factual_probs = self._target_model.get_prediction(factual_frame, proba=True)
+        factual_entropy = (
+            -(factual_probs * torch.log(factual_probs + 1e-10)).sum(dim=1).cpu().numpy()
+        )
+        factual_prediction = factual_probs.argmax(dim=1).cpu().numpy()
 
         best_candidates = np.full_like(factual_array, np.nan, dtype=np.float32)
         best_entropy = np.full(factual_array.shape[0], np.inf, dtype=np.float32)
 
         for candidate_array in candidate_arrays:
-            candidate_df = pd.DataFrame(candidate_array, columns=self._feature_names)
-            candidate_entropy = self._adapter.entropy_numpy(candidate_df)
-            candidate_prediction = self._adapter.predict_label_indices(candidate_df)
+            candidate_frame = pd.DataFrame(candidate_array, columns=self._feature_names)
+            candidate_probs = self._target_model.get_prediction(
+                candidate_frame, proba=True
+            )
+            candidate_entropy = (
+                -(candidate_probs * torch.log(candidate_probs + 1e-10))
+                .sum(dim=1)
+                .cpu()
+                .numpy()
+            )
+            candidate_prediction = candidate_probs.argmax(dim=1).cpu().numpy()
             success_mask = (candidate_entropy < factual_entropy) & (
                 candidate_prediction == factual_prediction
             )
@@ -235,67 +295,107 @@ class ClueMethod(MethodObject):
 
         return best_candidates
 
-    def generate_raw_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+    def get_counterfactuals_clue(
+        self,
+        factuals: pd.DataFrame,
+        *,
+        uncertainty_weight: float | None = None,
+        aleatoric_weight: float | None = None,
+        epistemic_weight: float | None = None,
+        prior_weight: float | None = None,
+        distance_weight: float | None = None,
+        latent_l2_weight: float | None = None,
+        prediction_similarity_weight: float | None = None,
+        lr: float | None = None,
+        min_steps: int | None = None,
+        max_steps: int | None = None,
+        early_stop_patience: int | None = None,
+        num_explanations: int | None = None,
+        sample_std: float | None = None,
+    ) -> pd.DataFrame:
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
 
         factuals = factuals.loc[:, self._feature_names].copy(deep=True)
         factual_array = factuals.to_numpy(dtype="float32", copy=True)
+        resolved_uncertainty_weight = (
+            self._uncertainty_weight
+            if uncertainty_weight is None
+            else float(uncertainty_weight)
+        )
+        resolved_aleatoric_weight = (
+            self._aleatoric_weight
+            if aleatoric_weight is None
+            else float(aleatoric_weight)
+        )
+        resolved_epistemic_weight = (
+            self._epistemic_weight
+            if epistemic_weight is None
+            else float(epistemic_weight)
+        )
+        resolved_prior_weight = (
+            self._prior_weight if prior_weight is None else float(prior_weight)
+        )
+        resolved_distance_weight = (
+            self._resolve_distance_weight(factual_array.shape[1])
+            if distance_weight is None
+            else float(distance_weight)
+        )
+        resolved_latent_l2_weight = (
+            self._latent_l2_weight
+            if latent_l2_weight is None
+            else float(latent_l2_weight)
+        )
+        resolved_prediction_similarity_weight = (
+            self._prediction_similarity_weight
+            if prediction_similarity_weight is None
+            else float(prediction_similarity_weight)
+        )
+        resolved_lr = self._lr if lr is None else float(lr)
+        resolved_min_steps = self._min_steps if min_steps is None else int(min_steps)
+        resolved_max_steps = self._max_steps if max_steps is None else int(max_steps)
+        resolved_early_stop_patience = (
+            self._early_stop_patience
+            if early_stop_patience is None
+            else int(early_stop_patience)
+        )
+        resolved_num_explanations = (
+            self._num_explanations
+            if num_explanations is None
+            else int(num_explanations)
+        )
+        resolved_sample_std = (
+            self._sample_std if sample_std is None else float(sample_std)
+        )
+
+        if resolved_lr <= 0:
+            raise ValueError("lr must be > 0")
+        if resolved_min_steps < 1:
+            raise ValueError("min_steps must be >= 1")
+        if resolved_max_steps < resolved_min_steps:
+            raise ValueError("max_steps must be >= min_steps")
+        if resolved_early_stop_patience < 0:
+            raise ValueError("early_stop_patience must be >= 0")
+        if resolved_num_explanations < 1:
+            raise ValueError("num_explanations must be >= 1")
 
         with seed_context(self._seed):
-            x_init = factual_array.copy()
-            x_init_tensor = torch.tensor(
-                x_init,
-                dtype=torch.float32,
-                device=self._device,
+            raw_candidates = self._generate_raw_counterfactual_array(
+                factual_array,
+                uncertainty_weight=resolved_uncertainty_weight,
+                aleatoric_weight=resolved_aleatoric_weight,
+                epistemic_weight=resolved_epistemic_weight,
+                prior_weight=resolved_prior_weight,
+                distance_weight=resolved_distance_weight,
+                latent_l2_weight=resolved_latent_l2_weight,
+                prediction_similarity_weight=resolved_prediction_similarity_weight,
+                lr=resolved_lr,
+                min_steps=resolved_min_steps,
+                max_steps=resolved_max_steps,
+                early_stop_patience=resolved_early_stop_patience,
+                num_explanations=resolved_num_explanations,
+                sample_std=resolved_sample_std,
             )
-            z_init = (
-                self._vae.recongnition(x_init_tensor, flatten=False)
-                .loc.detach()
-                .cpu()
-                .numpy()
-            )
-
-            clue_runner = CLUE(
-                self._vae,
-                self._target_model,
-                x_init,
-                uncertainty_weight=self._uncertainty_weight,
-                aleatoric_weight=self._aleatoric_weight,
-                epistemic_weight=self._epistemic_weight,
-                prior_weight=self._prior_weight,
-                distance_weight=self._resolve_distance_weight(factual_array.shape[1]),
-                latent_L2_weight=self._latent_l2_weight,
-                prediction_similarity_weight=self._prediction_similarity_weight,
-                lr=self._lr,
-                desired_preds=None,
-                cond_mask=None,
-                distance_metric=Ln_distance(n=1, dim=(1)),
-                z_init=z_init,
-                norm_MNIST=False,
-                flatten_BNN=False,
-                regression=False,
-                prob_BNN=True,
-                cuda=self._device == "cuda",
-            )
-
-            if self._num_explanations == 1:
-                _, x_vec, _, _, _, _, _ = clue_runner.optimise(
-                    min_steps=self._min_steps,
-                    max_steps=self._max_steps,
-                    n_early_stop=self._early_stop_patience,
-                )
-                raw_candidates = x_vec[-1].astype(np.float32, copy=False)
-            else:
-                full_x_vec, _, _, _, _, _, _ = clue_runner.sample_explanations(
-                    n_explanations=self._num_explanations,
-                    init_std=self._sample_std,
-                    min_steps=self._min_steps,
-                    max_steps=self._max_steps,
-                    n_early_stop=self._early_stop_patience,
-                )
-                raw_candidates = full_x_vec[0, -1].astype(np.float32, copy=False)
-
         return pd.DataFrame(
             raw_candidates,
             index=factuals.index,
@@ -307,8 +407,7 @@ class ClueMethod(MethodObject):
             raise RuntimeError("Method is not trained")
 
         factuals = factuals.loc[:, self._feature_names].copy(deep=True)
-        raw_candidates = self.generate_raw_counterfactuals(factuals)
-
+        raw_candidates = self.get_counterfactuals_clue(factuals)
         selected_candidates = self._select_best_counterfactuals(
             factual_array=factuals.to_numpy(dtype="float32", copy=True),
             candidate_arrays=[raw_candidates.to_numpy(dtype="float32", copy=True)],

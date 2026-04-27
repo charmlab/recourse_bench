@@ -1,6 +1,9 @@
 from __future__ import division, print_function
 
+import importlib
 import logging
+import sys
+import types
 
 import numpy as np
 import torch
@@ -10,6 +13,47 @@ from torch.autograd import Variable
 log = logging.getLogger(__name__)
 
 suffixes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+
+def cprint(color, text, **kwargs):
+    del color
+    print(text, **kwargs)
+
+
+def _ensure_package_alias(name):
+    module = sys.modules.get(name)
+    if module is None:
+        module = types.ModuleType(name)
+        module.__path__ = []  # type: ignore[attr-defined]
+        sys.modules[name] = module
+    return module
+
+
+def register_checkpoint_aliases():
+    for package_name in ("src", "VAE", "VAEAC", "interpret"):
+        _ensure_package_alias(package_name)
+
+    module_aliases = {
+        "src.utils": "method.clue.library.clue_ml.src.utils",
+        "src.radam": "method.clue.library.clue_ml.src.radam",
+        "src.probability": "method.clue.library.clue_ml.src.probability",
+        "src.gauss_cat": "method.clue.library.clue_ml.src.gauss_cat",
+        "src.layers": "method.clue.library.clue_ml.src.layers",
+        "VAE.models": "method.clue.library.clue_ml.VAE.models",
+        "VAE.fc_gauss_cat": "method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat",
+        "VAE.fc_gauss": "method.clue.library.clue_ml.VAE.fc_gauss",
+        "VAEAC.models": "method.clue.library.clue_ml.VAEAC.models",
+        "VAEAC.fc_gauss_cat": "method.clue.library.clue_ml.VAEAC.fc_gauss_cat",
+        "VAEAC.under_net": "method.clue.library.clue_ml.VAEAC.under_net",
+        "interpret.generate_data": "method.clue.library.clue_ml.interpret.generate_data",
+        "interpret.functionally_grounded": "method.clue.library.clue_ml.interpret.functionally_grounded",
+        "interpret.FIDO": "method.clue.library.clue_ml.interpret.FIDO",
+    }
+    for alias, target in module_aliases.items():
+        module = importlib.import_module(target)
+        sys.modules[alias] = module
+        parent_name, child_name = alias.split(".", 1)
+        setattr(sys.modules[parent_name], child_name, module)
 
 
 def humansize(nbytes):
@@ -108,7 +152,12 @@ class BaseNet(object):
 
     def load(self, filename):
         log.info("Reading %s\n" % filename)
-        map_location = "cuda" if getattr(self, "cuda", False) else "cpu"
+        register_checkpoint_aliases()
+        map_location = (
+            "cuda"
+            if getattr(self, "cuda", False) and torch.cuda.is_available()
+            else "cpu"
+        )
         state_dict = torch.load(
             filename,
             weights_only=False,

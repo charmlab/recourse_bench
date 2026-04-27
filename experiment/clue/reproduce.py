@@ -1,87 +1,67 @@
 from __future__ import annotations
 
 import argparse
+import json
+import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 import matplotlib
 import numpy as np
+import pandas as pd
 import torch
-from sklearn.model_selection import train_test_split
+from tqdm.auto import tqdm
 
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-REFERENCE_ROOT = PROJECT_ROOT / "reference" / "CLUE_official"
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-
-def _setup_paths() -> None:
-    if str(REFERENCE_ROOT) not in sys.path:
-        sys.path.insert(0, str(REFERENCE_ROOT))
-    if str(PROJECT_ROOT) not in sys.path:
-        sys.path.insert(0, str(PROJECT_ROOT))
-
-
-_setup_paths()
-
-import src.utils as official_utils  # noqa: E402
-
-
-official_utils.BaseNet.get_nb_parameters = lambda self: sum(
-    parameter.numel() for parameter in self.model.parameters()
-)
-
-
-def _patched_load(self, filename):
-    state = torch.load(
-        filename,
-        weights_only=False,
-        map_location=(
-            "cuda"
-            if getattr(self, "cuda", False) and torch.cuda.is_available()
-            else "cpu"
-        ),
-    )
-    self.epoch = state["epoch"]
-    self.lr = state["lr"]
-    self.model = state["model"]
-    self.optimizer = state["optimizer"]
-    return self.epoch
-
-
-official_utils.BaseNet.load = _patched_load
-
-from src.utils import Datafeed, Ln_distance, generate_ind_batch  # noqa: E402
-from src.gauss_cat import (  # noqa: E402
-    flat_to_gauss_cat,
-    rms_cat_loglike,
-    selective_softmax,
-)
-from interpret.CLUE import CLUE  # noqa: E402
-from interpret.FIDO import mask_explainer  # noqa: E402
-from interpret.explanation_tools import input_uncertainty_step_cat  # noqa: E402
-from interpret.functionally_grounded import (  # noqa: E402
+# Trigger local registrations.
+import dataset  # noqa: E402,F401
+import method  # noqa: E402,F401
+import model  # noqa: E402,F401
+import preprocess  # noqa: E402,F401
+from dataset.compas_clue.compas_clue import CompasClueDataset  # noqa: E402
+from method.clue.clue import ClueMethod  # noqa: E402
+from method.clue.library.clue_ml.interpret.FIDO import mask_explainer  # noqa: E402
+from method.clue.library.clue_ml.interpret.functionally_grounded import (  # noqa: E402
     evaluate_aleatoric_explanation_cat,
     evaluate_epistemic_explanation_cat,
     get_BNN_uncertainties,
+    get_VAEAC_px_gauss_cat,
 )
-from interpret.generate_data import sample_artificial_dataset  # noqa: E402
-from VAE.fc_gauss_cat import VAE_gauss_cat_net  # noqa: E402
-from VAEAC.fc_gauss_cat import VAEAC_gauss_cat_net  # noqa: E402
-from VAEAC.under_net import under_VAEAC  # noqa: E402
-
-from dataset.compas_clue.compas_clue import CompasClueDataset  # noqa: E402
+from method.clue.library.clue_ml.interpret.generate_data import (
+    sample_artificial_dataset,
+)  # noqa: E402
+from method.clue.library.clue_ml.src.gauss_cat import selective_softmax  # noqa: E402
+from method.clue.library.clue_ml.src.utils import (  # noqa: E402
+    generate_ind_batch,
+    register_checkpoint_aliases,
+)
+from method.clue.library.clue_ml.VAEAC.fc_gauss_cat import (
+    VAEAC_gauss_cat_net,
+)  # noqa: E402
+from method.clue.library.clue_ml.VAEAC.under_net import under_VAEAC  # noqa: E402
+from method.clue.support import resolve_vae_checkpoint_path  # noqa: E402
 from model.mlp_bayesian.mlp_bayesian import MlpBayesianModel  # noqa: E402
-from preprocess.common import (  # noqa: E402
-    EncodePreProcess,
+from preprocess.common import (
+    EncodePreProcess,  # noqa: E402
     FinalizePreProcess,
     ReorderPreProcess,
     ScalePreProcess,
+    SplitPreProcess,
 )
 
-OFFICIAL_ORDER = [
+LOGGER = logging.getLogger("clue-reproduce")
+SEED = 42
+EXPECTED_TRAIN = 5554
+EXPECTED_TEST = 618
+COMPAS_OFFICIAL_ORDER = [
     "age_cat_cat_25 - 45",
     "age_cat_cat_Greater than 45",
     "age_cat_cat_Less than 25",
@@ -100,52 +80,36 @@ OFFICIAL_ORDER = [
     "priors_count",
     "time_served",
 ]
-INPUT_DIM_VEC = [3, 6, 2, 2, 2, 1, 1]
-INPUT_DIM_VEC_XY = [3, 6, 2, 2, 2, 1, 1, 2]
-TEST_DIMS = [17, 18]
-ARTIFICIAL_POINTS = 5554 + 618
-ARTIFICIAL_TRAIN = 5554
-ART_ALEATORIC_THRESHOLD = 0.15
-ART_EPISTEMIC_THRESHOLD = 0.02
-CLUE_LR_A = 0.1
-CLUE_LR_E = 0.1
-CLUE_LAMBDAS = np.logspace(np.log(0.0001), np.log(30), 30, base=np.e)
-FIDO_LAMBDAS = np.logspace(np.log(0.00001), np.log(100), 30, base=np.e)
-FIDO_BATCH_SIZE = 3000
-FIDO_EPOCHS = 30
-FIDO_MASK_SAMPLES = 20
-FIDO_MASK_SAMPLES2 = 10
-SENSITIVITY_STEPS = np.logspace(np.log(0.001), np.log(200), 20, base=np.e)
-PAPER_TABLE1_COMPAS = {"epistemic": 0.71, "aleatoric": 0.18}
-PAPER_TABLE2_COMPAS = {"epistemic": 0.707, "aleatoric": 0.044}
-PAPER_TOLERANCES = {
+COMPAS_INPUT_DIM_VEC = [3, 6, 2, 2, 2, 1, 1]
+COMPAS_INPUT_DIM_VEC_XY = [3, 6, 2, 2, 2, 1, 1, 2]
+COMPAS_TEST_DIMS = [17, 18]
+COMPAS_ARTIFICIAL_TRAIN = 5554
+COMPAS_ARTIFICIAL_TEST = 618
+COMPAS_ARTIFICIAL_POINTS = COMPAS_ARTIFICIAL_TRAIN + COMPAS_ARTIFICIAL_TEST
+COMPAS_ART_ALEATORIC_THRESHOLD = 0.15
+COMPAS_ART_EPISTEMIC_THRESHOLD = 0.02
+COMPAS_CLUE_LR = 0.1
+COMPAS_CLUE_LAMBDAS = np.logspace(np.log(0.0001), np.log(30), 30, base=np.e)
+COMPAS_FIDO_LAMBDAS = np.logspace(np.log(0.00001), np.log(100), 30, base=np.e)
+COMPAS_FIDO_BATCH_SIZE = 3000
+COMPAS_FIDO_EPOCHS = 30
+COMPAS_FIDO_MASK_SAMPLES = 20
+COMPAS_FIDO_MASK_SAMPLES2 = 10
+COMPAS_PAPER_RESULTS = {
+    "table1_epistemic": 0.71,
+    "table1_aleatoric": 0.18,
+    "table2_epistemic": 0.707,
+    "table2_aleatoric": 0.044,
+}
+COMPAS_PAPER_TOLERANCES = {
     "table1_epistemic": 0.01,
     "table1_aleatoric": 0.05,
     "table2_epistemic": 0.01,
     "table2_aleatoric": 0.05,
 }
-DEFAULT_BNN_ART_PATH = (
-    PROJECT_ROOT
-    / "reference/clueweights/notebooks/saves/fc_BNN_NEW_ART_compas_models/state_dicts.pkl"
-)
-DEFAULT_VAE_ART_PATH = (
-    PROJECT_ROOT
-    / "reference/clueweights/notebooks/saves/fc_preact_VAE_NEW(300)_ART_compas_models/theta_best.dat"
-)
-DEFAULT_VAEAC_ART_PATH = (
-    PROJECT_ROOT
-    / "reference/clueweights/notebooks/saves/fc_preact_VAEAC_NEW_ART_compas_models/theta_best.dat"
-)
-DEFAULT_VAEAC_GT_PATH = (
-    PROJECT_ROOT
-    / "reference/clueweights/notebooks/saves/fc_preact_VAEAC_NEW_compas_models/theta_best.dat"
-)
-DEFAULT_UNDER_VAEAC_GT_PATH = (
-    PROJECT_ROOT / "reference/clueweights/notebooks/saves/fc_VAEAC_NEW_under_compas_models/theta_best.dat"
-)
 
 
-class OfficialStyleBNNAdapter:
+class _OfficialStyleBNNAdapter:
     def __init__(self, model: MlpBayesianModel):
         self.model = model
 
@@ -159,28 +123,45 @@ class OfficialStyleBNNAdapter:
         return self.model.sample_predict(x, Nsamples=Nsamples, grad=grad)
 
     def set_mode_train(self, train=False):
+        del train
         return None
 
 
-def _resolve_device() -> str:
-    return "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def _prepare_compas_arrays(seed: int = 42):
-    dataset = CompasClueDataset()
-    raw_df = dataset.snapshot()
-    train_df, test_df = train_test_split(
-        raw_df,
-        test_size=0.1,
-        random_state=seed,
-        shuffle=True,
+def _setup_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
     )
-    trainset = dataset
-    testset = dataset.clone()
-    trainset.update("trainset", True, df=train_df.copy(deep=True))
-    testset.update("testset", True, df=test_df.copy(deep=True))
 
-    scale = ScalePreProcess(seed=seed, scaling="standardize", range=True, refset=trainset)
+
+def _resolve_device(requested: str) -> str:
+    requested = requested.lower()
+    if requested == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if requested not in {"cpu", "cuda"}:
+        raise ValueError(f"Unsupported device: {requested}")
+    if requested == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA requested but not available")
+    return requested
+
+
+def _seed_everything(seed: int) -> None:
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def _build_compas_train_schema(seed: int) -> dict[str, Any]:
+    dataset = CompasClueDataset()
+    trainset, testset = SplitPreProcess(seed=seed, split=0.1).transform(dataset)
+
+    scale = ScalePreProcess(
+        seed=seed,
+        scaling="standardize",
+        range=True,
+        refset=trainset,
+    )
     trainset = scale.transform(trainset)
     testset = scale.transform(testset)
 
@@ -188,7 +169,7 @@ def _prepare_compas_arrays(seed: int = 42):
     trainset = encode.transform(trainset)
     testset = encode.transform(testset)
 
-    reorder = ReorderPreProcess(seed=seed, order=OFFICIAL_ORDER)
+    reorder = ReorderPreProcess(seed=seed, order=COMPAS_OFFICIAL_ORDER)
     trainset = reorder.transform(trainset)
     testset = reorder.transform(testset)
 
@@ -196,31 +177,53 @@ def _prepare_compas_arrays(seed: int = 42):
     trainset = finalize.transform(trainset)
     testset = finalize.transform(testset)
 
-    x_train = trainset.get(target=False).to_numpy(dtype="float32")
-    x_test = testset.get(target=False).to_numpy(dtype="float32")
-    y_train = trainset.get(target=True).iloc[:, 0].to_numpy(dtype=int)
-    y_test = testset.get(target=True).iloc[:, 0].to_numpy(dtype=int)
-    y_train_oh = np.eye(2, dtype="float32")[y_train]
-    y_test_oh = np.eye(2, dtype="float32")[y_test]
-    xy_train = np.concatenate([x_train, y_train_oh], axis=1)
-    xy_test = np.concatenate([x_test, y_test_oh], axis=1)
+    train_features = trainset.get(target=False)
+    test_features = testset.get(target=False)
+    if list(train_features.columns) != COMPAS_OFFICIAL_ORDER:
+        raise AssertionError(
+            "Finalized train feature order does not match OFFICIAL_ORDER"
+        )
+    if train_features.shape[1] != 17 or test_features.shape[1] != 17:
+        raise AssertionError("Finalized COMPAS feature dimension must be 17")
+    if len(trainset) != EXPECTED_TRAIN:
+        raise AssertionError(
+            f"Expected COMPAS train size {EXPECTED_TRAIN}, observed {len(trainset)}"
+        )
+    if len(testset) != EXPECTED_TEST:
+        raise AssertionError(
+            f"Expected COMPAS test size {EXPECTED_TEST}, observed {len(testset)}"
+        )
+
     return {
         "trainset": trainset,
         "testset": testset,
-        "x_train": x_train,
-        "x_test": x_test,
-        "y_train": y_train,
-        "y_test": y_test,
-        "xy_train": xy_train,
-        "xy_test": xy_test,
     }
 
 
-def _load_models(device: str, trainset):
+def _load_compas_reproduction_models(
+    target_model: MlpBayesianModel,
+    device: str,
+    *,
+    vaeac_art_path: str | Path,
+    vaeac_gt_path: str | Path,
+    under_vaeac_gt_path: str | Path,
+) -> dict[str, Any]:
     cuda = device == "cuda"
+    register_checkpoint_aliases()
+
+    resolved_vaeac_art = resolve_vae_checkpoint_path(str(vaeac_art_path))
+    resolved_vaeac_gt = resolve_vae_checkpoint_path(str(vaeac_gt_path))
+    resolved_under = resolve_vae_checkpoint_path(str(under_vaeac_gt_path))
+    for label, path in {
+        "vaeac_art_path": resolved_vaeac_art,
+        "vaeac_gt_path": resolved_vaeac_gt,
+        "under_vaeac_gt_path": resolved_under,
+    }.items():
+        if path is None or not path.exists():
+            raise FileNotFoundError(f"Missing required checkpoint for {label}: {path}")
 
     vaeac_gt = VAEAC_gauss_cat_net(
-        INPUT_DIM_VEC_XY,
+        COMPAS_INPUT_DIM_VEC_XY,
         350,
         3,
         4,
@@ -229,35 +232,20 @@ def _load_models(device: str, trainset):
         cuda=cuda,
         flatten=False,
     )
-    vaeac_gt.load(DEFAULT_VAEAC_GT_PATH.as_posix())
+    vaeac_gt.load(resolved_vaeac_gt.as_posix())
 
-    under_vaeac_gt = under_VAEAC(vaeac_gt.model, 150, 2, 4, 3e-4, cuda=cuda)
-    under_vaeac_gt.load(DEFAULT_UNDER_VAEAC_GT_PATH.as_posix())
-
-    art_bnn_model = MlpBayesianModel(
-        seed=42,
-        device=device,
-        layers=[200, 200],
-        pretrained_path=DEFAULT_BNN_ART_PATH.as_posix(),
-        bayesian=True,
-    )
-    art_bnn_model.fit(trainset)
-    art_bnn = OfficialStyleBNNAdapter(art_bnn_model)
-
-    vae_art = VAE_gauss_cat_net(
-        INPUT_DIM_VEC,
-        300,
-        3,
+    under_vaeac_gt = under_VAEAC(
+        vaeac_gt.model,
+        150,
+        2,
         4,
-        pred_sig=False,
-        lr=1e-4,
+        lr=3e-4,
         cuda=cuda,
-        flatten=False,
     )
-    vae_art.load(DEFAULT_VAE_ART_PATH.as_posix())
+    under_vaeac_gt.load(resolved_under.as_posix())
 
     vaeac_art = VAEAC_gauss_cat_net(
-        INPUT_DIM_VEC,
+        COMPAS_INPUT_DIM_VEC,
         350,
         3,
         4,
@@ -266,79 +254,37 @@ def _load_models(device: str, trainset):
         cuda=cuda,
         flatten=False,
     )
-    vaeac_art.load(DEFAULT_VAEAC_ART_PATH.as_posix())
+    vaeac_art.load(resolved_vaeac_art.as_posix())
 
     return {
+        "art_bnn": _OfficialStyleBNNAdapter(target_model),
+        "vaeac_art": vaeac_art,
         "vaeac_gt": vaeac_gt,
         "under_vaeac_gt": under_vaeac_gt,
-        "art_bnn": art_bnn,
-        "art_bnn_model": art_bnn_model,
-        "vae_art": vae_art,
-        "vaeac_art": vaeac_art,
     }
 
 
-def _get_vaeac_px_gauss_cat(
-    under_vaeac_net,
-    x_art_test: np.ndarray,
-    input_dim_vec: list[int],
-    y_dims: list[int],
-    override_y_dims: int | None = None,
-    nsamples: int = 1000,
-):
-    rec_loglike_func = rms_cat_loglike(input_dim_vec, reduction="none")
-    max_dims = x_art_test.shape[1] + len(y_dims)
-    x_dims = list(range(max_dims))
-    for dim in y_dims:
-        x_dims.remove(dim)
-
-    iw_xy = torch.zeros((x_art_test.shape[0], max_dims))
-    iw_xy[:, x_dims] = torch.tensor(x_art_test, dtype=torch.float32)
-    iw_xy[:, y_dims] = iw_xy.new_zeros((iw_xy.shape[0], len(y_dims))).normal_()
-    if under_vaeac_net.cuda:
-        iw_xy = iw_xy.cuda()
-
-    iw_xy_target = flat_to_gauss_cat(iw_xy, input_dim_vec)
-    iw_mask = torch.zeros_like(iw_xy)
-    iw_mask[:, y_dims] = 1
-    prior = under_vaeac_net.prior
-    u_approx_dist = under_vaeac_net.u_mask_recongnition(iw_xy, iw_mask, grad=False)
-
-    estimates = []
-    for _ in range(nsamples):
-        u_sample = u_approx_dist.sample()
-        rec_distrib = under_vaeac_net.u_regenerate(u_sample, grad=False)
-        log_p = prior.log_prob(u_sample).sum(dim=1).data
-        log_q = u_approx_dist.log_prob(u_sample).sum(dim=1).data
-        rec_loglike = rec_loglike_func(rec_distrib, iw_xy_target).view(iw_xy.shape[0], -1)
-        if override_y_dims is not None:
-            x_loglike = rec_loglike[:, :-override_y_dims].sum(dim=1)
-        else:
-            x_loglike = rec_loglike[:, x_dims].sum(dim=1)
-        estimates.append(x_loglike + log_p - log_q)
-
-    return torch.logsumexp(torch.stack(estimates), dim=0, keepdim=False) - np.log(nsamples)
-
-
-def _generate_artificial_compas(models):
+def _generate_artificial_compas(
+    under_vaeac_gt: under_VAEAC,
+) -> dict[str, np.ndarray]:
     x_art, y_art, xy_art = sample_artificial_dataset(
-        models["under_vaeac_gt"],
-        TEST_DIMS,
-        ARTIFICIAL_POINTS,
+        under_vaeac_gt,
+        COMPAS_TEST_DIMS,
+        COMPAS_ARTIFICIAL_POINTS,
         u_dims=4,
         sig=False,
         softmax=False,
     )
     x_art = selective_softmax(
         x_art,
-        INPUT_DIM_VEC,
+        COMPAS_INPUT_DIM_VEC,
         grad=False,
         cat_probs=True,
         prob_sample=True,
     )
     xy_art = selective_softmax(
         xy_art,
-        INPUT_DIM_VEC_XY,
+        COMPAS_INPUT_DIM_VEC_XY,
         grad=False,
         cat_probs=True,
         prob_sample=True,
@@ -351,15 +297,39 @@ def _generate_artificial_compas(models):
         prob_sample=True,
     )
     _, y_art_bnn = y_art.max(dim=1)
+
+    x_art_test = x_art[COMPAS_ARTIFICIAL_TRAIN:, :].cpu().numpy()
+    y_art_test = y_art[COMPAS_ARTIFICIAL_TRAIN:, :].cpu().numpy()
+    y_art_bnn_test = y_art_bnn[COMPAS_ARTIFICIAL_TRAIN:].cpu().numpy()
+
+    if x_art_test.shape != (COMPAS_ARTIFICIAL_TEST, 17):
+        raise AssertionError(
+            "Expected artificial COMPAS test shape "
+            f"({COMPAS_ARTIFICIAL_TEST}, 17), observed {x_art_test.shape}"
+        )
+    if y_art_test.shape != (COMPAS_ARTIFICIAL_TEST, 2):
+        raise AssertionError(
+            "Expected artificial COMPAS target shape "
+            f"({COMPAS_ARTIFICIAL_TEST}, 2), observed {y_art_test.shape}"
+        )
+
     return {
-        "x_art_test": x_art[ARTIFICIAL_TRAIN:, :].cpu().numpy(),
-        "y_art_test": y_art[ARTIFICIAL_TRAIN:, :].cpu().numpy(),
-        "y_art_bnn_test": y_art_bnn[ARTIFICIAL_TRAIN:].cpu().numpy(),
+        "x_art_test": x_art_test,
+        "y_art_test": y_art_test,
+        "y_art_bnn_test": y_art_bnn_test,
     }
 
 
-def _compute_artificial_baselines(art_data, models, device: str):
+def _compute_artificial_baselines(
+    art_data: dict[str, np.ndarray],
+    models: dict[str, Any],
+    device: str,
+    *,
+    vaeac_samples: int,
+    likelihood_samples: int,
+) -> dict[str, Any]:
     x_art_test = art_data["x_art_test"]
+
     _, aleatoric_stack, epistemic_stack = get_BNN_uncertainties(
         models["art_bnn"],
         x_art_test,
@@ -370,144 +340,174 @@ def _compute_artificial_baselines(art_data, models, device: str):
         return_probs=False,
         prob_BNN=True,
     )
-    aleatoric_idxs = aleatoric_stack.cpu().numpy() >= ART_ALEATORIC_THRESHOLD
-    epistemic_idxs = epistemic_stack.cpu().numpy() >= ART_EPISTEMIC_THRESHOLD
+    aleatoric_mask = (
+        aleatoric_stack.detach().cpu().numpy() >= COMPAS_ART_ALEATORIC_THRESHOLD
+    )
+    epistemic_mask = (
+        epistemic_stack.detach().cpu().numpy() >= COMPAS_ART_EPISTEMIC_THRESHOLD
+    )
+    if not bool(aleatoric_mask.any()):
+        raise AssertionError(
+            "Aleatoric threshold selected zero artificial COMPAS samples"
+        )
+    if not bool(epistemic_mask.any()):
+        raise AssertionError(
+            "Epistemic threshold selected zero artificial COMPAS samples"
+        )
 
     og_aleatoric_uncert = evaluate_aleatoric_explanation_cat(
         models["vaeac_gt"],
-        torch.tensor(x_art_test[aleatoric_idxs], dtype=torch.float32),
-        TEST_DIMS,
-        N_target_samples=500,
+        torch.tensor(x_art_test[aleatoric_mask], dtype=torch.float32),
+        COMPAS_TEST_DIMS,
+        N_target_samples=vaeac_samples,
         batch_size=1024,
     )
     gt_test_err, _ = evaluate_epistemic_explanation_cat(
         models["art_bnn"],
         models["vaeac_gt"],
-        torch.tensor(x_art_test[epistemic_idxs], dtype=torch.float32).to(device),
-        TEST_DIMS,
+        torch.tensor(
+            x_art_test[epistemic_mask],
+            dtype=torch.float32,
+            device=device,
+        ),
+        COMPAS_TEST_DIMS,
         outer_batch_size=2000,
         inner_batch_size=1024,
-        VAEAC_samples=500,
+        VAEAC_samples=vaeac_samples,
     )
-    log_px_vaeac_a = _get_vaeac_px_gauss_cat(
+    log_px_aleatoric = get_VAEAC_px_gauss_cat(
         models["under_vaeac_gt"],
-        x_art_test[aleatoric_idxs],
-        INPUT_DIM_VEC_XY,
-        TEST_DIMS,
+        x_art_test[aleatoric_mask],
+        COMPAS_INPUT_DIM_VEC_XY,
+        COMPAS_TEST_DIMS,
         override_y_dims=1,
-        nsamples=1000,
+        Nsamples=likelihood_samples,
     )
-    log_px_vaeac_e = _get_vaeac_px_gauss_cat(
+    log_px_epistemic = get_VAEAC_px_gauss_cat(
         models["under_vaeac_gt"],
-        x_art_test[epistemic_idxs],
-        INPUT_DIM_VEC_XY,
-        TEST_DIMS,
+        x_art_test[epistemic_mask],
+        COMPAS_INPUT_DIM_VEC_XY,
+        COMPAS_TEST_DIMS,
         override_y_dims=1,
-        nsamples=1000,
+        Nsamples=likelihood_samples,
     )
-    z_test = (
-        models["vae_art"]
-        .recongnition(torch.tensor(x_art_test, dtype=torch.float32).to(device), flatten=False)
-        .loc.data.cpu()
-        .numpy()
-    )
+
     return {
-        "aleatoric_idxs": aleatoric_idxs,
-        "epistemic_idxs": epistemic_idxs,
+        "aleatoric_mask": aleatoric_mask,
+        "epistemic_mask": epistemic_mask,
         "og_aleatoric_uncert": og_aleatoric_uncert,
         "gt_test_err": float(gt_test_err),
-        "log_px_vaeac_a": log_px_vaeac_a,
-        "log_px_vaeac_e": log_px_vaeac_e,
-        "z_test": z_test,
+        "baseline_logpx_aleatoric": float(log_px_aleatoric.mean().cpu().item()),
+        "baseline_logpx_epistemic": float(log_px_epistemic.mean().cpu().item()),
     }
 
 
 def _compute_clue_curve(
+    clue_method: ClueMethod,
     x_init_batch: np.ndarray,
-    z_init_batch: np.ndarray,
+    *,
     mode: str,
-    models,
-    baselines,
-    max_steps: int,
+    models: dict[str, Any],
+    baselines: dict[str, Any],
+    clue_lambdas: np.ndarray,
+    device: str,
+    vaeac_samples: int,
+    likelihood_samples: int,
 ) -> dict[str, np.ndarray]:
-    dist = Ln_distance(n=1, dim=(1))
-    x_dim = x_init_batch.reshape(x_init_batch.shape[0], -1).shape[1]
-    lr = CLUE_LR_A if mode == "aleatoric" else CLUE_LR_E
-
+    x_dim = x_init_batch.shape[1]
+    factual_frame = pd.DataFrame(x_init_batch, columns=COMPAS_OFFICIAL_ORDER)
     delta_x_values: list[float] = []
     benefit_values: list[float] = []
     logpx_values: list[float] = []
 
-    for distance_weight in (CLUE_LAMBDAS / x_dim):
-        clue_explainer = CLUE(
-            models["vae_art"],
-            models["art_bnn"],
-            x_init_batch,
-            uncertainty_weight=0,
-            aleatoric_weight=1 if mode == "aleatoric" else 0,
-            epistemic_weight=1 if mode == "epistemic" else 0,
-            prior_weight=0,
-            distance_weight=distance_weight,
-            latent_L2_weight=0,
-            prediction_similarity_weight=0,
-            lr=lr,
-            desired_preds=None,
-            cond_mask=None,
-            distance_metric=dist,
-            z_init=z_init_batch,
-            norm_MNIST=False,
-            flatten_BNN=False,
-            regression=False,
-            cuda=True,
-        )
-        _, x_vec, _, _, _, _, _ = clue_explainer.optimise(
+    if mode == "aleatoric":
+        max_steps = 55
+        aleatoric_weight = 1.0
+        epistemic_weight = 0.0
+    elif mode == "epistemic":
+        max_steps = 65
+        aleatoric_weight = 0.0
+        epistemic_weight = 1.0
+    else:
+        raise ValueError(f"Unknown CLUE mode: {mode}")
+
+    for distance_weight in tqdm(
+        clue_lambdas / x_dim,
+        desc=f"clue-{mode}",
+        leave=False,
+    ):
+        x_clue_df = clue_method.get_counterfactuals_clue(
+            factual_frame,
+            uncertainty_weight=0.0,
+            aleatoric_weight=aleatoric_weight,
+            epistemic_weight=epistemic_weight,
+            prior_weight=0.0,
+            distance_weight=float(distance_weight),
+            latent_l2_weight=0.0,
+            prediction_similarity_weight=0.0,
+            lr=COMPAS_CLUE_LR,
             min_steps=3,
             max_steps=max_steps,
-            n_early_stop=3,
+            early_stop_patience=3,
+            num_explanations=1,
         )
-        x_clue = x_vec[-1]
-        delta_x_values.append(float(np.abs(x_init_batch - x_clue).sum(axis=1).mean()))
+        if list(x_clue_df.columns) != COMPAS_OFFICIAL_ORDER:
+            raise AssertionError("CLUE raw output columns deviated from OFFICIAL_ORDER")
+        if x_clue_df.shape != factual_frame.shape:
+            raise AssertionError(
+                f"CLUE raw output shape mismatch: expected {factual_frame.shape}, "
+                f"observed {x_clue_df.shape}"
+            )
+        x_clue = x_clue_df.to_numpy(dtype="float32", copy=True)
+        if np.isnan(x_clue).any():
+            raise AssertionError(f"Raw CLUE output contains NaN values for mode={mode}")
 
+        delta_x_values.append(float(np.abs(x_init_batch - x_clue).sum(axis=1).mean()))
         if mode == "aleatoric":
             clue_uncert = evaluate_aleatoric_explanation_cat(
                 models["vaeac_gt"],
                 torch.tensor(x_clue, dtype=torch.float32),
-                TEST_DIMS,
-                N_target_samples=500,
+                COMPAS_TEST_DIMS,
+                N_target_samples=vaeac_samples,
                 batch_size=1024,
             )
             benefit_values.append(
-                float((baselines["og_aleatoric_uncert"] - clue_uncert).cpu().numpy().mean())
+                float(
+                    (baselines["og_aleatoric_uncert"] - clue_uncert)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .mean()
+                )
             )
-            log_px = _get_vaeac_px_gauss_cat(
+            log_px = get_VAEAC_px_gauss_cat(
                 models["under_vaeac_gt"],
                 x_clue,
-                INPUT_DIM_VEC_XY,
-                TEST_DIMS,
+                COMPAS_INPUT_DIM_VEC_XY,
+                COMPAS_TEST_DIMS,
                 override_y_dims=1,
-                nsamples=1000,
+                Nsamples=likelihood_samples,
             )
-            logpx_values.append(float(log_px.mean().cpu().numpy()))
         else:
             clue_test_err, _ = evaluate_epistemic_explanation_cat(
                 models["art_bnn"],
                 models["vaeac_gt"],
-                torch.tensor(x_clue, dtype=torch.float32).cuda(),
-                TEST_DIMS,
+                torch.tensor(x_clue, dtype=torch.float32, device=device),
+                COMPAS_TEST_DIMS,
                 outer_batch_size=2000,
                 inner_batch_size=1024,
-                VAEAC_samples=500,
+                VAEAC_samples=vaeac_samples,
             )
             benefit_values.append(float(baselines["gt_test_err"] - clue_test_err))
-            log_px = _get_vaeac_px_gauss_cat(
+            log_px = get_VAEAC_px_gauss_cat(
                 models["under_vaeac_gt"],
                 x_clue,
-                INPUT_DIM_VEC_XY,
-                TEST_DIMS,
+                COMPAS_INPUT_DIM_VEC_XY,
+                COMPAS_TEST_DIMS,
                 override_y_dims=1,
-                nsamples=1000,
+                Nsamples=likelihood_samples,
             )
-            logpx_values.append(float(log_px.mean().cpu().numpy()))
+        logpx_values.append(float(log_px.mean().cpu().item()))
 
     return {
         "delta_x": np.asarray(delta_x_values, dtype=np.float64),
@@ -518,23 +518,30 @@ def _compute_clue_curve(
 
 def _compute_fido_curve(
     x_init_batch: np.ndarray,
+    *,
     mode: str,
-    models,
-    baselines,
+    models: dict[str, Any],
+    baselines: dict[str, Any],
     device: str,
+    fido_lambdas: np.ndarray,
+    fido_batch_size: int,
+    fido_epochs: int,
+    fido_mask_samples: int,
+    fido_mask_samples2: int,
+    vaeac_samples: int,
+    likelihood_samples: int,
 ) -> dict[str, np.ndarray]:
     delta_x_values: list[float] = []
     benefit_values: list[float] = []
     logpx_values: list[float] = []
 
-    for l1_weight in FIDO_LAMBDAS:
+    for l1_weight in tqdm(fido_lambdas, desc=f"fido-{mode}", leave=False):
         explanations = []
         aleatoric_coeff = 1 if mode == "aleatoric" else 0
         epistemic_coeff = 1 if mode == "epistemic" else 0
-
         aux_loader = generate_ind_batch(
             x_init_batch.shape[0],
-            FIDO_BATCH_SIZE,
+            fido_batch_size,
             random=False,
             roundup=True,
         )
@@ -545,13 +552,14 @@ def _compute_fido_curve(
                 models["vaeac_art"],
                 aleatoric_coeff=aleatoric_coeff,
                 epistemic_coeff=epistemic_coeff,
-                L1w=l1_weight,
-                N_epochs=FIDO_EPOCHS,
-                mask_samples=FIDO_MASK_SAMPLES,
-                mask_samples2=FIDO_MASK_SAMPLES2,
+                L1w=float(l1_weight),
+                N_epochs=fido_epochs,
+                mask_samples=fido_mask_samples,
+                mask_samples2=fido_mask_samples2,
                 flatten_ims=False,
                 test_dims=None,
                 cat=True,
+                cuda=device == "cuda",
             )
             explanation, _ = explainer.mask_inpaint(
                 torch.tensor(x_init_batch[indices], dtype=torch.float32),
@@ -564,47 +572,51 @@ def _compute_fido_curve(
 
         x_fido = torch.cat(explanations, dim=0).numpy()
         delta_x_values.append(float(np.abs(x_init_batch - x_fido).sum(axis=1).mean()))
-
         if mode == "aleatoric":
             fido_uncert = evaluate_aleatoric_explanation_cat(
                 models["vaeac_gt"],
                 torch.tensor(x_fido, dtype=torch.float32),
-                TEST_DIMS,
-                N_target_samples=500,
+                COMPAS_TEST_DIMS,
+                N_target_samples=vaeac_samples,
                 batch_size=1024,
             )
             benefit_values.append(
-                float((baselines["og_aleatoric_uncert"] - fido_uncert).cpu().numpy().mean())
+                float(
+                    (baselines["og_aleatoric_uncert"] - fido_uncert)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .mean()
+                )
             )
-            log_px = _get_vaeac_px_gauss_cat(
+            log_px = get_VAEAC_px_gauss_cat(
                 models["under_vaeac_gt"],
                 x_fido,
-                INPUT_DIM_VEC_XY,
-                TEST_DIMS,
+                COMPAS_INPUT_DIM_VEC_XY,
+                COMPAS_TEST_DIMS,
                 override_y_dims=1,
-                nsamples=1000,
+                Nsamples=likelihood_samples,
             )
-            logpx_values.append(float(log_px.mean().cpu().numpy()))
         else:
             fido_test_err, _ = evaluate_epistemic_explanation_cat(
                 models["art_bnn"],
                 models["vaeac_gt"],
-                torch.tensor(x_fido, dtype=torch.float32).to(device),
-                TEST_DIMS,
+                torch.tensor(x_fido, dtype=torch.float32, device=device),
+                COMPAS_TEST_DIMS,
                 outer_batch_size=2000,
                 inner_batch_size=1024,
-                VAEAC_samples=500,
+                VAEAC_samples=vaeac_samples,
             )
             benefit_values.append(float(baselines["gt_test_err"] - fido_test_err))
-            log_px = _get_vaeac_px_gauss_cat(
+            log_px = get_VAEAC_px_gauss_cat(
                 models["under_vaeac_gt"],
                 x_fido,
-                INPUT_DIM_VEC_XY,
-                TEST_DIMS,
+                COMPAS_INPUT_DIM_VEC_XY,
+                COMPAS_TEST_DIMS,
                 override_y_dims=1,
-                nsamples=1000,
+                Nsamples=likelihood_samples,
             )
-            logpx_values.append(float(log_px.mean().cpu().numpy()))
+        logpx_values.append(float(log_px.mean().cpu().item()))
 
     return {
         "delta_x": np.asarray(delta_x_values, dtype=np.float64),
@@ -613,93 +625,12 @@ def _compute_fido_curve(
     }
 
 
-def _compute_sensitivity_curve(
-    x_art_test: np.ndarray,
-    x_init_batch: np.ndarray,
-    selected_mask: np.ndarray,
-    mode: str,
-    models,
-    baselines,
-    device: str,
-) -> dict[str, np.ndarray]:
-    del device
-    delta_x_values: list[float] = []
-    benefit_values: list[float] = []
-    delta_logp_values: list[float] = []
-    dummy_y = np.zeros(x_art_test.shape[0], dtype=np.float32)
-
-    for step in SENSITIVITY_STEPS:
-        sens_x = input_uncertainty_step_cat(
-            models["art_bnn"],
-            Datafeed(x_art_test, dummy_y),
-            aleatoric_coeff=1 if mode == "aleatoric" else 0,
-            epistemic_coeff=1 if mode == "epistemic" else 0,
-            stepsize_perdim=-step,
-            batch_size=1024,
-            cuda=torch.cuda.is_available(),
-            norm_MNIST=False,
-            flatten=False,
-            norm_grad=False,
-        )
-        x_sens = sens_x.detach().cpu().numpy()[selected_mask]
-        delta_x_values.append(float(np.abs(x_init_batch - x_sens).sum(axis=1).mean()))
-
-        if mode == "aleatoric":
-            sens_uncert = evaluate_aleatoric_explanation_cat(
-                models["vaeac_gt"],
-                torch.tensor(x_sens, dtype=torch.float32),
-                TEST_DIMS,
-                N_target_samples=500,
-                batch_size=1024,
-            )
-            benefit_values.append(
-                float((baselines["og_aleatoric_uncert"] - sens_uncert).cpu().numpy().mean())
-            )
-            log_px = _get_vaeac_px_gauss_cat(
-                models["under_vaeac_gt"],
-                x_sens,
-                INPUT_DIM_VEC_XY,
-                TEST_DIMS,
-                override_y_dims=1,
-                nsamples=1000,
-            )
-            delta_logp_values.append(float(log_px.mean().cpu().numpy()))
-        else:
-            sens_test_err, _ = evaluate_epistemic_explanation_cat(
-                models["art_bnn"],
-                models["vaeac_gt"],
-                torch.tensor(x_sens, dtype=torch.float32).to(models["art_bnn"].model._device),
-                TEST_DIMS,
-                outer_batch_size=2000,
-                inner_batch_size=1024,
-                VAEAC_samples=500,
-            )
-            benefit_values.append(float(baselines["gt_test_err"] - sens_test_err))
-            log_px = _get_vaeac_px_gauss_cat(
-                models["under_vaeac_gt"],
-                x_sens,
-                INPUT_DIM_VEC_XY,
-                TEST_DIMS,
-                override_y_dims=1,
-                nsamples=1000,
-            )
-            delta_logp_values.append(float(log_px.mean().cpu().numpy()))
-
-    return {
-        "delta_x": np.asarray(delta_x_values, dtype=np.float64),
-        "benefit": np.asarray(benefit_values, dtype=np.float64),
-        "logpx": np.asarray(delta_logp_values, dtype=np.float64),
-    }
-
-
 def _save_curve(
     output_path: Path,
-    x_blue: np.ndarray,
-    y_blue: np.ndarray,
-    x_red: np.ndarray,
-    y_red: np.ndarray,
-    x_green: np.ndarray,
-    y_green: np.ndarray,
+    clue_x: np.ndarray,
+    clue_y: np.ndarray,
+    fido_x: np.ndarray,
+    fido_y: np.ndarray,
     title: str,
     xlabel: str,
     ylabel: str,
@@ -707,16 +638,15 @@ def _save_curve(
     invert_x: bool = False,
 ) -> None:
     plt.figure(dpi=100)
-    plt.plot(x_blue, y_blue, "--.", c="b")
-    plt.plot(x_red, y_red, "--.", c="r")
-    plt.plot(x_green, y_green, "--.", c="g")
+    plt.plot(clue_x, clue_y, "--.", c="r")
+    plt.plot(fido_x, fido_y, "--.", c="g")
     if baseline_x is not None:
         ax = plt.gca()
-        ax.axvline(x=baseline_x)
+        ax.axvline(x=baseline_x, c="k", linewidth=1.0)
         if invert_x:
             ax.invert_xaxis()
     plt.title(title)
-    plt.legend(["sensitivity", "CLUE", "U-FIDO"])
+    plt.legend(["CLUE", "U-FIDO"])
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.tight_layout()
@@ -734,6 +664,8 @@ def _table1_scalar(
     max_x = float(max(np.max(clue_x), np.max(fido_x)))
     max_benefit = float(max(np.max(clue_benefit), np.max(fido_benefit)))
     if max_benefit <= 0 or not np.isfinite(max_benefit):
+        return float(1 / np.sqrt(2.0))
+    if max_x <= 0 or not np.isfinite(max_x):
         return float(1 / np.sqrt(2.0))
     x_scaled = clue_x / (np.sqrt(2.0) * max_x)
     y_scaled = (max_benefit - clue_benefit) / (np.sqrt(2.0) * max_benefit)
@@ -760,73 +692,111 @@ def _table2_scalar(
     return float(np.sqrt(x_scaled**2 + y_scaled**2).min())
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=PROJECT_ROOT / "experiment" / "clue" / "art_data_curves",
-    )
-    args = parser.parse_args()
+def _run_compas_reproduction(
+    clue_method: ClueMethod,
+    target_model: MlpBayesianModel,
+    device: str,
+    output_dir: str | Path,
+    *,
+    vaeac_art_path: str | Path,
+    vaeac_gt_path: str | Path,
+    under_vaeac_gt_path: str | Path,
+    assert_paper: bool = True,
+    clue_lambdas: np.ndarray | None = None,
+    fido_lambdas: np.ndarray | None = None,
+    vaeac_samples: int = 500,
+    likelihood_samples: int = 1000,
+    fido_batch_size: int = COMPAS_FIDO_BATCH_SIZE,
+    fido_epochs: int = COMPAS_FIDO_EPOCHS,
+    fido_mask_samples: int = COMPAS_FIDO_MASK_SAMPLES,
+    fido_mask_samples2: int = COMPAS_FIDO_MASK_SAMPLES2,
+) -> dict[str, Any]:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    device = _resolve_device()
-    compas = _prepare_compas_arrays(seed=42)
-    models = _load_models(device=device, trainset=compas["trainset"])
-    art_data = _generate_artificial_compas(models=models)
-    baselines = _compute_artificial_baselines(art_data=art_data, models=models, device=device)
+    _seed_everything(SEED)
+    clue_lambdas = (
+        COMPAS_CLUE_LAMBDAS if clue_lambdas is None else np.asarray(clue_lambdas)
+    )
+    fido_lambdas = (
+        COMPAS_FIDO_LAMBDAS if fido_lambdas is None else np.asarray(fido_lambdas)
+    )
+
+    LOGGER.info("Loading COMPAS reproduction helpers on device=%s", device)
+    models = _load_compas_reproduction_models(
+        target_model,
+        device,
+        vaeac_art_path=vaeac_art_path,
+        vaeac_gt_path=vaeac_gt_path,
+        under_vaeac_gt_path=under_vaeac_gt_path,
+    )
+    art_data = _generate_artificial_compas(models["under_vaeac_gt"])
+    baselines = _compute_artificial_baselines(
+        art_data,
+        models,
+        device,
+        vaeac_samples=vaeac_samples,
+        likelihood_samples=likelihood_samples,
+    )
+    LOGGER.info(
+        "Selected artificial subsets: aleatoric=%d epistemic=%d",
+        int(baselines["aleatoric_mask"].sum()),
+        int(baselines["epistemic_mask"].sum()),
+    )
+
     clue_aleatoric = _compute_clue_curve(
-        x_init_batch=art_data["x_art_test"][baselines["aleatoric_idxs"]],
-        z_init_batch=baselines["z_test"][baselines["aleatoric_idxs"]],
+        clue_method,
+        art_data["x_art_test"][baselines["aleatoric_mask"]],
         mode="aleatoric",
         models=models,
         baselines=baselines,
-        max_steps=55,
+        clue_lambdas=clue_lambdas,
+        device=device,
+        vaeac_samples=vaeac_samples,
+        likelihood_samples=likelihood_samples,
     )
     clue_epistemic = _compute_clue_curve(
-        x_init_batch=art_data["x_art_test"][baselines["epistemic_idxs"]],
-        z_init_batch=baselines["z_test"][baselines["epistemic_idxs"]],
+        clue_method,
+        art_data["x_art_test"][baselines["epistemic_mask"]],
         mode="epistemic",
         models=models,
         baselines=baselines,
-        max_steps=65,
+        clue_lambdas=clue_lambdas,
+        device=device,
+        vaeac_samples=vaeac_samples,
+        likelihood_samples=likelihood_samples,
     )
     fido_aleatoric = _compute_fido_curve(
-        x_init_batch=art_data["x_art_test"][baselines["aleatoric_idxs"]],
+        art_data["x_art_test"][baselines["aleatoric_mask"]],
         mode="aleatoric",
         models=models,
         baselines=baselines,
         device=device,
+        fido_lambdas=fido_lambdas,
+        fido_batch_size=fido_batch_size,
+        fido_epochs=fido_epochs,
+        fido_mask_samples=fido_mask_samples,
+        fido_mask_samples2=fido_mask_samples2,
+        vaeac_samples=vaeac_samples,
+        likelihood_samples=likelihood_samples,
     )
     fido_epistemic = _compute_fido_curve(
-        x_init_batch=art_data["x_art_test"][baselines["epistemic_idxs"]],
+        art_data["x_art_test"][baselines["epistemic_mask"]],
         mode="epistemic",
         models=models,
         baselines=baselines,
         device=device,
-    )
-    sensitivity_aleatoric = _compute_sensitivity_curve(
-        x_art_test=art_data["x_art_test"],
-        x_init_batch=art_data["x_art_test"][baselines["aleatoric_idxs"]],
-        selected_mask=baselines["aleatoric_idxs"],
-        mode="aleatoric",
-        models=models,
-        baselines=baselines,
-        device=device,
-    )
-    sensitivity_epistemic = _compute_sensitivity_curve(
-        x_art_test=art_data["x_art_test"],
-        x_init_batch=art_data["x_art_test"][baselines["epistemic_idxs"]],
-        selected_mask=baselines["epistemic_idxs"],
-        mode="epistemic",
-        models=models,
-        baselines=baselines,
-        device=device,
+        fido_lambdas=fido_lambdas,
+        fido_batch_size=fido_batch_size,
+        fido_epochs=fido_epochs,
+        fido_mask_samples=fido_mask_samples,
+        fido_mask_samples2=fido_mask_samples2,
+        vaeac_samples=vaeac_samples,
+        likelihood_samples=likelihood_samples,
     )
 
     _save_curve(
-        args.output_dir / "compas_epistemic_delta_x.png",
-        sensitivity_epistemic["delta_x"],
-        -sensitivity_epistemic["benefit"],
+        output_dir / "compas_epistemic_delta_x.png",
         clue_epistemic["delta_x"],
         -clue_epistemic["benefit"],
         fido_epistemic["delta_x"],
@@ -836,9 +806,7 @@ def main() -> None:
         "change in err",
     )
     _save_curve(
-        args.output_dir / "compas_epistemic_logpx.png",
-        sensitivity_epistemic["logpx"],
-        -sensitivity_epistemic["benefit"],
+        output_dir / "compas_epistemic_logpx.png",
         clue_epistemic["logpx"],
         -clue_epistemic["benefit"],
         fido_epistemic["logpx"],
@@ -846,60 +814,48 @@ def main() -> None:
         "compas epistemic",
         "log p(x)",
         "change in err",
-        baseline_x=float(baselines["log_px_vaeac_e"].mean().cpu().numpy()),
+        baseline_x=baselines["baseline_logpx_epistemic"],
         invert_x=True,
     )
     _save_curve(
-        args.output_dir / "compas_aleatoric_delta_x.png",
-        sensitivity_aleatoric["delta_x"],
-        -sensitivity_aleatoric["benefit"],
+        output_dir / "compas_aleatoric_delta_x.png",
         clue_aleatoric["delta_x"],
         -clue_aleatoric["benefit"],
         fido_aleatoric["delta_x"],
         -fido_aleatoric["benefit"],
-        "compas Aleatoric",
+        "compas aleatoric",
         "L1 change in X",
         "change in H",
     )
     _save_curve(
-        args.output_dir / "compas_aleatoric_logpx.png",
-        sensitivity_aleatoric["logpx"],
-        -sensitivity_aleatoric["benefit"],
+        output_dir / "compas_aleatoric_logpx.png",
         clue_aleatoric["logpx"],
         -clue_aleatoric["benefit"],
         fido_aleatoric["logpx"],
         -fido_aleatoric["benefit"],
-        "compas Aleatoric",
+        "compas aleatoric",
         "log p(x)",
         "change in H",
-        baseline_x=float(baselines["log_px_vaeac_a"].mean().cpu().numpy()),
+        baseline_x=baselines["baseline_logpx_aleatoric"],
         invert_x=True,
     )
     np.savez_compressed(
-        args.output_dir / "compas_curves.npz",
-        sensitivity_epistemic_delta_x=sensitivity_epistemic["delta_x"],
-        sensitivity_epistemic_logpx=sensitivity_epistemic["logpx"],
-        sensitivity_epistemic_benefit=sensitivity_epistemic["benefit"],
+        output_dir / "compas_curves.npz",
         clue_epistemic_delta_x=clue_epistemic["delta_x"],
         clue_epistemic_logpx=clue_epistemic["logpx"],
         clue_epistemic_benefit=clue_epistemic["benefit"],
         fido_epistemic_delta_x=fido_epistemic["delta_x"],
         fido_epistemic_logpx=fido_epistemic["logpx"],
         fido_epistemic_benefit=fido_epistemic["benefit"],
-        sensitivity_aleatoric_delta_x=sensitivity_aleatoric["delta_x"],
-        sensitivity_aleatoric_logpx=sensitivity_aleatoric["logpx"],
-        sensitivity_aleatoric_benefit=sensitivity_aleatoric["benefit"],
         clue_aleatoric_delta_x=clue_aleatoric["delta_x"],
         clue_aleatoric_logpx=clue_aleatoric["logpx"],
         clue_aleatoric_benefit=clue_aleatoric["benefit"],
         fido_aleatoric_delta_x=fido_aleatoric["delta_x"],
         fido_aleatoric_logpx=fido_aleatoric["logpx"],
         fido_aleatoric_benefit=fido_aleatoric["benefit"],
-        baseline_logpx_epistemic=float(baselines["log_px_vaeac_e"].mean().cpu().numpy()),
-        baseline_logpx_aleatoric=float(baselines["log_px_vaeac_a"].mean().cpu().numpy()),
     )
 
-    paper_style = {
+    comparison = {
         "table1_epistemic": _table1_scalar(
             clue_epistemic["delta_x"],
             clue_epistemic["benefit"],
@@ -917,37 +873,140 @@ def main() -> None:
             clue_epistemic["benefit"],
             fido_epistemic["logpx"],
             fido_epistemic["benefit"],
-            float(baselines["log_px_vaeac_e"].mean().cpu().numpy()),
+            baselines["baseline_logpx_epistemic"],
         ),
         "table2_aleatoric": _table2_scalar(
             clue_aleatoric["logpx"],
             clue_aleatoric["benefit"],
             fido_aleatoric["logpx"],
             fido_aleatoric["benefit"],
-            float(baselines["log_px_vaeac_a"].mean().cpu().numpy()),
+            baselines["baseline_logpx_aleatoric"],
         ),
     }
-    paper_targets = {
-        "table1_epistemic": PAPER_TABLE1_COMPAS["epistemic"],
-        "table1_aleatoric": PAPER_TABLE1_COMPAS["aleatoric"],
-        "table2_epistemic": PAPER_TABLE2_COMPAS["epistemic"],
-        "table2_aleatoric": PAPER_TABLE2_COMPAS["aleatoric"],
+    abs_errors = {
+        key: abs(value - COMPAS_PAPER_RESULTS[key]) for key, value in comparison.items()
     }
-    paper_errors = {
-        key: abs(paper_style[key] - paper_targets[key]) for key in paper_style
+    summary = {
+        "device": device,
+        "output_dir": output_dir.as_posix(),
+        "paper_style_targets": COMPAS_PAPER_RESULTS,
+        "paper_style_comparison": comparison,
+        "paper_style_abs_errors": abs_errors,
+        "selected_counts": {
+            "aleatoric": int(baselines["aleatoric_mask"].sum()),
+            "epistemic": int(baselines["epistemic_mask"].sum()),
+        },
     }
+    with (output_dir / "summary.json").open("w", encoding="utf-8") as file:
+        json.dump(summary, file, indent=2, sort_keys=True)
 
-    print("saved_curve_dir", args.output_dir.as_posix())
-    print("saved_files", sorted(path.name for path in args.output_dir.iterdir()))
-    print("paper_style_comparison", paper_style)
-    print("paper_style_targets", paper_targets)
-    print("paper_style_abs_errors", paper_errors)
+    expected_outputs = [
+        output_dir / "compas_epistemic_delta_x.png",
+        output_dir / "compas_epistemic_logpx.png",
+        output_dir / "compas_aleatoric_delta_x.png",
+        output_dir / "compas_aleatoric_logpx.png",
+        output_dir / "compas_curves.npz",
+        output_dir / "summary.json",
+    ]
+    missing_outputs = [
+        path.as_posix() for path in expected_outputs if not path.exists()
+    ]
+    if missing_outputs:
+        raise AssertionError(
+            "Missing expected reproduction artifacts:\n" + "\n".join(missing_outputs)
+        )
 
-    for key, tolerance in PAPER_TOLERANCES.items():
-        if paper_errors[key] > tolerance:
-            raise AssertionError(
-                f"{key} mismatch: observed={paper_style[key]} paper={paper_targets[key]} tol={tolerance}"
+    if assert_paper:
+        failing_metrics = [
+            (
+                metric,
+                comparison[metric],
+                COMPAS_PAPER_RESULTS[metric],
+                COMPAS_PAPER_TOLERANCES[metric],
             )
+            for metric in COMPAS_PAPER_RESULTS
+            if abs_errors[metric] > COMPAS_PAPER_TOLERANCES[metric]
+        ]
+        if failing_metrics:
+            formatted = "\n".join(
+                f"{metric}: observed={observed:.6f}, target={target:.6f}, tol={tol:.6f}"
+                for metric, observed, target, tol in failing_metrics
+            )
+            raise AssertionError(
+                "COMPAS CLUE reproduction deviated from expected paper tolerances:\n"
+                + formatted
+            )
+
+    return summary
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bnn-art-path", type=Path, required=True)
+    parser.add_argument("--vae-art-path", type=Path, required=True)
+    parser.add_argument("--vaeac-art-path", type=Path, required=True)
+    parser.add_argument("--vaeac-gt-path", type=Path, required=True)
+    parser.add_argument("--under-vaeac-gt-path", type=Path, required=True)
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=PROJECT_ROOT / "experiment" / "clue" / "compas_reproduce",
+    )
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cpu", "cuda"],
+        default="auto",
+    )
+    parser.add_argument(
+        "--no-assert-paper",
+        action="store_true",
+        help="Skip paper-value tolerance assertions.",
+    )
+    args = parser.parse_args()
+
+    _setup_logging()
+    device = _resolve_device(args.device)
+    LOGGER.info("Using device=%s", device)
+
+    schema = _build_compas_train_schema(seed=SEED)
+    trainset = schema["trainset"]
+    LOGGER.info(
+        "Prepared finalized COMPAS schema: train=%d test=%d",
+        len(trainset),
+        len(schema["testset"]),
+    )
+
+    target_model = MlpBayesianModel(
+        seed=SEED,
+        device=device,
+        layers=[200, 200],
+        pretrained_path=args.bnn_art_path.as_posix(),
+    )
+    target_model.fit(trainset)
+    LOGGER.info("Loaded ART Bayesian MLP checkpoint")
+
+    clue_method = ClueMethod(
+        target_model=target_model,
+        seed=SEED,
+        device=device,
+        pretrained_path=args.vae_art_path.as_posix(),
+    )
+    clue_method.fit(trainset)
+    LOGGER.info("Loaded ART CLUE VAE checkpoint")
+
+    summary = _run_compas_reproduction(
+        clue_method,
+        target_model,
+        device,
+        args.output_dir,
+        vaeac_art_path=args.vaeac_art_path,
+        vaeac_gt_path=args.vaeac_gt_path,
+        under_vaeac_gt_path=args.under_vaeac_gt_path,
+        assert_paper=not args.no_assert_paper,
+    )
+    LOGGER.info(
+        "Reproduction summary:\n%s", json.dumps(summary, indent=2, sort_keys=True)
+    )
 
 
 if __name__ == "__main__":
