@@ -1,0 +1,35 @@
+Level Badge
+Level 2: Partial Reproduction
+Reason: The implementation reproduces the diabetes APAS / APΔS experiment with close quantitative agreement, but the full set of APAS paper experiments has not been validated in this repository.
+
+Method
+APAS / APΔS diabetes notebook-faithful reproduction for the benchmark implementation under `method/apas/`, using the reproduction script in `experiment/apas/`.
+
+Reproduction Summary
+Reference scope:
+- dataset: diabetes
+- target: APΔS row from the diabetes results
+- reproduction style: notebook-faithful local reproduction
+
+Observed result:
+- delta_min = 0.105839564653
+- delta_max = 0.345790621778
+- delta_e = 0.279838414109
+- found = 1.0
+- VM1 = 1.0
+- VM2 = 1.0
+- delta_validity = 0.0
+- L1 = 0.076468762246
+- L0 = 0.3
+- LOF = 1.0
+
+Paper / notebook comparison:
+- Notebook targets were matched exactly or nearly exactly on all main quantities.
+- Paper Table 1 diabetes APΔS row was matched on VM1, VM2, and LOF.
+- Reproduced L1 = 0.076468762246 is very close to the paper's rounded 0.077.
+
+Next Steps
+- Reproduce additional APAS paper datasets and settings beyond diabetes.
+- Determine whether the remaining small L1 and L0 deviations come from benchmark-vs-notebook model path differences.
+- Add or refine benchmark-pipeline APAS validation runs beyond the custom diabetes reproduction.
+- Revisit full paper coverage before claiming Level 3 reproduction.

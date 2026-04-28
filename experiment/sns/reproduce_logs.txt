@@ -1,0 +1,47 @@
+Level Badge
+Level 1: Congruent Reproduction
+Reason: The implementation reproduces the qualitative German Credit behavior from the SNS paper and matches several key metrics closely, especially for SNS invalidation, but the fully paper-aligned ART-baseline path has not yet been revalidated on the full 200-factual run after the latest baseline correction.
+
+Method
+SNS German Credit reproduction for the benchmark implementation under `method/sns/`, using `german_full`, 61 one-hot features, a paper-matched MLP architecture, and RS / LOO model families in `experiment/sns/`.
+
+Reproduction Summary
+Reference setting:
+- dataset: German Credit
+- raw attributes: 20
+- encoded features: 61
+- model: MLP with hidden layers 128, 64, 16
+- training: 100 epochs, Adam, batch size 32
+- metrics: LOO / RS invalidation and l2 cost for Min.l2 and Min.l2 + SNS
+
+Observed result before ART baseline alignment (full 200-factual run):
+- base_loo_invalidation_rate = 0.5773
+- base_rs_invalidation_rate = 0.7099
+- sns_loo_invalidation_rate = 0.0001
+- sns_rs_invalidation_rate = 0.0451
+- base_avg_l2_cost = 0.8706
+- sns_avg_l2_cost = 3.1325
+
+Observed result after ART-aligned Min.l2 baseline update (bounded run):
+- num_factuals_evaluated = 5
+- rs_models_evaluated = 3
+- loo_models_evaluated = 3
+- base_valid_counterfactuals = 5
+- sns_valid_counterfactuals = 5
+- base_avg_l2_cost = 4.9185
+- sns_avg_l2_cost = 5.7865
+- base_loo_invalidation_rate = 0.4000
+- base_rs_invalidation_rate = 0.4000
+- sns_loo_invalidation_rate = 0.0000
+- sns_rs_invalidation_rate = 0.0667
+
+Paper comparison:
+- Min.l2 paper targets: LOO 0.36, RS 0.56, l2 cost 4.49.
+- Min.l2 + SNS paper targets: LOO 0.00, RS 0.06, l2 cost 6.23.
+- SNS itself is already close on invalidation, and the ART-aligned bounded run moved both Min.l2 and SNS costs into the correct range.
+- The remaining uncertainty is the full paper-sized rerun after the ART baseline alignment, especially for the Min.l2 invalidation rates and success-rate regime.
+
+Next Steps
+- Re-run the full 200-factual / 100 RS / 100 LOO reproduction after the ART baseline alignment.
+- Check whether the Min.l2 success rate drops toward the paper's reported 0.84 and whether the base invalidation stabilizes near the paper values.
+- If needed, tune ART ElasticNet constants to more literally mirror the reference TensorFlow behavior before reassessing the reproduction level.
