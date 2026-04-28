@@ -1,0 +1,40 @@
+name: credit_randomforest_feature_tweak_smoke
+logger:
+  level: INFO
+  path: ./logs/credit_randomforest_feature_tweak_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit
+preprocess:
+  - name: balance
+    seed: 54321
+    strategy: downsample
+    round_to: 250
+    shuffle: true
+    range: true
+  - name: encode
+    seed: 54321
+    encoding: onehot
+    override:
+      AgeGroup: thermometer
+  - name: split
+    seed: 54321
+    split: 0.3
+    sample: 256
+model:
+  name: randomforest
+  seed: 54321
+  device: cpu
+  n_estimators: 5
+  max_depth: null
+  min_samples_split: 2
+method:
+  name: feature_tweak
+  seed: 54321
+  device: cpu
+  desired_class: 1
+  eps: 0.1
+evaluation:
+  - name: validity
+  - name: distance
