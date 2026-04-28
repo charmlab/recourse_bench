@@ -1,0 +1,37 @@
+Level Badge
+Level 2: Partial Reproduction
+Reason: The implementation reproduces the ProPlace COMPAS experiment with exact or very close agreement on most reported metrics for this setting, but the full set of ProPlace paper experiments has not been validated in this repository.
+
+Method
+ProPlace COMPAS reproduction for the benchmark implementation under `experiment/proplace/`, using the shared benchmark pipeline and a reference-style metric comparison.
+
+Reproduction Summary
+Reference setting:
+- dataset: COMPAS
+- method: ProPlace
+- reproduction style: benchmark-native reproduction with reference metric comparison
+
+Observed result:
+- test_accuracy = 0.846029
+- test_auc = 0.855299
+- validity = 1.000000
+- delta_validity = 1.000000
+- m2_validity = 0.950000
+- l1 = 0.035989
+- pct_inlier_class_1 = 0.860000
+- lof_class_1 = 1.248171
+- avg_bound = 0.006398
+- valid_counterfactual_count = 50
+
+Paper / reference comparison:
+- validity matched exactly at 1.0.
+- delta_validity matched exactly at 1.0.
+- pct_inlier_class_1 matched exactly at 0.86.
+- l1 is very close at 0.035989 versus the reference 0.039.
+- lof_class_1 is very close at 1.248171 versus the reference 1.241.
+- m2_validity is slightly low at 0.95 versus the reference 1.0.
+
+Next Steps
+- Investigate the remaining `m2_validity` gap.
+- Reconfirm whether the small remaining drift comes from model randomness, split alignment, or proximity / robustness evaluation details.
+- Extend validation beyond this single ProPlace setting before claiming Level 3 reproduction.
