@@ -21,6 +21,7 @@ from method.method_object import MethodObject
 from method.probe.probe import ProbeMethod
 from method.proplace.proplace import ProplaceMethod
 from method.rbr.rbr import RbrMethod
+from method.revise.revise import ReviseMethod
 from method.roar.roar import RoarMethod
 from method.sns.sns import SnsMethod
 from method.toy.toy import ToyMethod
