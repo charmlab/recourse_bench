@@ -26,3 +26,4 @@ from method.roar.roar import RoarMethod
 from method.sns.sns import SnsMethod
 from method.toy.toy import ToyMethod
 from method.trex.trex import TrexMethod
+from method.wachter.wachter import WachterMethod
