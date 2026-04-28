@@ -1,0 +1,38 @@
+name: credit_linear_gravitational_smoke
+logger:
+  level: INFO
+  path: ./logs/credit_linear_gravitational_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit
+preprocess:
+  - name: balance
+    seed: 7
+    strategy: downsample
+    round_to: 250
+    shuffle: true
+    range: true
+  - name: encode
+    seed: 7
+    encoding: onehot
+  - name: scale
+    seed: 7
+    scaling: normalize
+    range: true
+  - name: split
+    seed: 7
+    split: 0.3
+    sample: 256
+model:
+  name: linear
+  seed: 7
+  device: cpu
+method:
+  name: gravitational
+  seed: 7
+  device: cpu
+  desired_class: 1
+evaluation:
+  - name: validity
+  - name: distance
