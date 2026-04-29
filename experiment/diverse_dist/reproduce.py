@@ -34,7 +34,7 @@ from method.diverse_dist.support import DiverseDistModelAdapter, DiverseDistTrac
 from utils.logger import setup_logger
 from utils.registry import get_registry
 
-DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")
 
 
 @dataclass(frozen=True)

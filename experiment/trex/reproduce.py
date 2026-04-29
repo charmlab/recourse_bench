@@ -26,7 +26,7 @@ from method.trex.trex import TrexMethod
 from model.mlp.mlp import MlpModel
 
 TARGET_COLUMN = "credit_risk"
-DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")
 
 NUMERIC_COLUMNS = [
     "duration",

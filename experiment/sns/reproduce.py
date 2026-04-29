@@ -290,7 +290,7 @@ def _print_comparison(prefix: str, reproduced: float, paper: float) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="./experiment/sns/config.yml")
+    parser.add_argument("--config", default="./experiment/sns/config.yaml")
     parser.add_argument("--max-factuals", type=int, default=None)
     parser.add_argument("--max-related-models", type=int, default=None)
     args = parser.parse_args()

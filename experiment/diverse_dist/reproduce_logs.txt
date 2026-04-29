@@ -49,7 +49,7 @@ Observed result from the best completed full reproduction:
   - time = `0.08 ± 0.03`
 
 Paper Comparison
-- Paper targets are the diabetes `ours` rows embedded in `experiment/diverse_dist/config.yml`.
+- Paper targets are the diabetes `ours` rows embedded in `experiment/diverse_dist/config.yaml`.
 - Validity matches all four paper targets at `100%`.
 - Set-distance metrics are reasonably close and reproduce the intended robustness trend.
 - k-distance and k-diversity are systematically lower than the paper targets in all four conditions.

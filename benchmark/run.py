@@ -20,7 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from experiment import Experiment
 
 CONFIG_ROOT = PROJECT_ROOT / "benchmark" / "configs"
-DEFAULT_SUITE_PATH = CONFIG_ROOT / "suites" / "default.yml"
+DEFAULT_SUITE_PATH = CONFIG_ROOT / "suites" / "default.yaml"
 CPU_ONLY_MODELS = {"randomforest", "sklearn_logistic_regression"}
 RESERVED_SUITE_KEYS = {"base_config", "datasets", "methods", "models", "name", "output_csv"}
 DEFAULT_PREDICTION_BATCH_SIZE = 512
@@ -55,7 +55,7 @@ def _deep_merge(base: object, override: object) -> object:
 
 
 def _resolve_component_path(component_type: str, name: str) -> Path:
-    path = CONFIG_ROOT / component_type / f"{name}.yml"
+    path = CONFIG_ROOT / component_type / f"{name}.yaml"
     if not path.exists():
         raise FileNotFoundError(
             f"Missing {component_type.rstrip('s')} config for '{name}': {path}"
@@ -317,7 +317,7 @@ def _plan_runs(
     methods: list[str] | None = None,
 ) -> tuple[list[tuple[str, dict]], Path]:
     suite_cfg = _load_yaml_dict(suite_path)
-    base_config_name = str(suite_cfg.get("base_config", "base.yml"))
+    base_config_name = str(suite_cfg.get("base_config", "base.yaml"))
     base_cfg = _load_yaml_dict(CONFIG_ROOT / base_config_name)
     suite_cfg_overrides = _suite_overrides(suite_cfg)
 

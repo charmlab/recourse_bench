@@ -1,5 +1,5 @@
 name: smoke
-base_config: base.yml
+base_config: base.yaml
 output_csv: ./benchmark/results/smoke_results.csv
 
 datasets:

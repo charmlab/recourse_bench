@@ -803,7 +803,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default=str(Path(__file__).with_name("config.yml")),
+        default=str(Path(__file__).with_name("config.yaml")),
     )
     parser.add_argument("--max-factuals", type=int, default=None)
     parser.add_argument("--row-limit", type=int, default=None)

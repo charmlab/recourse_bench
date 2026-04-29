@@ -1631,7 +1631,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default=str(Path(__file__).with_name("reproduce_configs.yml")),
+        default=str(Path(__file__).with_name("reproduce_configs.yaml")),
     )
     parser.add_argument("--max-runs", type=int, default=None)
     parser.add_argument("--max-factuals", type=int, default=None)

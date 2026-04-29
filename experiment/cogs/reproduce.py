@@ -274,7 +274,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default="./experiment/cogs/config.yml",
+        default="./experiment/cogs/config.yaml",
     )
     parser.add_argument("--max-factuals", type=int, default=None)
     args = parser.parse_args()

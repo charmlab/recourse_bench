@@ -554,7 +554,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default="./experiment/arg_ensembling/config.yml",
+        default="./experiment/arg_ensembling/config.yaml",
     )
     args = parser.parse_args()
 

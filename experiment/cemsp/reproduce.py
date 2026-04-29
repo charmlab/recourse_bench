@@ -576,7 +576,7 @@ def _print_metric(name: str, value: float, reference: float | None = None) -> No
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="./experiment/cemsp/config.yml")
+    parser.add_argument("--config", default="./experiment/cemsp/config.yaml")
     parser.add_argument("--max-factuals", type=int, default=None)
     args = parser.parse_args()
 
