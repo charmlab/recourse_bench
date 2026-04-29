@@ -30,7 +30,9 @@ class RecourseCost:
         self.cost_fn = cost_fn
 
     def eval(self, x, weights, bias, breakdown=False):
-        f_x = 1 / (1 + np.exp(-(np.matmul(x, weights) + bias)))
+        logits = np.clip(np.matmul(x, weights) + bias, -60.0, 60.0)
+        f_x = 1 / (1 + np.exp(-logits))
+        f_x = np.clip(f_x, 1e-12, 1.0)
         bce_loss = -np.log(f_x)
         cost = self.cost_fn(self.x_0, x)
         recourse_cost = bce_loss + self.lamb * cost

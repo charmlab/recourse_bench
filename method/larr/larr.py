@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 import numpy as np
 import pandas as pd
@@ -20,6 +21,8 @@ from method.method_object import MethodObject
 from model.model_object import ModelObject
 from utils.registry import register
 from utils.seed import seed_context
+
+LOGGER = logging.getLogger(__name__)
 
 
 @register("larr")
@@ -121,6 +124,7 @@ class LarrMethod(MethodObject):
 
             self._lambda_ready = False
             self._is_trained = True
+            self._ensure_generation_lambda(trigger="fit()")
 
     def _predict_proba_array(self, X: np.ndarray) -> np.ndarray:
         if self._adapter is None:
@@ -190,8 +194,10 @@ class LarrMethod(MethodObject):
     def _select_lambda(self, factuals: pd.DataFrame, target_indices: np.ndarray) -> float:
         best_lambda = float(self._method.lamb)
         best_validity = -1.0
+        factual_count = int(factuals.shape[0])
 
         for lamb in np.arange(0.1, 1.1, 0.1).round(1):
+            lambda_start = time.monotonic()
             self._method.lamb = float(lamb)
             candidate_rows: list[np.ndarray] = []
 
@@ -225,15 +231,35 @@ class LarrMethod(MethodObject):
                 )
                 validity = float(success.mean())
 
+            LOGGER.info(
+                "LarrMethod lambda sweep: lambda=%.1f validity=%.4f rows=%d elapsed=%.3fs",
+                float(lamb),
+                validity,
+                factual_count,
+                time.monotonic() - lambda_start,
+            )
+
             if validity >= best_validity:
                 best_lambda = float(lamb)
                 best_validity = validity
             else:
+                LOGGER.info(
+                    "LarrMethod lambda sweep stopping at lambda %.1f after validity dropped below %.4f; "
+                    "keeping lambda %.1f",
+                    float(lamb),
+                    best_validity,
+                    best_lambda,
+                )
                 break
 
+        LOGGER.info(
+            "LarrMethod selected lambda %.1f with best validity %.4f",
+            best_lambda,
+            best_validity,
+        )
         return best_lambda
 
-    def _ensure_generation_lambda(self) -> None:
+    def _ensure_generation_lambda(self, trigger: str = "predict()") -> None:
         if self._lambda_ready:
             return
         if self._train_features is None or self._adapter is None:
@@ -248,14 +274,33 @@ class LarrMethod(MethodObject):
             dtype=np.int64,
         )
         needs_recourse = original_prediction != target_indices
+        recourse_count = int(needs_recourse.sum())
 
-        if bool(needs_recourse.any()):
+        if recourse_count > 0:
+            selection_start = time.monotonic()
+            model = getattr(self._target_model, "_model", self._target_model)
+            LOGGER.info(
+                "LarrMethod selecting lambda during %s: train_rows=%d recourse_rows=%d "
+                "features=%d target_model=%s lime_enabled=%s",
+                trigger,
+                int(self._train_features.shape[0]),
+                recourse_count,
+                len(self._feature_names),
+                model.__class__.__name__,
+                self._lime_explainer is not None,
+            )
             self._method.lamb = self._select_lambda(
                 self._train_features.loc[needs_recourse],
                 target_indices[needs_recourse],
             )
+            LOGGER.info(
+                "LarrMethod finished lambda selection during %s in %.3fs with lambda %.1f",
+                trigger,
+                time.monotonic() - selection_start,
+                self._method.lamb,
+            )
         else:
-            logging.getLogger(__name__).warning(
+            LOGGER.warning(
                 "LarrMethod found no training instances that require recourse; "
                 "keeping default lambda %.1f",
                 self._method.lamb,
@@ -264,7 +309,11 @@ class LarrMethod(MethodObject):
         self._lambda_ready = True
 
     def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
-        self._ensure_generation_lambda()
+        if not self._lambda_ready:
+            LOGGER.info(
+                "LarrMethod predict() is triggering deferred lambda selection"
+            )
+        self._ensure_generation_lambda(trigger="predict()")
         return super().predict(testset, batch_size=batch_size)
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
@@ -274,7 +323,11 @@ class LarrMethod(MethodObject):
             raise ValueError("Input factuals cannot contain NaN")
         if list(factuals.columns) != self._feature_names:
             factuals = factuals.loc[:, self._feature_names].copy(deep=True)
-        self._ensure_generation_lambda()
+        if not self._lambda_ready:
+            LOGGER.info(
+                "LarrMethod get_counterfactuals() is triggering deferred lambda selection"
+            )
+        self._ensure_generation_lambda(trigger="get_counterfactuals()")
 
         with seed_context(self._seed):
             original_prediction = self._adapter.predict_label_indices(factuals)
