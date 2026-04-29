@@ -1,0 +1,63 @@
+name: cemsp_hepatitis_reproduce
+logger:
+  level: INFO
+  path: ./logs/cemsp_hepatitis_reproduce.log
+caching:
+  path: ./cache/
+
+dataset:
+  name: hepatitis
+
+preprocess:
+  - name: split
+    seed: 42
+    split: 0.3
+
+model:
+  name: mlp
+  seed: 42
+  layers:
+    - 30
+    - 10
+  epochs: 100
+  learning_rate: 0.001
+  batch_size: 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: null
+
+method:
+  name: cemsp
+  seed: 42
+  desired_class: 1
+  replacement_policy: bounds
+  max_counterfactuals: 256
+  return_mode: first
+
+evaluation: []
+
+reproduction:
+  desired_class: 1
+  split_seed: 42
+  model_seeds: [42, 43]
+  model_impl: local_reference_mlp
+  normal_range_scale: 0.3
+  normal_range:
+    lower: [35.6, 30.0, 10.0, 10.0, 0.0, 5.32, 5.368, 59.0, 10.0, 66.0]
+    upper: [46.0, 120.0, 35.0, 35.0, 21.0, 12.92, 5.368, 84.0, 42.0, 87.0]
+  reference_source: bundled original repo cfgen-update/hepatitis/Hepatitis_cemsp.json
+  reference_model:
+    test_accuracy: 0.957
+    test_f1: 0.9754601226993865
+  reference_metrics:
+    num_with_cf: 20.0
+    mean_num_cf: 2.7
+    mean_sparsity: 0.7055555555555553
+    mean_aps: 0.06909776055124893
+    mean_proximity: 1.5435558842295323
+    mean_diversity: 1.35596991730314
+    mean_diversity2: 1.5717481658370183
+    mean_inconsistency: 0.7474046082754859
+    mean_count_diversity: 0.2673809523809524
+    mean_count_diversity2: 0.32333333333333336

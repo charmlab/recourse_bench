@@ -13,6 +13,7 @@ from dataset.dataset_object import DatasetObject
 from dataset.diabetes.diabetes import DiabetesDataset
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
+from dataset.hepatitis.hepatitis import HepatitisDataset
 from dataset.german_sns.german_sns import GermanSnsDataset
 from dataset.news_popularity.news_popularity import NewsPopularityDataset
 from dataset.synthetic_face.synthetic_face import SyntheticFaceDataset

@@ -1,6 +1,7 @@
 from method.apas.apas import ApasMethod
 from method.arg_ensembling.arg_ensembling import ArgEnsemblingMethod
 from method.cchvae.cchvae import CchvaeMethod
+from method.cemsp.cemsp import CemspMethod
 from method.cfrl.cfrl import CfrlMethod
 from method.cfvae.cfvae import CfvaeMethod
 from method.claproar.claproar import ClaproarMethod

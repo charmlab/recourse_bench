@@ -1,0 +1,40 @@
+Level Badge
+Level 1: Congruent Reproduction
+Reason: The implementation functionally reproduces the Hepatitis / HCV CEMSP reproduction under `method/cemsp/` and `experiment/cemsp/`, with valid counterfactual generation for the full evaluated subset and credible model quality, but it does not match the key quantitative metrics closely enough to qualify as a partial exact reproduction.
+
+Method
+CEMSP Hepatitis / HCV Figure 4-style local-reference reproduction for the benchmark implementation under `method/cemsp/`, using the reproduction script in `experiment/cemsp/` with a reproduction-local weighted-sampler MLP inside `experiment/cemsp/reproduce.py`.
+
+Reproduction Summary
+Reference scope:
+- dataset: hepatitis / HCV
+- target: bundled original-repo Hepatitis CEMSP Figure 4-style reference metrics from `reference/CEMSP/cfgen-update/hepatitis/Hepatitis_cemsp.json`
+- reproduction style: local-reference-MLP benchmark reproduction
+
+Observed result:
+- model_a_test_accuracy = 0.967568
+- model_a_test_f1 = 0.981481
+- model_b_test_accuracy = 0.956757
+- model_b_test_f1 = 0.975460
+- num_with_cf = 20.000000
+- mean_num_cf = 2.250000
+- mean_sparsity = 0.680000
+- mean_aps = 0.076370
+- mean_proximity = 1.650145
+- mean_diversity = 1.149936
+- mean_diversity2 = 1.205060
+- mean_inconsistency = 1.375282
+- mean_count_diversity = 0.275556
+- mean_count_diversity2 = 0.304167
+
+Paper / repo comparison:
+- Model quality is credible and close to the bundled reference classifier line, with model B matching the reference F1 exactly to the printed precision.
+- The reproduction matches `num_with_cf = 20`, so the method remains functionally valid on the full abnormal factual set used in this run.
+- The main quantitative gaps remain on `mean_num_cf`, `mean_diversity2`, and especially `mean_inconsistency`, which stay too far from the bundled reference values to claim exact or near-exact subset reproduction.
+- The benchmark CEMSP solver and reproduction path therefore corroborate the original behavior qualitatively, but do not reproduce the reference Hepatitis metric line closely enough for Level 2.
+
+Next Steps
+- Compare against the original pretrained Hepatitis checkpoint pair directly, if allowed, to isolate model-path drift from solver-path drift.
+- Re-run the CEMSP reproduction on CPU-only training to test whether device-dependent training differences are contributing to the metric gap.
+- Audit the local-reference MLP path against the original Hepatitis training script line by line for any remaining discrepancies in optimizer, batching, or randomness handling.
+- Revisit Level 2 only after at least one Hepatitis / HCV metric line is matched within a clearly stated small deviation.

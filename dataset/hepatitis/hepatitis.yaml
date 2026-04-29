@@ -1,0 +1,50 @@
+name: hepatitis
+target_column: Category
+feature_order:
+- ALB
+- ALP
+- ALT
+- AST
+- BIL
+- CHE
+- CHOL
+- CREA
+- GGT
+- PROT
+- Category
+raw_feature_type:
+  ALB: numerical
+  ALP: numerical
+  ALT: numerical
+  AST: numerical
+  BIL: numerical
+  CHE: numerical
+  CHOL: numerical
+  CREA: numerical
+  GGT: numerical
+  PROT: numerical
+  Category: binary
+raw_feature_mutability:
+  ALB: true
+  ALP: true
+  ALT: true
+  AST: true
+  BIL: true
+  CHE: true
+  CHOL: true
+  CREA: true
+  GGT: true
+  PROT: true
+  Category: false
+raw_feature_actionability:
+  ALB: any
+  ALP: any
+  ALT: any
+  AST: any
+  BIL: any
+  CHE: any
+  CHOL: any
+  CREA: any
+  GGT: any
+  PROT: any
+  Category: none
