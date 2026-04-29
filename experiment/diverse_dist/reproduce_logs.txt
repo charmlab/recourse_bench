@@ -1,0 +1,62 @@
+Level Badge
+Level 1: Congruent Reproduction
+Reason: The implementation reproduces the paper's qualitative diabetes behavior for DiverseDist and matches validity across all four reproduced conditions, but it does not yet reproduce the paper's exact quantitative metrics closely enough to count as a partial numerical reproduction.
+
+Method
+DiverseDist diabetes reproduction for the benchmark implementation under `method/diverse_dist/`, using the `diabetes` dataset, a benchmark `mlp` with hidden layers `[20, 10]`, and the paper-style method settings `total_cfs=5`, `alpha=50`, `beta=0.5`, `gamma=0.1` in `experiment/diverse_dist/`.
+
+Reproduction Summary
+Reference setting:
+- dataset: diabetes
+- model: MLP with hidden layers `[20, 10]`
+- method: `diverse_dist`
+- candidate filtering: angle-based
+- number of CFs: 5
+- evaluated conditions:
+  - `opt=True, norm=1`
+  - `opt=True, norm=2`
+  - `opt=False, norm=1`
+  - `opt=False, norm=2`
+
+Observed result from the best completed full reproduction:
+- `opt=True, norm=1`
+  - validity = `100.0%`
+  - k-distance = `0.69 ± 0.25`
+  - k-diversity = `0.87 ± 0.30`
+  - set-distance dΣ = `0.21 ± 0.15`
+  - set-distance dmax = `0.48 ± 0.29`
+  - time = `0.08 ± 0.02`
+- `opt=True, norm=2`
+  - validity = `100.0%`
+  - k-distance = `0.32 ± 0.12`
+  - k-diversity = `0.40 ± 0.14`
+  - set-distance dΣ = `0.10 ± 0.07`
+  - set-distance dmax = `0.22 ± 0.14`
+  - time = `0.06 ± 0.02`
+- `opt=False, norm=1`
+  - validity = `100.0%`
+  - k-distance = `0.86 ± 0.14`
+  - k-diversity = `1.08 ± 0.17`
+  - set-distance dΣ = `0.21 ± 0.18`
+  - set-distance dmax = `0.55 ± 0.37`
+  - time = `0.08 ± 0.03`
+- `opt=False, norm=2`
+  - validity = `100.0%`
+  - k-distance = `0.40 ± 0.08`
+  - k-diversity = `0.49 ± 0.08`
+  - set-distance dΣ = `0.09 ± 0.08`
+  - set-distance dmax = `0.25 ± 0.17`
+  - time = `0.08 ± 0.03`
+
+Paper Comparison
+- Paper targets are the diabetes `ours` rows embedded in `experiment/diverse_dist/config.yml`.
+- Validity matches all four paper targets at `100%`.
+- Set-distance metrics are reasonably close and reproduce the intended robustness trend.
+- k-distance and k-diversity are systematically lower than the paper targets in all four conditions.
+- Runtime is consistently higher than the paper's reported `0.01-0.02 s` range.
+
+Next Steps
+- Align the benchmark MLP training protocol more literally with the reference TensorFlow/Keras setup used by the paper code.
+- Recheck the train/test split and evaluation-instance selection against the reference repository.
+- Verify whether candidate selection and binary line-search stopping differ subtly from the reference implementation.
+- Re-run the full diabetes reproduction after model/protocol alignment before reconsidering a Level 2 badge.

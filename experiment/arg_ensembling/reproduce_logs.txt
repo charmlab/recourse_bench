@@ -1,0 +1,5 @@
+- Reproduction level: Level 1 (Congruent Reproduction). The transplanted method appears faithful at the argumentation level and reproduces the paper's qualitative behavior, but the current checked-in reproduction does not yet match the original experiments numerically across a paper-identical setup.
+
+- Next step: reproduce the reference experimental pipeline more literally by matching the original datasets, preprocessing, and model-pool construction used in original, especially for `credit`, `compas`, and `heloc`.
+
+- Next step: extend the reproduction harness to evaluate the original set-level outputs and metrics directly, including selected model/CE sets and properties like coherence, non-triviality, abstention, and CE validity, and then decide explicitly whether final parity should target the paper, the reference code, or the cleaned-up benchmark implementation where those differ.

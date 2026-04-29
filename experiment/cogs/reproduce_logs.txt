@@ -1,0 +1,38 @@
+Level Badge
+Level 2: Partial Reproduction
+Reason: The implementation reproduces the adult CoGS experiment on the paper-aligned `adult_cogs` dataset path with close quantitative agreement for this specific setting, but the full set of CoGS paper experiments has not been validated in this repository.
+
+Method
+CoGS adult reproduction for the benchmark implementation under `method/cogs/`, using `adult_cogs`, paper-style random-forest search, and best-of-5 repetitions in `experiment/cogs/`.
+
+Reproduction Summary
+Reference setting:
+- dataset: adult
+- reproduction dataset path: `adult_cogs`
+- blackbox: random forest
+- method: base CoGS
+- desired class: 1
+- repetitions: 5 best-of-loss selection
+
+Observed result:
+- test_accuracy = 0.8276
+- rf_best_params = {'max_features': 'sqrt', 'min_samples_split': 2, 'n_estimators': 50}
+- rf_best_cv_score = 0.8161
+- candidate_pool_size = 154
+- num_factuals_evaluated = 154
+- success_rate = 1.0000
+- avg_l1_distance = 5913.8826
+- avg_num_features_changed = 1.1818
+- avg_runtime_per_factual = 5.755
+- avg_selected_run_time = 1.170
+
+Paper / reference comparison:
+- Reference aggregate test_accuracy_mean = 0.8262.
+- Reference aggregate success_rate = 1.0000.
+- Reference candidate count is 854 across 5 folds, or about 171 per fold, which is close to the reproduced 154 on a single split.
+- Reference avg_raw_l1_distance = 7629.5295 and avg_num_features_changed = 1.3899, so the reproduced counterfactuals are in the right regime but not numerically identical.
+
+Next Steps
+- Add 5-fold stratified evaluation rather than relying on a single split.
+- Reconfirm whether the remaining drift comes from split construction, RF model selection, or per-factual result aggregation.
+- Extend validation beyond the adult setting before claiming Level 3 reproduction.
