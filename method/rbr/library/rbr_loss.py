@@ -342,6 +342,7 @@ class RBRLoss(torch.nn.Module):
 def robust_bayesian_recourse(
     raw_model: Any,
     x0: np.ndarray,
+    y_target: int = 1,
     cat_features_indices: Optional[Sequence[Sequence[int]]] = None,
     train_data: Optional[np.ndarray] = None,
     train_t: Optional[torch.Tensor] = None,
@@ -357,207 +358,136 @@ def robust_bayesian_recourse(
     random_state: Optional[int] = 42,
     verbose: bool = False,
 ) -> np.ndarray:
+    device = torch.device(dev)
 
-    # helper to call raw_model.predict consistently
-    def predict_fn_np(x):
-        # raw_model might accept (n,d) and return probs or labels
-        # preds_tensor = raw_model.predict(x)
-
-        # # print(f"This is the pred_tensor {preds_tensor}")
-
-        # if preds_tensor.ndim == 1:
-        #     preds_tensor = preds_tensor.unsqueeze(0)
-
-        # preds = preds_tensor.cpu().detach().numpy()
-        # # print(f"The prediction is {preds} before numpy array")
-        # preds = np.asarray(preds)
-
-        # # convert to single-label 0/1 if probabilities provided
-        # if preds.ndim == 2 and preds.shape[1] > 1:
-        #     return preds.argmax(axis=1)
-        # if preds.dtype.kind in ("f",):
-        #     return (preds >= 0.5).astype(int).squeeze()
-        # preds = preds.astype(int)
-
-        # if x.ndim == 1:
-        #     return preds.squeeze()
-        # return preds
-        # return torch.tensor(raw_model.predict(x.cpu().detach()))
-        # Ensure 2D shape: (batch_size, outputs)
-        preds_tensor = raw_model.predict(x)
-
-        # Ensure 2D batch shape
-        if preds_tensor.ndim == 1:
-            preds_tensor = preds_tensor.unsqueeze(0)
-
-        # Move to CPU numpy
-        preds = preds_tensor.detach().cpu().numpy()
-
-        # ---- CASE 1: Softmax output (shape: [N, 2+]) ----
-        if preds.ndim == 2 and preds.shape[1] > 1:
-            preds = preds.argmax(axis=1)
-
-        # ---- CASE 2: Sigmoid or 1D probability (shape: [N]) ----
-        elif preds.dtype.kind == "f":
-
-            # If shape is Nx1 → squeeze to N
-            if preds.ndim == 2 and preds.shape[1] == 1:
-                preds = preds.squeeze()
-
-            # If probabilities → threshold
-            preds = (preds >= 0.5).astype(int)
-
-        # ---- CASE 3: Raw logits (single value per instance) ----
-        elif preds.ndim == 2 and preds.shape[1] == 1:
-            probs = 1 / (1 + np.exp(-preds))
-            preds = (probs >= 0.5).astype(int)
-
-        # ---- Fallback ----
+    def predict_label_indices(
+        x: np.ndarray | torch.Tensor,
+    ) -> np.ndarray:
+        if hasattr(raw_model, "predict_label_indices"):
+            labels = raw_model.predict_label_indices(x)
         else:
-            preds = preds.astype(int)
+            predictions = raw_model.predict(x)
+            if isinstance(predictions, torch.Tensor):
+                labels = predictions.detach().cpu().numpy()
+            else:
+                labels = np.asarray(predictions)
 
-        # --- FINAL STEP: return scalar if batch size = 1 ---
-        if preds.size == 1:
-            # print("This is the prediction ", int(preds.item()))
-            return int(preds.item())
+            if labels.ndim == 2 and labels.shape[1] > 1:
+                labels = labels.argmax(axis=1)
+            else:
+                labels = np.asarray(labels).reshape(-1)
+                if labels.dtype.kind == "f":
+                    labels = (labels >= 0.5).astype(np.int64)
+                else:
+                    labels = labels.astype(np.int64, copy=False)
 
-        # print("This is the prediction ", preds)
-        return preds
+        labels = np.asarray(labels)
+        if labels.ndim == 0:
+            labels = labels.reshape(1)
+        return labels.astype(np.int64, copy=False)
 
-    # find boundary point between x0 and nearest opposite-label train point
-    def dist(a: torch.Tensor, b: torch.Tensor):
+    def dist(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         return torch.linalg.norm(a - b, ord=1, axis=-1)
 
-    # feasible set sampled around x_b
-    def uniform_ball(x: torch.Tensor, r: float, n: int, rng_state):
+    def uniform_ball(
+        x: torch.Tensor,
+        radius: float,
+        n: int,
+        rng_state,
+    ) -> torch.Tensor:
         rng_local = check_random_state(rng_state)
-        # print(f"this is x: {x}")
-        d = x.shape[0]
-        # print(d)
-        V = rng_local.randn(n, d)
-        V = V / np.linalg.norm(V, axis=1).reshape(-1, 1)
-        V = V * (rng_local.random(n) ** (1.0 / d)).reshape(-1, 1)
-        V = V * r + x.cpu().numpy()
-        return torch.from_numpy(V).float().to(dev)
+        dimension = x.shape[0]
+        samples = rng_local.randn(n, dimension)
+        samples = samples / np.linalg.norm(samples, axis=1).reshape(-1, 1)
+        samples = samples * (rng_local.random(n) ** (1.0 / dimension)).reshape(-1, 1)
+        samples = samples * radius + x.detach().cpu().numpy()
+        return torch.from_numpy(samples).float().to(device)
 
-    def simplex_projection(x, delta):
-        """
-        Euclidean projection on a positive simplex
-        """
-        (p,) = x.shape
+    def simplex_projection(x: torch.Tensor, delta: float) -> torch.Tensor:
+        (dimension,) = x.shape
         if torch.linalg.norm(x, ord=1) == delta and torch.all(x >= 0):
             return x
-        u, _ = torch.sort(x, descending=True)
-        cssv = torch.cumsum(u, 0)
-        rho = torch.nonzero(u * torch.arange(1, p + 1).to(dev) > (cssv - delta))[-1, 0]
-        theta = (cssv[rho] - delta) / (rho + 1.0)
-        w = torch.clip(x - theta, min=0)
-        return w
+        sorted_x, _ = torch.sort(x, descending=True)
+        cumulative_sum = torch.cumsum(sorted_x, 0)
+        rho = torch.nonzero(
+            sorted_x
+            * torch.arange(1, dimension + 1, device=device)
+            > (cumulative_sum - delta)
+        )[-1, 0]
+        theta = (cumulative_sum[rho] - delta) / (rho + 1.0)
+        return torch.clip(x - theta, min=0)
 
-    def projection(x, delta):
-        """
-        Euclidean projection on an L1-ball
-        """
+    def projection(x: torch.Tensor, delta: float) -> torch.Tensor:
         x_abs = torch.abs(x)
         if x_abs.sum() <= delta:
             return x
 
-        proj = simplex_projection(x_abs, delta=delta)
-        proj *= torch.sign(x)
-
-        return proj
-
-    # device selection
-    # if "cuda" in device and torch.cuda.is_available():
-    #     dev = torch.device(device)
-    # else:
-    #     dev = torch.device("cpu")
+        projected = simplex_projection(x_abs, delta=delta)
+        projected *= torch.sign(x)
+        return projected
 
     rng = check_random_state(random_state)
-
     if train_t is None and train_data is None:
         raise ValueError(
             "train_data or train_t must be provided to robust_bayesian_recourse"
         )
 
-    # ------- Implementation of fit_instance() ------------------
-    x0_t = torch.from_numpy(np.asarray(x0, dtype=np.float32).copy()).float().to(dev)
-
+    x0_t = torch.from_numpy(np.asarray(x0, dtype=np.float32).copy()).float().to(device)
     if train_t is None:
-        train_t = torch.tensor(train_data, dtype=torch.float32, device=dev)
+        train_t = torch.tensor(train_data, dtype=torch.float32, device=device)
     else:
-        train_t = train_t.detach().clone().to(dev)
+        train_t = train_t.detach().clone().to(device)
 
     if train_label is None:
         train_label = torch.tensor(
-            predict_fn_np(train_t),
+            predict_label_indices(train_t),
             dtype=torch.long,
-            device=dev,
+            device=device,
         )
     else:
-        train_label = train_label.detach().clone().to(dev)
+        train_label = train_label.detach().clone().to(device)
 
-    # -------- Implementation of find_x_boundary() ---------------
-    # find nearest opposite label examples and search along line for boundary
-    x_label = torch.tensor(predict_fn_np(x0_t.clone()), device=dev)
+    x_label = int(predict_label_indices(x0_t)[0])
+    target_label = int(y_target)
+    opposite_label = 1 - x_label
 
     dists = dist(train_t, x0_t)
     order = torch.argsort(dists)
-    # print(f"order: {order}")
-    candidates = train_t[order[train_label[order] == (1 - x_label)]][:1000]
-    # print(f"candidates: {candidates}")
-    best_x_b = None
-    best_dist = torch.tensor(float("inf"), device=dev)
+    candidates = train_t[order[train_label[order] == opposite_label]][:1000]
 
-    for x_c in candidates:
-        lambdas = torch.linspace(0, 1, 100, device=dev)
+    best_x_boundary: Optional[torch.Tensor] = None
+    best_distance = torch.tensor(float("inf"), device=device)
+    for candidate in candidates:
+        lambdas = torch.linspace(0, 1, 100, device=device)
         for lam in lambdas:
-            x_b = (1 - lam) * x0_t + lam * x_c
-            label = predict_fn_np(x_b)
-            if label == 1 - x_label:
-                curdist = dist(x0_t, x_b)
-                if curdist < best_dist:
-                    best_x_b = x_b.detach().clone()
-                    best_dist = curdist.detach().clone()
+            x_boundary = (1 - lam) * x0_t + lam * candidate
+            label = int(predict_label_indices(x_boundary)[0])
+            if label == opposite_label:
+                current_distance = dist(x0_t, x_boundary)
+                if current_distance < best_distance:
+                    best_x_boundary = x_boundary.detach().clone()
+                    best_distance = current_distance.detach().clone()
                 break
-    # ------------------ end of find_x_boundary() --------------------
 
-    if best_x_b is None:
-        # fallback: nearest opposite neighbor directly
+    if best_x_boundary is None:
         if candidates.shape[0] == 0:
             return x0.copy()
-        best_x_b = candidates[0].detach().clone()
-        best_dist = dist(x0_t, best_x_b)
+        best_x_boundary = candidates[0].detach().clone()
+        best_distance = dist(x0_t, best_x_boundary)
 
-    delta = best_dist + delta_plus
-
-    X_feas = uniform_ball(best_x_b, perturb_radius, num_samples, rng).float().to(dev)
-
-    # apply categorical clamping if requested
+    delta = best_distance + delta_plus
+    X_feas = uniform_ball(best_x_boundary, perturb_radius, num_samples, rng).float()
     if cat_features_indices:
         X_feas = reconstruct_encoding_constraints(X_feas, cat_features_indices)
 
-    y_feas = predict_fn_np(X_feas)
+    y_feas = predict_label_indices(X_feas)
+    X_feas_pos = X_feas[y_feas == target_label].reshape(
+        [int(np.sum(y_feas == target_label)), -1]
+    )
+    X_feas_neg = X_feas[y_feas == (1 - target_label)].reshape(
+        [int(np.sum(y_feas == (1 - target_label))), -1]
+    )
 
-    # print(f"X_feas: {X_feas}")
-    # print(f"y_feas: {y_feas}")
-
-    if (y_feas == 1).any():
-        X_feas_pos = X_feas[y_feas == 1].reshape([int((y_feas == 1).sum().item()), -1])
-    else:
-        X_feas_pos = torch.empty((0, X_feas.shape[1]), device=dev)
-
-    # print(f"X_feas_pos: {X_feas_pos}")
-
-    if (y_feas == 0).any():
-        X_feas_neg = X_feas[y_feas == 0].reshape([int((y_feas == 0).sum().item()), -1])
-    else:
-        X_feas_neg = torch.empty((0, X_feas.shape[1]), device=dev)
-
-    # print(f"[Debug] X_feas_pos shape: {X_feas_pos.shape}, X_feas_neg shape: {X_feas_neg.shape}")
-    # print(f"X_feas_neg: {X_feas_neg}")
-    # torch.autograd.set_detect_anomaly(True) # try to catch NaNs
-    # build loss wrapper
     loss_fn = RBRLoss(
         X_feas,
         X_feas_pos,
@@ -565,60 +495,46 @@ def robust_bayesian_recourse(
         epsilon_op,
         epsilon_pe,
         sigma,
-        device=dev,
+        device=device,
         verbose=verbose,
     )
 
-    # ---------------- Start of optimize() ----------------
-    # optimization loop - same basic behaviour as original code.
-    x_t = best_x_b.detach().clone()
+    x_t = best_x_boundary.detach().clone()
     x_t.requires_grad_(True)
-
     min_loss = float("inf")
     num_stable_iter = 0
     max_stable_iter = 10
     step = 1.0 / math.sqrt(1e3)
 
-    for t in range(max_iter):
+    for _ in range(max_iter):
         if x_t.grad is not None:
             x_t.grad.data.zero_()
 
-        F, denom, numer = loss_fn(x_t)
-        F_sum = F.sum()
-        F_sum.backward()
-        # if we left L1-ball, break
-        if torch.linalg.norm((x_t.detach() - x0_t), ord=1) > (float(delta) + 1e-5):
+        objective, _, _ = loss_fn(x_t)
+        objective.backward()
+
+        if torch.ge(dist(x_t.detach(), x0_t), delta):
             break
 
         with torch.no_grad():
             x_new = x_t - step * x_t.grad
-            # x_new = (lambda a, b: (a if torch.abs(a).sum() <= b else (l2_projection(a.unsqueeze(0), b).squeeze())))(
-            #     x_new - x0_t, float(delta)
-            # )
-
             x_new = projection(x_new - x0_t, float(delta)) + x0_t
 
-        # print(f"x_new: {x_new}")
         if cat_features_indices:
             x_new = reconstruct_encoding_constraints(x_new, cat_features_indices)
 
-        for i, e in enumerate(x_new.data):
-            x_t.data[i] = e
+        for index, element in enumerate(x_new.data):
+            x_t.data[index] = element
 
-        loss_sum = F_sum.item()
+        loss_sum = objective.sum().data.item()
         loss_diff = min_loss - loss_sum
-
         if loss_diff <= 1e-10:
             num_stable_iter += 1
             if num_stable_iter >= max_stable_iter:
                 break
         else:
             num_stable_iter = 0
+
         min_loss = min(min_loss, loss_sum)
 
-    cf = x_t.detach().cpu().numpy().squeeze()
-    # print(f"Final counterfactual cf: {cf}")
-
-    # ----------------------------- end of optimize() -----------------------
-
-    return cf
+    return x_t.detach().cpu().numpy().squeeze()

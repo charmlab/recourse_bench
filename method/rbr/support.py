@@ -64,9 +64,38 @@ class RecourseModelAdapter:
         features = self.get_ordered_features(X)
         return self._target_model.get_prediction(features, proba=True)
 
+    def _to_feature_tensor(
+        self, X: pd.DataFrame | np.ndarray | torch.Tensor
+    ) -> torch.Tensor:
+        if isinstance(X, pd.DataFrame):
+            array = X.loc[:, self._feature_names].to_numpy(dtype=np.float32, copy=False)
+            tensor = torch.tensor(array, dtype=torch.float32)
+        elif isinstance(X, torch.Tensor):
+            tensor = X.detach().to(dtype=torch.float32)
+        else:
+            tensor = torch.tensor(np.asarray(X), dtype=torch.float32)
+
+        if tensor.ndim == 1:
+            tensor = tensor.unsqueeze(0)
+        return tensor.to(self._target_model._device)
+
     def predict_label_indices(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
     ) -> np.ndarray:
+        if isinstance(self._target_model, TorchModelTypes):
+            features = self._to_feature_tensor(X)
+            model = self._target_model._model
+            if model is None:
+                raise RuntimeError("Target model is not trained")
+            with torch.no_grad():
+                model.eval()
+                logits = model(features)
+                if self._target_model._output_activation_name == "sigmoid":
+                    if logits.ndim == 1:
+                        logits = logits.unsqueeze(1)
+                    logits = torch.cat([-logits, logits], dim=1)
+            return logits.detach().cpu().numpy().argmax(axis=1)
+
         probabilities = self.predict(X)
         if isinstance(probabilities, torch.Tensor):
             return probabilities.detach().cpu().numpy().argmax(axis=1)

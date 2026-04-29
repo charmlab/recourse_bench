@@ -1,13 +1,11 @@
 name: german_mlp_rbr_reproduce_future
 experiment:
   seed: 42
-  shifted_train_fraction: 0.5
-  shifted_model_random_states:
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
+  arrival_fraction: 0.2
+  num_future_models: 100
+  future_model_seed_start: 0
+  shift_train_split: 0.8
+  shift_split_random_state: 42
 logger:
   level: INFO
   path: ./logs/german_mlp_rbr_reproduce_future.log
@@ -42,11 +40,11 @@ method:
   desired_class: 1
   num_samples: 200
   perturb_radius: 0.2
-  delta_plus: 1.0
+  delta_plus: 0.2
   sigma: 1.0
-  epsilon_op: 0.5
-  epsilon_pe: 1.0
-  max_iter: 1000
+  epsilon_op: 0.0
+  epsilon_pe: 0.0
+  max_iter: 500
   clamp: false
   enforce_encoding: false
   random_state: 42

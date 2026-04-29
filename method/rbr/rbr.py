@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import torch
+from tqdm.auto import tqdm
 
 from dataset.dataset_object import DatasetObject
 from method.method_object import MethodObject
@@ -20,6 +21,28 @@ from model.model_object import ModelObject
 from model.randomforest.randomforest import RandomForestModel
 from utils.registry import register
 from utils.seed import seed_context
+
+
+def _compute_max_l2_distance(
+    values: np.ndarray,
+    device: str,
+    chunk_size: int = 256,
+) -> float:
+    array = np.asarray(values, dtype=np.float32)
+    if array.ndim != 2:
+        raise ValueError("RBR max-distance computation requires a 2D array")
+    if array.shape[0] < 2:
+        return 0.0
+
+    tensor = torch.tensor(array, dtype=torch.float32, device=device)
+    max_distance = 0.0
+    for start in range(0, tensor.shape[0], chunk_size):
+        batch = tensor[start : start + chunk_size]
+        distance = torch.cdist(batch, tensor, p=2)
+        batch_max = float(distance.max().item())
+        if batch_max > max_distance:
+            max_distance = batch_max
+    return max_distance
 
 
 @register("rbr")
@@ -40,6 +63,8 @@ class RbrMethod(MethodObject):
         clamp: bool = False,
         enforce_encoding: bool = False,
         random_state: int = 42,
+        show_progress: bool = False,
+        progress_desc: str | None = None,
         verbose: bool = False,
         **kwargs,
     ):
@@ -61,6 +86,10 @@ class RbrMethod(MethodObject):
         self._clamp = bool(clamp)
         self._enforce_encoding = bool(enforce_encoding)
         self._random_state = int(random_state)
+        self._show_progress = bool(show_progress)
+        self._progress_desc = (
+            str(progress_desc) if progress_desc is not None else "rbr-cf"
+        )
         self._verbose = bool(verbose)
 
         if self._device != self._target_model._device:
@@ -117,6 +146,10 @@ class RbrMethod(MethodObject):
                 trainset,
                 self._feature_names,
             )
+            self._train_max_distance = _compute_max_l2_distance(
+                train_data,
+                device=self._device,
+            )
 
             self._class_to_index = self._target_model.get_class_to_index()
             if len(self._class_to_index) != 2:
@@ -150,7 +183,15 @@ class RbrMethod(MethodObject):
 
         rows: list[pd.Series] = []
         with seed_context(self._seed):
-            for row_index, (_, row) in enumerate(factuals.iterrows()):
+            factual_iterator = tqdm(
+                factuals.iterrows(),
+                total=factuals.shape[0],
+                desc=self._progress_desc,
+                unit="cf",
+                leave=False,
+                disable=not self._show_progress,
+            )
+            for row_index, (_, row) in enumerate(factual_iterator):
                 factual = row.to_numpy(dtype="float32", copy=True)
                 original_index = int(original_prediction[row_index])
                 target_index = int(target_indices[row_index])
@@ -162,6 +203,7 @@ class RbrMethod(MethodObject):
                 candidate = robust_bayesian_recourse(
                     raw_model=self._adapter,
                     x0=factual,
+                    y_target=target_index,
                     cat_features_indices=(
                         self._onehot_feature_indices if self._enforce_encoding else None
                     ),
@@ -169,7 +211,7 @@ class RbrMethod(MethodObject):
                     train_t=self._train_t,
                     train_label=self._train_label,
                     num_samples=self._num_samples,
-                    perturb_radius=self._perturb_radius,
+                    perturb_radius=self._perturb_radius * self._train_max_distance,
                     delta_plus=self._delta_plus,
                     sigma=self._sigma,
                     epsilon_op=self._epsilon_op,

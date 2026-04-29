@@ -1,10 +1,27 @@
 name: german_mlp_rbr_reproduce_current
 experiment:
   seed: 42
-  num_factuals: 5
+  reproduction_mode: paper_sweep
   factual_selection: all
+  max_factuals: 100
   train_split: 0.8
   split_random_state: 42
+  sweep:
+    epsilon_pe:
+      - 0.0
+      - 0.5
+      - 1.0
+    delta_plus:
+      - 0.0
+      - 0.2
+      - 0.4
+      - 0.6
+      - 0.8
+      - 1.0
+    epsilon_op:
+      - 0.0
+      - 0.5
+      - 1.0
 logger:
   level: INFO
   path: ./logs/german_mlp_rbr_reproduce_current.log
@@ -39,11 +56,11 @@ method:
   desired_class: 1
   num_samples: 200
   perturb_radius: 0.2
-  delta_plus: 1.0
+  delta_plus: 0.2
   sigma: 1.0
-  epsilon_op: 0.5
-  epsilon_pe: 1.0
-  max_iter: 1000
+  epsilon_op: 0.0
+  epsilon_pe: 0.0
+  max_iter: 500
   clamp: false
   enforce_encoding: false
   random_state: 42
