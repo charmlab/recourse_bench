@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from dataset.dataset_object import DatasetObject
@@ -15,6 +16,12 @@ from model.model_object import ModelObject
 from model.model_utils import resolve_device
 from utils.registry import register
 from utils.seed import seed_context
+
+
+def _as_label_array(predictions: object) -> np.ndarray:
+    if hasattr(predictions, "detach"):
+        predictions = predictions.detach().cpu().numpy()
+    return np.asarray(predictions, dtype=np.int64).reshape(-1)
 
 
 @register("revise")
@@ -62,8 +69,6 @@ class ReviseMethod(MethodObject):
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
-        if self._desired_class is None:
-            raise ValueError("ReviseMethod requires desired_class to be set")
         if self._lambda_param < 0:
             raise ValueError("lambda_ must be >= 0")
         if self._optimizer not in {"adam", "rmsprop"}:
@@ -94,7 +99,10 @@ class ReviseMethod(MethodObject):
         with seed_context(self._seed):
             ensure_binary_classifier(self._target_model, "ReviseMethod")
             class_to_index = self._target_model.get_class_to_index()
-            if self._desired_class not in class_to_index:
+            if (
+                self._desired_class is not None
+                and self._desired_class not in class_to_index
+            ):
                 raise ValueError(
                     "desired_class is invalid for the trained target model"
                 )
@@ -109,7 +117,6 @@ class ReviseMethod(MethodObject):
 
             self._feature_context = build_revise_feature_context(trainset)
             self._feature_names = list(self._feature_context.feature_names)
-            self._desired_class_index = int(class_to_index[self._desired_class])
             self._adapter = ReviseTargetModelAdapter(
                 target_model=self._target_model,
                 feature_context=self._feature_context,
@@ -118,15 +125,22 @@ class ReviseMethod(MethodObject):
 
             mutable_dim = int(self._feature_context.mutable_mask.sum())
             hidden_layers = list(self._vae_layers or [512, 256, 8])
-            target_class = [0.0, 0.0]
-            target_class[self._desired_class_index] = 1.0
+            self._target_class_by_index = {
+                0: [1.0, 0.0],
+                1: [0.0, 1.0],
+            }
+            desired_class_index = (
+                1
+                if self._desired_class is None
+                else int(class_to_index[self._desired_class])
+            )
             hyperparams = {
                 "data_name": self._feature_context.dataset_name,
                 "lambda": self._lambda_param,
                 "optimizer": self._optimizer,
                 "lr": self._learning_rate,
                 "max_iter": self._max_iter,
-                "target_class": target_class,
+                "target_class": list(self._target_class_by_index[desired_class_index]),
                 "binary_cat_features": self._binary_cat_features,
                 "vae_params": {
                     "layers": [mutable_dim] + hidden_layers,
@@ -150,7 +164,53 @@ class ReviseMethod(MethodObject):
             raise RuntimeError("Method is not trained")
 
         with seed_context(self._seed):
-            counterfactuals = self._revise.get_counterfactuals(factuals=factuals)
+            if self._desired_class is not None:
+                counterfactuals = self._revise.get_counterfactuals(factuals=factuals)
+                return counterfactuals.reindex(
+                    index=factuals.index,
+                    columns=factuals.columns,
+                ).copy(deep=True)
+
+            ordered_factuals = self._adapter.get_ordered_features(factuals).reindex(
+                index=factuals.index,
+                columns=self._feature_names,
+            )
+            if ordered_factuals.empty:
+                return ordered_factuals.reindex(
+                    index=factuals.index,
+                    columns=factuals.columns,
+                ).copy(deep=True)
+
+            predicted_labels = _as_label_array(self._adapter.predict(ordered_factuals))
+            target_labels = 1 - predicted_labels
+            counterfactuals = pd.DataFrame(
+                np.nan,
+                index=factuals.index.copy(),
+                columns=factuals.columns,
+            )
+            original_target_class = list(self._revise._target_class)
+            original_desired_class = int(self._revise._desired_class)
+
+            try:
+                for target_class, target_vector in self._target_class_by_index.items():
+                    subset = ordered_factuals.loc[target_labels == target_class]
+                    if subset.empty:
+                        continue
+                    self._revise._target_class = list(target_vector)
+                    self._revise._desired_class = int(target_class)
+                    subset_counterfactuals = self._revise.get_counterfactuals(
+                        factuals=subset
+                    )
+                    counterfactuals.loc[subset.index, factuals.columns] = (
+                        subset_counterfactuals.reindex(
+                            index=subset.index,
+                            columns=factuals.columns,
+                        )
+                    )
+            finally:
+                self._revise._target_class = original_target_class
+                self._revise._desired_class = original_desired_class
+
         return counterfactuals.reindex(
             index=factuals.index,
             columns=factuals.columns,

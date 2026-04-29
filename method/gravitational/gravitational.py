@@ -18,6 +18,12 @@ from utils.registry import register
 from utils.seed import seed_context
 
 
+def _as_label_array(predictions: object) -> np.ndarray:
+    if hasattr(predictions, "detach"):
+        predictions = predictions.detach().cpu().numpy()
+    return np.asarray(predictions, dtype=np.int64).reshape(-1)
+
+
 def _encode_targets(
     target_series: pd.Series,
     class_to_index: dict[int | str, int],
@@ -91,8 +97,6 @@ class GravitationalMethod(MethodObject):
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
-        if self._desired_class is None:
-            raise ValueError("GravitationalMethod requires desired_class to be set")
         if self._prediction_loss_lambda < 0:
             raise ValueError("prediction_loss_lambda must be >= 0")
         if self._original_dist_lambda < 0:
@@ -148,7 +152,10 @@ class GravitationalMethod(MethodObject):
         with seed_context(self._seed):
             ensure_binary_classifier(self._target_model, "GravitationalMethod")
             class_to_index = self._target_model.get_class_to_index()
-            if self._desired_class not in class_to_index:
+            if (
+                self._desired_class is not None
+                and self._desired_class not in class_to_index
+            ):
                 raise ValueError(
                     "desired_class is invalid for the trained target model"
                 )
@@ -163,7 +170,6 @@ class GravitationalMethod(MethodObject):
 
             self._feature_context = build_gravitational_feature_context(trainset)
             self._feature_names = list(self._feature_context.feature_names)
-            self._desired_class_index = int(class_to_index[self._desired_class])
             ordered_train_features = train_features.loc[:, self._feature_names].copy(
                 deep=True
             )
@@ -180,35 +186,67 @@ class GravitationalMethod(MethodObject):
                 train_labels=encoded_target,
             )
 
-            if self._x_center_override is not None:
-                if self._x_center_override.shape[0] != len(self._feature_names):
-                    raise ValueError(
-                        "x_center length must match the finalized feature count"
-                    )
-                x_center = self._x_center_override.copy()
-            else:
-                x_center = self._compute_default_x_center(
-                    train_features=ordered_train_features,
-                    encoded_target=encoded_target,
-                    desired_class_index=self._desired_class_index,
+            if self._x_center_override is not None and self._x_center_override.shape[
+                0
+            ] != len(self._feature_names):
+                raise ValueError(
+                    "x_center length must match the finalized feature count"
                 )
 
-            hyperparams = {
-                "prediction_loss_lambda": self._prediction_loss_lambda,
-                "original_dist_lambda": self._original_dist_lambda,
-                "grav_penalty_lambda": self._grav_penalty_lambda,
-                "learning_rate": self._learning_rate,
-                "num_steps": self._num_steps,
-                "target_class": self._desired_class_index,
-                "scheduler_step_size": self._scheduler_step_size,
-                "scheduler_gamma": self._scheduler_gamma,
-            }
+            if self._desired_class is None:
+                self._gravitational_by_target = {}
+                for target_class in (0, 1):
+                    if self._x_center_override is not None:
+                        x_center = self._x_center_override.copy()
+                    else:
+                        x_center = self._compute_default_x_center(
+                            train_features=ordered_train_features,
+                            encoded_target=encoded_target,
+                            desired_class_index=target_class,
+                        )
 
-            self._gravitational = Gravitational(
-                mlmodel=self._adapter,
-                hyperparams=hyperparams,
-                x_center=x_center,
-            )
+                    hyperparams = {
+                        "prediction_loss_lambda": self._prediction_loss_lambda,
+                        "original_dist_lambda": self._original_dist_lambda,
+                        "grav_penalty_lambda": self._grav_penalty_lambda,
+                        "learning_rate": self._learning_rate,
+                        "num_steps": self._num_steps,
+                        "target_class": target_class,
+                        "scheduler_step_size": self._scheduler_step_size,
+                        "scheduler_gamma": self._scheduler_gamma,
+                    }
+                    self._gravitational_by_target[target_class] = Gravitational(
+                        mlmodel=self._adapter,
+                        hyperparams=hyperparams,
+                        x_center=x_center,
+                    )
+            else:
+                self._desired_class_index = int(class_to_index[self._desired_class])
+                if self._x_center_override is not None:
+                    x_center = self._x_center_override.copy()
+                else:
+                    x_center = self._compute_default_x_center(
+                        train_features=ordered_train_features,
+                        encoded_target=encoded_target,
+                        desired_class_index=self._desired_class_index,
+                    )
+
+                hyperparams = {
+                    "prediction_loss_lambda": self._prediction_loss_lambda,
+                    "original_dist_lambda": self._original_dist_lambda,
+                    "grav_penalty_lambda": self._grav_penalty_lambda,
+                    "learning_rate": self._learning_rate,
+                    "num_steps": self._num_steps,
+                    "target_class": self._desired_class_index,
+                    "scheduler_step_size": self._scheduler_step_size,
+                    "scheduler_gamma": self._scheduler_gamma,
+                }
+
+                self._gravitational = Gravitational(
+                    mlmodel=self._adapter,
+                    hyperparams=hyperparams,
+                    x_center=x_center,
+                )
             self._is_trained = True
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
@@ -216,5 +254,36 @@ class GravitationalMethod(MethodObject):
             raise RuntimeError("Method is not trained")
 
         with seed_context(self._seed):
-            counterfactuals = self._gravitational.get_counterfactuals(factuals=factuals)
+            if self._desired_class is not None:
+                counterfactuals = self._gravitational.get_counterfactuals(
+                    factuals=factuals
+                )
+                return counterfactuals.loc[:, self._feature_names].copy(deep=True)
+
+            ordered_factuals = self._adapter.get_ordered_features(factuals)
+            if ordered_factuals.empty:
+                return ordered_factuals.loc[:, self._feature_names].copy(deep=True)
+
+            predicted_labels = _as_label_array(self._adapter.predict(ordered_factuals))
+            target_labels = 1 - predicted_labels
+            counterfactuals = pd.DataFrame(
+                np.nan,
+                index=ordered_factuals.index.copy(),
+                columns=self._feature_names,
+            )
+
+            for target_class, gravitational in self._gravitational_by_target.items():
+                subset = ordered_factuals.loc[target_labels == target_class]
+                if subset.empty:
+                    continue
+                subset_counterfactuals = gravitational.get_counterfactuals(
+                    factuals=subset
+                )
+                counterfactuals.loc[subset.index, self._feature_names] = (
+                    subset_counterfactuals.reindex(
+                        index=subset.index,
+                        columns=self._feature_names,
+                    )
+                )
+
         return counterfactuals.loc[:, self._feature_names].copy(deep=True)

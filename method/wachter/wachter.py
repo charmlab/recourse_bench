@@ -18,6 +18,12 @@ from utils.registry import register
 from utils.seed import seed_context
 
 
+def _as_label_array(predictions: object) -> np.ndarray:
+    if hasattr(predictions, "detach"):
+        predictions = predictions.detach().cpu().numpy()
+    return np.asarray(predictions, dtype=np.int64).reshape(-1)
+
+
 @register("wachter")
 class WachterMethod(MethodObject):
     def __init__(
@@ -61,8 +67,6 @@ class WachterMethod(MethodObject):
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
-        if self._desired_class is None:
-            raise ValueError("WachterMethod requires desired_class to be set")
         if self._learning_rate <= 0:
             raise ValueError("learning_rate must be > 0")
         if self._lambda_param < 0:
@@ -85,7 +89,10 @@ class WachterMethod(MethodObject):
         with seed_context(self._seed):
             ensure_binary_classifier(self._target_model, "WachterMethod")
             class_to_index = self._target_model.get_class_to_index()
-            if self._desired_class not in class_to_index:
+            if (
+                self._desired_class is not None
+                and self._desired_class not in class_to_index
+            ):
                 raise ValueError(
                     "desired_class is invalid for the trained target model"
                 )
@@ -107,18 +114,26 @@ class WachterMethod(MethodObject):
                     "feature_cost length must match the finalized feature count"
                 )
 
-            self._desired_class_index = int(class_to_index[self._desired_class])
             self._adapter = WachterTargetModelAdapter(
                 target_model=self._target_model,
                 feature_context=self._feature_context,
             )
 
             if self._loss_type == "BCE":
-                y_target = [1.0, 0.0]
-                y_target[self._desired_class_index] = 1.0
-                y_target[1 - self._desired_class_index] = 0.0
+                self._y_target_by_class = {
+                    0: [1.0, 0.0],
+                    1: [0.0, 1.0],
+                }
             else:
-                y_target = [1.0] if self._desired_class_index == 1 else [-1.0]
+                self._y_target_by_class = {
+                    0: [-1.0],
+                    1: [1.0],
+                }
+            desired_class_index = (
+                1
+                if self._desired_class is None
+                else int(class_to_index[self._desired_class])
+            )
 
             hyperparams = {
                 "feature_cost": (
@@ -131,7 +146,7 @@ class WachterMethod(MethodObject):
                 "norm": self._norm,
                 "clamp": self._clamp,
                 "loss_type": self._loss_type,
-                "y_target": y_target,
+                "y_target": list(self._y_target_by_class[desired_class_index]),
             }
 
             self._wachter = Wachter(
@@ -145,7 +160,53 @@ class WachterMethod(MethodObject):
             raise RuntimeError("Method is not trained")
 
         with seed_context(self._seed):
-            counterfactuals = self._wachter.get_counterfactuals(factuals=factuals)
+            if self._desired_class is not None:
+                counterfactuals = self._wachter.get_counterfactuals(factuals=factuals)
+                return counterfactuals.reindex(
+                    index=factuals.index,
+                    columns=factuals.columns,
+                ).copy(deep=True)
+
+            ordered_factuals = self._adapter.get_ordered_features(factuals).reindex(
+                index=factuals.index,
+                columns=self._feature_names,
+            )
+            if ordered_factuals.empty:
+                return ordered_factuals.reindex(
+                    index=factuals.index,
+                    columns=factuals.columns,
+                ).copy(deep=True)
+
+            predicted_labels = _as_label_array(self._adapter.predict(ordered_factuals))
+            target_labels = 1 - predicted_labels
+            counterfactuals = pd.DataFrame(
+                np.nan,
+                index=factuals.index.copy(),
+                columns=factuals.columns,
+            )
+            original_y_target = list(self._wachter._y_target)
+            original_desired_class = int(self._wachter._desired_class)
+
+            try:
+                for target_class, y_target in self._y_target_by_class.items():
+                    subset = ordered_factuals.loc[target_labels == target_class]
+                    if subset.empty:
+                        continue
+                    self._wachter._y_target = list(y_target)
+                    self._wachter._desired_class = int(target_class)
+                    subset_counterfactuals = self._wachter.get_counterfactuals(
+                        factuals=subset
+                    )
+                    counterfactuals.loc[subset.index, factuals.columns] = (
+                        subset_counterfactuals.reindex(
+                            index=subset.index,
+                            columns=factuals.columns,
+                        )
+                    )
+            finally:
+                self._wachter._y_target = original_y_target
+                self._wachter._desired_class = original_desired_class
+
         return counterfactuals.reindex(
             index=factuals.index,
             columns=factuals.columns,
