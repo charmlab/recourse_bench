@@ -1,0 +1,22 @@
+dataset:
+  name: adult
+  path: ./dataset/adult/
+
+preprocess:
+  - name: scale
+    seed: 0
+    scaling: normalize
+    range: true
+  - name: encode
+    seed: 0
+    encoding: onehot
+  - name: split
+    seed: 0
+    split: 0.2
+
+benchmark:
+  desired_class: 1
+  sample_target: 50
+  min_factuals: 25
+  sample_seed: 0
+  factual_filter: prediction_not_equal_desired_class

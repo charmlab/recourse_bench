@@ -1,0 +1,20 @@
+name: smoke
+base_config: base.yml
+output_csv: ./benchmark/results/smoke_results.csv
+
+datasets:
+  - adult
+
+models:
+  - linear
+  - mlp
+  - randomforest
+
+methods:
+  - gs
+  - dice
+  - apas
+
+benchmark:
+  sample_target: 3
+  min_factuals: 2

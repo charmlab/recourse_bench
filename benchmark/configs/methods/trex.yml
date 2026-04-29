@@ -1,0 +1,20 @@
+method:
+  name: trex
+  seed: 0
+  device: auto
+  norm: 2
+  cf_confidence: 0.5
+  cf_steps: 40
+  cf_step_size: 0.02
+  tau: 0.75
+  k: 500
+  sigma: 0.1
+  trex_step_size: 0.01
+  trex_max_steps: 80
+  trex_epsilon: 1.0
+  trex_p: 2
+  batch_size: 1
+  clamp: true
+
+compatibility:
+  allowed_models: [linear, mlp]

@@ -1,0 +1,21 @@
+model:
+  name: mlp_bayesian
+  seed: 0
+  device: auto
+  epochs: 200
+  learning_rate: 0.01
+  batch_size: 256
+  layers: [64, 64]
+  optimizer: sghmc
+  criterion: cross_entropy
+  output_activation: softmax
+  burn_in: 40
+  sim_steps: 10
+  n_saves: 20
+  resample_its: 10
+  resample_prior_its: 50
+  re_burn: 10000
+  grad_std_mul: 30.0
+  base_C: 0.05
+  gauss_sig: 0.1
+  subsample: 1

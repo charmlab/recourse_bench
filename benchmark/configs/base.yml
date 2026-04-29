@@ -1,0 +1,30 @@
+logger:
+  level: INFO
+  path: null
+
+caching:
+  path: ./cache/
+
+evaluation:
+  - name: validity
+  - name: distance
+    metrics: [l0, l1, l2, linf]
+  - name: constraints
+  - name: knn
+    k: 5
+
+benchmark:
+  desired_class: 1
+  sample_target: 50
+  min_factuals: 25
+  allow_partial_factuals: true
+  sample_seed: 0
+  factual_filter: prediction_not_equal_desired_class
+  prediction_batch_size: 512
+  method_batch_size: 20
+  continue_on_error: true
+  model_cache:
+    enabled: true
+    namespace: benchmark
+
+output_csv: ./benchmark/results/default_results.csv

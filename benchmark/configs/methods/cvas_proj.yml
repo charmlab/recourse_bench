@@ -1,0 +1,10 @@
+method:
+  name: cvas_proj
+  seed: 0
+  device: auto
+  num_samples: 250
+  line_search_steps: 40
+  num_boundary_neighbors: 10
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest]

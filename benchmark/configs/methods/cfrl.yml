@@ -1,0 +1,10 @@
+method:
+  name: cfrl
+  seed: 0
+  device: auto
+  autoencoder_target_steps: 250
+  train_steps: 250
+  batch_size: 64
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest]

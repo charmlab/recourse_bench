@@ -1,0 +1,18 @@
+method:
+  name: rbr
+  seed: 0
+  device: auto
+  num_samples: 100
+  perturb_radius: 0.2
+  delta_plus: 1.0
+  sigma: 1.0
+  epsilon_op: 0.5
+  epsilon_pe: 1.0
+  max_iter: 200
+  clamp: false
+  enforce_encoding: false
+  show_progress: true
+  progress_desc: rbr-cf
+
+compatibility:
+  allowed_models: [linear, mlp]

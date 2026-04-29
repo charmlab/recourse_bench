@@ -1,0 +1,13 @@
+method:
+  name: proplace
+  seed: 0
+  device: auto
+  delta: 0.03
+  k: 20
+  epsilon: 0.01
+  solver_output: false
+  solver_time_limit: 30
+  convex_hull_prune: true
+
+compatibility:
+  allowed_models: [linear, mlp]

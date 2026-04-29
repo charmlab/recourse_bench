@@ -1,0 +1,12 @@
+method:
+  name: dice
+  seed: 0
+  device: auto
+  total_cfs: 1
+  min_iter: 50
+  max_iter: 200
+  feature_weights: inverse_mad
+  optimizer: adam
+
+compatibility:
+  allowed_models: [linear, mlp]

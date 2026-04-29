@@ -1,0 +1,10 @@
+method:
+  name: gs
+  seed: 0
+  device: auto
+  n_search_samples: 1000
+  p_norm: 2
+  max_iter: 500
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest]

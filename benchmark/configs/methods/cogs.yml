@@ -1,0 +1,15 @@
+method:
+  name: cogs
+  seed: 0
+  device: auto
+  population_size: 50
+  n_generations: 10
+  mutation_probability: inv_mutable_genotype_length
+  num_features_mutation_strength: 0.25
+  init_temperature: 0.8
+  selection_name: tournament_2
+  noisy_evaluations: false
+  verbose: false
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest]

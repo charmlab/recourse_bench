@@ -1,0 +1,10 @@
+method:
+  name: arg_ensembling
+  seed: 0
+  device: auto
+  ensemble_model_configs: []
+  semantics: s
+  preference_mode: none
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest]

@@ -1,0 +1,10 @@
+model:
+  name: sklearn_logistic_regression
+  seed: 0
+  device: auto
+  solver: lbfgs
+  max_iter: 500
+  cv: 3
+  scoring: roc_auc
+  n_jobs: -1
+  c_values: [0.01, 0.1, 1.0, 10.0]

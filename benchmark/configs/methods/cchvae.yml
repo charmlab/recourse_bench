@@ -1,0 +1,11 @@
+method:
+  name: cchvae
+  seed: 0
+  device: auto
+  epochs: 40
+  batch_size: 64
+  search_samples: 200
+  max_step: 200
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest, sklearn_logistic_regression]

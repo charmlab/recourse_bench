@@ -1,0 +1,9 @@
+model:
+  name: randomforest
+  seed: 0
+  device: auto
+  n_estimators: 100
+  max_depth: null
+  min_samples_split: 2
+  n_jobs: -1
+  max_features: sqrt

@@ -1,0 +1,11 @@
+method:
+  name: face
+  seed: 0
+  device: auto
+  mode: kde
+  epsilon: 0.5
+  k_neighbors: 5
+  weight_function: negative_log
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest]

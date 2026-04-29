@@ -1,0 +1,10 @@
+method:
+  name: cfvae
+  seed: 0
+  device: auto
+  epoch: 20
+  batch_size: 64
+  n_samples: 10
+
+compatibility:
+  allowed_models: [linear, mlp]

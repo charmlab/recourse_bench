@@ -1,0 +1,50 @@
+name: default
+base_config: base.yml
+output_csv: ./benchmark/results/default_results.csv
+
+datasets:
+  - german
+  - adult
+  # - adult_cogs
+  # - boston_housing
+  # - breast_cancer
+  # - compas
+  - compas_carla
+  # - compas_clue
+  # - credit
+  # - credit_cchvae
+  # - diabetes
+  # - german_roar
+  # - german_sns
+  # - news_popularity
+  # - synthetic_face
+
+models:
+  - linear
+  - mlp
+  - mlp_bayesian
+  # - randomforest    # do forest after main run is done since it seems to take quite some time with some methods.
+  # - sklearn_logistic_regression
+
+methods:
+  - apas
+  - arg_ensembling
+  - cchvae
+  - cfrl
+  - cfvae
+  - clue
+  - cogs
+  - cols
+  - cvas_proj
+  - dice
+  - diverse_dist
+  - face
+  - gs
+  - larr
+  - mace
+  - probe
+  - proplace
+  - rbr
+  - roar
+  - sns
+  - trex

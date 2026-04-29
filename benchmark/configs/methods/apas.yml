@@ -1,0 +1,9 @@
+method:
+  name: apas
+  seed: 0
+  device: auto
+  num_concretizations: 1000
+  max_iter: 50
+
+compatibility:
+  allowed_models: [mlp]

@@ -1,0 +1,23 @@
+method:
+  name: clue
+  seed: 0
+  device: auto
+  lr: 0.01
+  min_steps: 3
+  max_steps: 25
+  early_stop_patience: 3
+  width: 128
+  depth: 2
+  latent_dim: 8
+  batch_size: 128
+  epochs: 200
+  early_stop: 25
+  learning_rate: 0.001
+
+compatibility:
+  allowed_models: [mlp_bayesian]
+  allowed_datasets: [compas_clue]
+
+method_benchmark:
+  use_dataset_desired_class: false
+  factual_filter: all_test

@@ -1,0 +1,10 @@
+method:
+  name: mace
+  seed: 0
+  device: auto
+  norm_type: zero_norm
+  epsilon: 1.0e-5
+
+compatibility:
+  allowed_models: [randomforest]
+  allowed_datasets: [adult, compas, credit]

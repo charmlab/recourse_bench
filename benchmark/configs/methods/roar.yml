@@ -1,0 +1,16 @@
+method:
+  name: roar
+  seed: 0
+  device: auto
+  lr: 0.001
+  lambda_: 0.1
+  delta_max: 0.1
+  norm: 1
+  max_minutes: 0.25
+  loss_type: BCE
+  lime_seed: 0
+  discretize_continuous: false
+  enforce_encoding: false
+
+compatibility:
+  allowed_models: [linear, mlp, sklearn_logistic_regression]

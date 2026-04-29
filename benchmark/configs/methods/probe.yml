@@ -1,0 +1,19 @@
+method:
+  name: probe
+  seed: 0
+  device: auto
+  lr: 0.001
+  lambda_: 0.01
+  n_iter: 200
+  max_minutes: 0.25
+  norm: 1
+  clamp: true
+  loss_type: BCE
+  y_target: [0.45, 0.55]
+  binary_cat_features: true
+  noise_variance: 0.01
+  invalidation_target: 0.35
+  inval_target_eps: 0.01
+
+compatibility:
+  allowed_models: [linear, mlp]

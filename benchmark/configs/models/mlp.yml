@@ -1,0 +1,11 @@
+model:
+  name: mlp
+  seed: 0
+  device: auto
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers: [64, 32]
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax

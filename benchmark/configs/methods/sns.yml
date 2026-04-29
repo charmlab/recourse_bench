@@ -1,0 +1,15 @@
+method:
+  name: sns
+  seed: 0
+  device: auto
+  base_search: min_l2
+  base_steps: 300
+  base_step_size: 0.01
+  base_confidence: 0.5
+  sns_eps: 0.1
+  sns_nb_iters: 100
+  sns_eps_iter: 0.001
+  n_interpolations: 10
+
+compatibility:
+  allowed_models: [mlp]

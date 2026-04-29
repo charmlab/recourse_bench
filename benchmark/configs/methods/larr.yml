@@ -1,0 +1,10 @@
+method:
+  name: larr
+  seed: 0
+  device: auto
+  alpha: 0.5
+  beta: 0.5
+  lime_seed: 0
+
+compatibility:
+  allowed_models: [linear, mlp]

@@ -1,0 +1,11 @@
+method:
+  name: cols
+  seed: 0
+  device: auto
+  num_cfs: 5
+  num_mcmc: 100
+  budget: 500
+  num_parallel_runs: 1
+
+compatibility:
+  allowed_models: [linear, mlp, randomforest]
