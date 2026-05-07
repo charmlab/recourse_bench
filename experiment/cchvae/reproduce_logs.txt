@@ -6,16 +6,8 @@ Method
 CCHVAE benchmark reproduction
 
 Reproduction Results
-2026-05-05 02:02:46 | INFO | credit_cchvae_sklearn_logistic_regression_cchvae_reproduce | Target model trained; best_params={'C': 0.03727593720314938}
-2026-05-05 02:02:46 | INFO | method.cchvae.cchvae | Starting author-style C-CHVAE training on 96200 usable rows
-2026-05-05 02:09:28 | INFO | method.cchvae.cchvae | Finished C-CHVAE training
-2026-05-05 02:09:28 | INFO | credit_cchvae_sklearn_logistic_regression_cchvae_reproduce | Selected 139 / 139 desired-class-mismatched test samples for search
-2026-05-05 03:20:31 | INFO | credit_cchvae_sklearn_logistic_regression_cchvae_reproduce | Reproduction metrics:
-
-      dataset device  n_train  n_test  n_search_candidates_total  n_counterfactuals_requested  n_counterfactuals_evaluated  n_counterfactuals_success  validity  outlier_rate_k_5  outlier_rate_k_10  outlier_rate_k_20  outlier_rate_k_50  not_connected_rate_eps_10  not_connected_rate_eps_20  not_connected_rate_eps_30  not_connected_rate_eps_40  not_connected_rate_eps_50
-credit_cchvae    cpu    96215   24054                        139                          139                          139                        139       1.0          0.064748           0.043165           0.028777           0.021583                   0.064748                        0.0                        0.0                        0.0                        0.0
-      dataset device  n_train  n_test  n_search_candidates_total  n_counterfactuals_requested  n_counterfactuals_evaluated  n_counterfactuals_success  validity  outlier_rate_k_5  outlier_rate_k_10  outlier_rate_k_20  outlier_rate_k_50  not_connected_rate_eps_10  not_connected_rate_eps_20  not_connected_rate_eps_30  not_connected_rate_eps_40  not_connected_rate_eps_50
-credit_cchvae    cpu    96215   24054                        139                          139                          139                        139       1.0          0.064748           0.043165           0.028777           0.021583                   0.064748                        0.0                        0.0                        0.0                        0.0
+dataset device  n_train  n_test  n_search_candidates_total  n_counterfactuals_requested  n_counterfactuals_evaluated  n_counterfactuals_success  validity  outlier_rate_k_1  predicted_local_outliers_pct_k_1  outlier_rate_k_5  predicted_local_outliers_pct_k_5  outlier_rate_k_10  predicted_local_outliers_pct_k_10  outlier_rate_k_15  predicted_local_outliers_pct_k_15  outlier_rate_k_20  predicted_local_outliers_pct_k_20  connectedness_reference_rows  not_connected_rate_eps_1  not_connected_pct_eps_1  not_connected_rate_eps_5  not_connected_pct_eps_5  not_connected_rate_eps_10  not_connected_pct_eps_10  not_connected_rate_eps_15  not_connected_pct_eps_15  not_connected_rate_eps_20  not_connected_pct_eps_20
+credit_cchvae    cpu    96215   24054                        139                           25                           25                         25       1.0               0.0                               0.0              0.04                               4.0               0.04                                4.0               0.04                                4.0               0.04                                4.0                         89261                       1.0                    100.0                      0.72                     72.0                       0.08                       8.0                        0.0                       0.0                        0.0                       0.0
 
 Summary
 
