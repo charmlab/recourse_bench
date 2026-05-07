@@ -29,6 +29,7 @@ models:
 methods:
   - apas
   - arg_ensembling
+  - cemsp
   - cchvae
   - cfrl
   - cfvae
