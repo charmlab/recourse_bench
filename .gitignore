@@ -6,3 +6,5 @@ tmp/
 reference/
 AGENTS.md
 .omx/
+webapp/benchmark-live/data/runtime_results.csv
+_runs/
