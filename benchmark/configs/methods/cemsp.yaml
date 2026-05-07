@@ -1,0 +1,12 @@
+method:
+  name: cemsp
+  seed: 0
+  device: auto
+  replacement_policy: positive_median
+  replacement_quantile: 0.5
+  replacement_statistic: median
+  max_counterfactuals: 1
+  return_mode: first
+
+compatibility:
+  allowed_models: [linear, mlp]
