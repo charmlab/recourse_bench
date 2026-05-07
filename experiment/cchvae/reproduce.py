@@ -32,13 +32,15 @@ DEFAULT_CONFIG_PATH = Path(__file__).with_name(
     "credit_cchvae_sklearn_logistic_regression_cchvae_reproduce.yaml"
 )
 TRAIN_SAMPLE_LIMIT: int | None = None
-NCOUNTERFACTUALS: int | None = None
-LOF_NEIGHBORS = [5, 10, 20, 50]
-CONNECTEDNESS_EPSILONS = [10, 20, 30, 40, 50]
+NCOUNTERFACTUALS: int | None = 25
+LOF_NEIGHBORS = [1, 5, 10, 15, 20]
+CONNECTEDNESS_EPSILONS = [1, 5, 10, 15, 20]
+# The paper figures do not expose DBSCAN min_samples or connectedness reference
+# count; keep the existing defaults and apply them through the official loop.
 DBSCAN_MIN_SAMPLES = 5
-OUTLIER_LIMIT = 0.2
-CONNECTEDNESS_EPS = 30
-CONNECTEDNESS_LIMIT = 0.5
+CONNECTEDNESS_REFERENCE_LIMIT: int | None = None
+OUTLIER_PCT_LIMIT_K_20 = 10.0
+NOT_CONNECTED_PCT_LIMIT_EPS_20 = 10.0
 
 
 def _load_config(config_path: Path) -> dict:
@@ -157,6 +159,7 @@ def _outlier_rates(
     if counterfactual_success.empty:
         for neighbor in neighbors:
             results[f"outlier_rate_k_{neighbor}"] = float("nan")
+            results[f"predicted_local_outliers_pct_k_{neighbor}"] = float("nan")
         return results
 
     for neighbor in neighbors:
@@ -167,7 +170,9 @@ def _outlier_rates(
         )
         model.fit(train_positive_reference.to_numpy(dtype="float32"))
         pred = model.predict(counterfactual_success.to_numpy(dtype="float32"))
-        results[f"outlier_rate_k_{neighbor}"] = float(np.mean(pred == -1))
+        rate = float(np.mean(pred == -1))
+        results[f"outlier_rate_k_{neighbor}"] = rate
+        results[f"predicted_local_outliers_pct_k_{neighbor}"] = 100.0 * rate
     return results
 
 
@@ -176,26 +181,33 @@ def _connectedness_rates(
     counterfactual_success: pd.DataFrame,
     epsilons: list[int | float],
     min_samples: int,
+    reference_limit: int | None,
 ) -> dict[str, float]:
     results = {}
     if counterfactual_success.empty:
         for epsilon in epsilons:
             results[f"not_connected_rate_eps_{epsilon}"] = float("nan")
+            results[f"not_connected_pct_eps_{epsilon}"] = float("nan")
         return results
 
     reference = train_positive_reference.to_numpy(dtype="float32")
+    if reference_limit is not None:
+        reference = reference[: int(reference_limit)]
+    results["connectedness_reference_rows"] = int(reference.shape[0])
     counter = counterfactual_success.to_numpy(dtype="float32")
     for epsilon in epsilons:
         not_connected = []
         for row in counter:
-            density_control = np.r_[reference, row.reshape(1, -1)]
+            density_control = np.concatenate([reference, row.reshape(1, -1)], axis=0)
             labels = (
                 DBSCAN(eps=float(epsilon), min_samples=min_samples)
                 .fit(density_control)
                 .labels_
             )
             not_connected.append(labels[-1] == -1)
-        results[f"not_connected_rate_eps_{epsilon}"] = float(np.mean(not_connected))
+        rate = float(np.mean(not_connected))
+        results[f"not_connected_rate_eps_{epsilon}"] = rate
+        results[f"not_connected_pct_eps_{epsilon}"] = 100.0 * rate
     return results
 
 
@@ -205,17 +217,18 @@ def _assert_results(results: pd.DataFrame, config: dict) -> None:
     if not math.isfinite(float(row["validity"])) or float(row["validity"]) <= 0.0:
         raise AssertionError("validity must be > 0")
 
-    for neighbor in LOF_NEIGHBORS:
-        value = float(row[f"outlier_rate_k_{neighbor}"])
-        if math.isfinite(value) and value > float(OUTLIER_LIMIT):
-            raise AssertionError(f"outlier_rate_k_{neighbor}={value:.4f} exceeds limit")
+    outlier_value = float(row["predicted_local_outliers_pct_k_20"])
+    if math.isfinite(outlier_value) and outlier_value > float(OUTLIER_PCT_LIMIT_K_20):
+        raise AssertionError(
+            f"predicted_local_outliers_pct_k_20={outlier_value:.4f} exceeds limit"
+        )
 
-    connectedness_value = float(row[f"not_connected_rate_eps_{CONNECTEDNESS_EPS}"])
+    connectedness_value = float(row["not_connected_pct_eps_20"])
     if math.isfinite(connectedness_value) and connectedness_value > float(
-        CONNECTEDNESS_LIMIT
+        NOT_CONNECTED_PCT_LIMIT_EPS_20
     ):
         raise AssertionError(
-            f"not_connected_rate_eps_{CONNECTEDNESS_EPS}={connectedness_value:.4f} exceeds limit"
+            f"not_connected_pct_eps_20={connectedness_value:.4f} exceeds limit"
         )
 
 
@@ -242,9 +255,7 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
     trainset, testset = _materialize_datasets(dataset, preprocess_steps)
     logger.info("Train/test sizes: %d / %d", len(trainset), len(testset))
 
-    effective_trainset = _maybe_limit_dataset(
-        trainset, TRAIN_SAMPLE_LIMIT, "trainset"
-    )
+    effective_trainset = _maybe_limit_dataset(trainset, TRAIN_SAMPLE_LIMIT, "trainset")
     if TRAIN_SAMPLE_LIMIT is not None:
         logger.info(
             "Using limited train subset for reproduction run: %d rows",
@@ -324,6 +335,7 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
             counterfactual_success=counterfactual_success,
             epsilons=CONNECTEDNESS_EPSILONS,
             min_samples=DBSCAN_MIN_SAMPLES,
+            reference_limit=CONNECTEDNESS_REFERENCE_LIMIT,
         )
     )
 
