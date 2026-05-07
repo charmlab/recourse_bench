@@ -31,14 +31,14 @@ PAPER_FACTUAL_LIMIT = None
 PAPER_TARGETS = {
     "test_auc": 0.70,
     "max_l0": 17.0,
-    "rate_l0_le_9": 0.80,
-    "rate_l0_le_5": 0.30,
+    "rate_l0_le_10": 0.80,
+    "rate_l0_le_5": 0.40,
 }
 ASSERT_BOUNDS = {
     "test_auc_min": 0.67,
     "test_auc_max": 0.73,
-    "rate_l0_le_9_min": 0.75,
-    "rate_l0_le_5_min": 0.25,
+    "rate_l0_le_10_min": 0.75,
+    "rate_l0_le_5_min": 0.35,
 }
 
 
@@ -179,20 +179,21 @@ def _compute_gs_sparsity_stats(factuals, counterfactuals) -> dict[str, float | i
                 "mean_l0": float("nan"),
                 "max_l0": float("nan"),
                 "rate_l0_le_5": float("nan"),
-                "rate_l0_le_9": float("nan"),
+                "rate_l0_le_10": float("nan"),
             }
         )
         return stats
 
     factual_selected = factual_features.loc[selected_mask.to_numpy()]
     counterfactual_selected = counterfactual_features.loc[selected_mask.to_numpy()]
-    l0_per_row = factual_selected.ne(counterfactual_selected).sum(axis=1).astype(float)
+    diff = counterfactual_selected.astype(float) - factual_selected.astype(float)
+    l0_per_row = diff.ne(0.0).sum(axis=1).astype(float)
     stats.update(
         {
             "mean_l0": float(l0_per_row.mean()),
             "max_l0": float(l0_per_row.max()),
             "rate_l0_le_5": float((l0_per_row <= 5).mean()),
-            "rate_l0_le_9": float((l0_per_row <= 9).mean()),
+            "rate_l0_le_10": float((l0_per_row <= 10).mean()),
         }
     )
     return stats
@@ -200,11 +201,11 @@ def _compute_gs_sparsity_stats(factuals, counterfactuals) -> dict[str, float | i
 
 def _assert_paper_targets(summary: dict[str, float | int]) -> None:
     test_auc = float(summary["test_auc"])
-    rate_l0_le_9 = float(summary["rate_l0_le_9"])
+    rate_l0_le_10 = float(summary["rate_l0_le_10"])
     rate_l0_le_5 = float(summary["rate_l0_le_5"])
 
     assert ASSERT_BOUNDS["test_auc_min"] <= test_auc <= ASSERT_BOUNDS["test_auc_max"]
-    assert rate_l0_le_9 >= ASSERT_BOUNDS["rate_l0_le_9_min"]
+    assert rate_l0_le_10 >= ASSERT_BOUNDS["rate_l0_le_10_min"]
     assert rate_l0_le_5 >= ASSERT_BOUNDS["rate_l0_le_5_min"]
 
 
@@ -274,7 +275,7 @@ def run_reproduction(
         "reproduced": {
             "test_auc": summary["test_auc"],
             "max_l0": summary["max_l0"],
-            "rate_l0_le_9": summary["rate_l0_le_9"],
+            "rate_l0_le_10": summary["rate_l0_le_10"],
             "rate_l0_le_5": summary["rate_l0_le_5"],
         },
         "notes": {
