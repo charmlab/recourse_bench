@@ -62,6 +62,7 @@ class DiceMethod(MethodObject):
         stopping_threshold: float = 0.5,
         posthoc_sparsity_param: float = 0.1,
         posthoc_sparsity_algorithm: str = "linear",
+        posthoc_sparsity_enabled: bool = False,
         respect_mutability: bool = False,
         **kwargs,
     ):
@@ -96,6 +97,7 @@ class DiceMethod(MethodObject):
         self._stopping_threshold = float(stopping_threshold)
         self._posthoc_sparsity_param = float(posthoc_sparsity_param)
         self._posthoc_sparsity_algorithm = str(posthoc_sparsity_algorithm).lower()
+        self._posthoc_sparsity_enabled = bool(posthoc_sparsity_enabled)
         self._respect_mutability = bool(respect_mutability)
 
         if self._total_cfs < 1:
@@ -266,6 +268,7 @@ class DiceMethod(MethodObject):
             stopping_threshold=self._stopping_threshold,
             posthoc_sparsity_param=self._posthoc_sparsity_param,
             posthoc_sparsity_algorithm=self._posthoc_sparsity_algorithm,
+            posthoc_sparsity_enabled=self._posthoc_sparsity_enabled,
             respect_mutability=self._respect_mutability,
             verbose=self._verbose,
         )

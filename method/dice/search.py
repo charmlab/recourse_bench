@@ -31,6 +31,7 @@ class DiceSearchConfig:
     stopping_threshold: float
     posthoc_sparsity_param: float
     posthoc_sparsity_algorithm: str
+    posthoc_sparsity_enabled: bool
     respect_mutability: bool
     verbose: bool
 
@@ -238,15 +239,16 @@ def _run_single_search(
             return np.empty((0, query_tensor.numel()), dtype=np.float32)
 
         valid_candidates = chosen[valid_mask].detach().clone()
-        valid_candidates = _apply_posthoc_sparsity(
-            candidates=valid_candidates,
-            query_tensor=query_tensor,
-            target_index=target_index,
-            adapter=adapter,
-            metadata=metadata,
-            config=config,
-            stopping_threshold=effective_threshold,
-        )
+        if config.posthoc_sparsity_enabled and config.posthoc_sparsity_param > 0.0:
+            valid_candidates = _apply_posthoc_sparsity(
+                candidates=valid_candidates,
+                query_tensor=query_tensor,
+                target_index=target_index,
+                adapter=adapter,
+                metadata=metadata,
+                config=config,
+                stopping_threshold=effective_threshold,
+            )
         if valid_candidates.numel() == 0:
             return np.empty((0, query_tensor.numel()), dtype=np.float32)
 
@@ -478,7 +480,8 @@ def _apply_posthoc_sparsity(
     stopping_threshold: float,
 ) -> torch.Tensor:
     if (
-        config.posthoc_sparsity_param <= 0.0
+        not config.posthoc_sparsity_enabled
+        or config.posthoc_sparsity_param <= 0.0
         or not metadata.continuous_indices
         or not metadata.sparsity_order
     ):
