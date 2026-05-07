@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recourse Benchmark Live</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <main class="page">
+    <header class="hero panel">
+      <p class="eyebrow">Recourse Benchmark</p>
+      <h1>Interactive Benchmark Explorer</h1>
+      <p class="subtitle">
+        Configure your scenario, then inspect the benchmark with visual analytics and a detailed ranking table.
+      </p>
+      <div class="heroMeta">
+        <span class="chip">Data source: <code>data/default_results.csv</code></span>
+        <span class="chip" id="selectionHeadline">Choose a dataset and model to begin.</span>
+      </div>
+    </header>
+
+    <section class="panel selectorStudio">
+      <div class="studioHeader">
+        <div class="studioTitle">
+          <h2>Scenario Studio</h2>
+          <p class="sectionNote">Pick the scope, then compare methods inside the compatible benchmark surface.</p>
+        </div>
+        <div id="selectionPills" class="selectionPills"></div>
+      </div>
+
+      <div id="selectionStats" class="selectionStats"></div>
+
+      <div class="studioGrid">
+        <article class="studioPane scopePane">
+          <div class="paneIntro">
+            <div>
+              <p class="paneEyebrow">Scope</p>
+              <h3>Benchmark Surface</h3>
+            </div>
+            <span class="countBadge neutral">Choose dataset and model</span>
+          </div>
+
+          <div class="scopeStack">
+            <div class="scopeSlot">
+              <label class="inlineLabel" for="datasetSelect">Dataset</label>
+              <select id="datasetSelect" class="configSelect"></select>
+            </div>
+
+            <div class="scopeSlot">
+              <label class="inlineLabel" for="modelSelect">Model</label>
+              <select id="modelSelect" class="configSelect"></select>
+            </div>
+          </div>
+        </article>
+
+        <article class="studioPane methodsPane">
+          <div class="paneIntro">
+            <div>
+              <p class="paneEyebrow">Methods</p>
+              <h3>Counterfactual Engines</h3>
+            </div>
+            <span id="methodSelectedCount" class="countBadge">All methods</span>
+          </div>
+
+          <div class="controlToolbar">
+            <div class="modeSwitch">
+              <button id="modeAllMethodsBtn" type="button" class="modeBtn">Use All</button>
+              <button id="modeCustomMethodsBtn" type="button" class="modeBtn">Custom</button>
+            </div>
+
+            <div class="actions compact flushRight">
+              <button id="selectAllMethodsBtn" type="button" class="ghost">Select All</button>
+              <button id="clearMethodsBtn" type="button" class="ghost">Clear</button>
+            </div>
+          </div>
+
+          <div class="paletteFrame">
+            <label class="inlineLabel" for="methodDropdown">Method Selection</label>
+            <details id="methodDropdown" class="dropdownChecklist">
+              <summary class="dropdownSummary">Open method list</summary>
+              <div class="dropdownPanel">
+                <div id="methodChecklist" class="methodChecklist"></div>
+              </div>
+            </details>
+            <p class="fieldHint">Unavailable methods remain visible but cannot be selected in the current scope.</p>
+          </div>
+        </article>
+
+        <article class="studioPane metricsPane">
+          <div class="paneIntro">
+            <div>
+              <p class="paneEyebrow">Metrics</p>
+              <h3>Ranking Recipe</h3>
+            </div>
+            <span id="metricSelectedCount" class="countBadge">0 selected</span>
+          </div>
+
+          <div class="presetBlock">
+            <label class="inlineLabel">Preset Mix</label>
+            <div class="presetRow">
+              <button class="ghost presetBtn" type="button" data-preset="balanced">Balanced</button>
+              <button class="ghost presetBtn" type="button" data-preset="quality">Quality</button>
+              <button class="ghost presetBtn" type="button" data-preset="speed">Speed</button>
+            </div>
+          </div>
+
+          <div class="actions compact">
+            <button id="selectAllMetricsBtn" type="button" class="ghost">Select All</button>
+            <button id="clearMetricsBtn" type="button" class="ghost">Clear</button>
+          </div>
+
+          <div class="paletteFrame">
+            <div id="metricPalette" class="tokenPalette metricPalette"></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="studioFooter">
+        <div class="actions mainActions">
+          <button id="rankBtn" type="button">Show Benchmark</button>
+          <button id="resetBtn" type="button" class="ghost">Reset</button>
+          <button id="reloadBtn" type="button" class="ghost">Reload CSV</button>
+        </div>
+
+        <div class="studioStatus">
+          <p class="compatibilityNote">
+            All options stay visible. Dimmed options are unavailable for the current dataset, model, and method selection.
+          </p>
+          <div id="statusMessage" class="statusBanner"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="visualSection" class="panel hidden">
+      <h2>Benchmark Visuals</h2>
+      <div class="vizGrid">
+        <article class="vizCard">
+          <h3>Top Method Profiles (Radar)</h3>
+          <div id="radarPlot" class="radarPlot"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="tableSection" class="panel hidden">
+      <div class="tableHeader">
+        <div>
+          <h2>Detailed Ranking</h2>
+          <div id="summary" class="summary"></div>
+        </div>
+        <div id="tableMeta" class="tableMeta"></div>
+      </div>
+      <div class="tableWrap">
+        <table id="resultTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+

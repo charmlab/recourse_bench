@@ -1,0 +1,169 @@
+{
+  "methods": {
+    "apas": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "mlp"
+      ]
+    },
+    "arg_ensembling": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest"
+      ]
+    },
+    "cchvae": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest",
+        "sklearn_logistic_regression"
+      ]
+    },
+    "cemsp": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    },
+    "cfrl": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest"
+      ]
+    },
+    "cfvae": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    },
+    "clue": {
+      "allowed_datasets": [
+        "compas_clue"
+      ],
+      "allowed_models": [
+        "mlp_bayesian"
+      ]
+    },
+    "cogs": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest"
+      ]
+    },
+    "cols": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest"
+      ]
+    },
+    "cvas_proj": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest"
+      ]
+    },
+    "dice": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    },
+    "diverse_dist": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "mlp"
+      ]
+    },
+    "face": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest"
+      ]
+    },
+    "gs": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "randomforest"
+      ]
+    },
+    "larr": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    },
+    "mace": {
+      "allowed_datasets": [
+        "adult",
+        "compas",
+        "credit"
+      ],
+      "allowed_models": [
+        "randomforest"
+      ]
+    },
+    "probe": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    },
+    "proplace": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    },
+    "rbr": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    },
+    "roar": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp",
+        "sklearn_logistic_regression"
+      ]
+    },
+    "sns": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "mlp"
+      ]
+    },
+    "trex": {
+      "allowed_datasets": [],
+      "allowed_models": [
+        "linear",
+        "mlp"
+      ]
+    }
+  }
+}
