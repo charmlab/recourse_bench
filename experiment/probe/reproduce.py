@@ -3,185 +3,156 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import numpy as np
 import pandas as pd
 import torch
-import yaml
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
 from evaluation.evaluation_utils import resolve_evaluation_inputs
 from experiment import Experiment
+from method.probe.utils import compute_invalidation_rate, reparametrization_trick
 
-DEFAULT_CONFIG_PATH = Path(__file__).with_name("compas_mlp_probe_reproduce.yaml")
-REFERENCE_FEATURE_ORDER = [
-    "age",
-    "two_year_recid",
-    "priors_count",
-    "length_of_stay",
-    "c_charge_degree_cat_F",
-    "c_charge_degree_cat_M",
-    "race_cat_African-American",
-    "race_cat_Other",
-    "sex_cat_Female",
-    "sex_cat_Male",
-]
+SEED = 42
+TRAIN_SPLIT = 0.8
+INVALIDATION_TARGET = 0.35
+NOISE_VARIANCE = 0.01
+INVARIANCE_EPS = 0.01
+METHOD_LR = 0.001
+METHOD_LAMBDA = 0.01
+METHOD_Y_TARGET = [0.45, 0.55]
+METHOD_N_ITER = 200
+METHOD_T_MAX_MIN = 0.5
+BATCH_SIZE = 20
+MC_SAMPLES = 10000
+SMOKE_MC_SAMPLES = 256
+DEFAULT_N_CFS = 500
+SMOKE_N_CFS = 32
+
+PAPER_PROBE_RESULTS = {
+    ("compas_carla", "linear"): {
+        "ra": 1.00,
+        "air_mean": 0.28,
+        "air_std": 0.02,
+        "ac_mean": 0.63,
+        "ac_std": 0.39,
+        "paper_accuracy": 0.84,
+    },
+    ("compas_carla", "mlp"): {
+        "ra": 1.00,
+        "air_mean": 0.33,
+        "air_std": 0.02,
+        "ac_mean": 0.80,
+        "ac_std": 0.34,
+        "paper_accuracy": 0.85,
+    },
+    ("credit_carla", "linear"): {
+        "ra": 1.00,
+        "air_mean": 0.24,
+        "air_std": 0.01,
+        "ac_mean": 0.60,
+        "ac_std": 0.56,
+        "paper_accuracy": 0.92,
+    },
+    ("credit_carla", "mlp"): {
+        "ra": 1.00,
+        "air_mean": 0.25,
+        "air_std": 0.03,
+        "ac_mean": 0.47,
+        "ac_std": 0.21,
+        "paper_accuracy": 0.93,
+    },
+}
+REFERENCE_TRAINING = {
+    ("compas_carla", "linear"): {"epochs": 25, "learning_rate": 0.002, "batch_size": 128},
+    ("compas_carla", "mlp"): {"epochs": 25, "learning_rate": 0.002, "batch_size": 25, "layers": [50]},
+    ("credit_carla", "linear"): {"epochs": 50, "learning_rate": 0.002, "batch_size": 2048},
+    ("credit_carla", "mlp"): {"epochs": 50, "learning_rate": 0.002, "batch_size": 2048, "layers": [50]},
+}
+REFERENCE_FEATURE_ORDER = {
+    ("compas_carla", "linear"): [
+        "age",
+        "two_year_recid",
+        "priors_count",
+        "length_of_stay",
+        "c_charge_degree_cat_F",
+        "c_charge_degree_cat_M",
+        "race_cat_African-American",
+        "race_cat_Other",
+        "sex_cat_Female",
+        "sex_cat_Male",
+    ],
+    ("compas_carla", "mlp"): [
+        "age",
+        "two_year_recid",
+        "priors_count",
+        "length_of_stay",
+        "c_charge_degree_cat_F",
+        "c_charge_degree_cat_M",
+        "race_cat_African-American",
+        "race_cat_Other",
+        "sex_cat_Female",
+        "sex_cat_Male",
+    ],
+    ("credit_carla", "linear"): [
+        "RevolvingUtilizationOfUnsecuredLines",
+        "age",
+        "NumberOfTime30-59DaysPastDueNotWorse",
+        "DebtRatio",
+        "MonthlyIncome",
+        "NumberOfOpenCreditLinesAndLoans",
+        "NumberOfTimes90DaysLate",
+        "NumberRealEstateLoansOrLines",
+        "NumberOfTime60-89DaysPastDueNotWorse",
+        "NumberOfDependents",
+    ],
+    ("credit_carla", "mlp"): [
+        "RevolvingUtilizationOfUnsecuredLines",
+        "age",
+        "NumberOfTime30-59DaysPastDueNotWorse",
+        "DebtRatio",
+        "MonthlyIncome",
+        "NumberOfOpenCreditLinesAndLoans",
+        "NumberOfTimes90DaysLate",
+        "NumberRealEstateLoansOrLines",
+        "NumberOfTime60-89DaysPastDueNotWorse",
+        "NumberOfDependents",
+    ],
+}
 
 
-def _load_config(config_path: Path) -> dict:
-    with config_path.open("r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-    if not isinstance(config, dict):
-        raise ValueError("Reproduction config must parse to a dictionary")
-    return config
+@dataclass(frozen=True)
+class ReproductionCase:
+    dataset_name: str
+    model_name: str
+
+    @property
+    def slug(self) -> str:
+        return f"{self.dataset_name}_{self.model_name}"
 
 
-def _resolve_device() -> str:
+def _resolve_device(device: str | None) -> str:
+    if device is not None:
+        return device
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def _resolve_layers(model_overrides: dict) -> list[int] | None:
-    if "layers" in model_overrides:
-        return [int(layer) for layer in model_overrides["layers"]]
-
-    hidden_layers = model_overrides.get("hidden_layers")
-    if hidden_layers is None:
-        return None
-    if not isinstance(hidden_layers, list):
-        raise TypeError("hidden_layers must be a list")
-    if hidden_layers and isinstance(hidden_layers[0], list):
-        if len(hidden_layers) != 1:
-            raise ValueError(
-                "Reference MLP hidden_layers must contain exactly one layer block"
-            )
-        return [int(layer) for layer in hidden_layers[0]]
-    return [int(layer) for layer in hidden_layers]
-
-
-def _translate_reference_config(reference_config: dict, device: str) -> dict:
-    experiment_cfg = deepcopy(reference_config.get("experiment", {}))
-    seed = int(experiment_cfg.get("seed", 42))
-    experiment_name = str(experiment_cfg.get("name", "compas_probe_mlp_experiment"))
-
-    data_cfg = reference_config.get("data")
-    if not isinstance(data_cfg, list) or len(data_cfg) != 1:
-        raise ValueError("Reference reproduction expects exactly one data section")
-    dataset_cfg = deepcopy(data_cfg[0])
-    dataset_name = str(dataset_cfg.get("name", "")).lower()
-    if dataset_name != "compas_carla":
-        raise ValueError("This reproduction script supports compas_carla only")
-
-    data_overrides = deepcopy(dataset_cfg.get("overrides", {}))
-    if bool(data_overrides.get("balance_classes", False)):
-        raise ValueError("balance_classes=true is not supported in this reproduction")
-
-    preprocessing_strategy = str(
-        data_overrides.get("preprocessing_strategy", "normalize")
-    ).lower()
-    train_split = float(data_overrides.get("train_split", 0.75))
-    if not 0.0 < train_split < 1.0:
-        raise ValueError("data.overrides.train_split must satisfy 0 < train_split < 1")
-
-    model_cfg = deepcopy(reference_config.get("model", {}))
-    model_overrides = deepcopy(model_cfg.get("overrides", {}))
-    layers = _resolve_layers(model_overrides)
-    native_model_cfg = {
-        "name": str(model_cfg.get("name", "mlp")).lower(),
-        "seed": seed,
-        "device": device,
-        "epochs": int(model_overrides.get("epochs", 25)),
-        "learning_rate": float(model_overrides.get("learning_rate", 0.002)),
-        "batch_size": int(model_overrides.get("batch_size", 25)),
-        "optimizer": str(model_overrides.get("optimizer", "rms")).lower(),
-        "criterion": str(model_overrides.get("criterion", "cross_entropy")).lower(),
-        "output_activation": str(
-            model_overrides.get("output_activation", "softmax")
-        ).lower(),
-        "save_name": f"{experiment_name}_mlp",
-    }
-    if layers is not None:
-        native_model_cfg["layers"] = layers
-
-    method_cfg = deepcopy(reference_config.get("method", {}))
-    method_overrides = deepcopy(method_cfg.get("overrides", {}))
-    native_method_cfg = {
-        "name": str(method_cfg.get("name", "probe")).lower(),
-        "seed": seed,
-        "device": device,
-    }
-    passthrough_keys = [
-        "feature_cost",
-        "feature_costs",
-        "lr",
-        "lambda_",
-        "y_target",
-        "n_iter",
-        "t_max_min",
-        "max_minutes",
-        "norm",
-        "clamp",
-        "loss_type",
-        "binary_cat_features",
-        "noise_variance",
-        "invalidation_target",
-        "inval_target_eps",
-        "desired_class",
-    ]
-    for key in passthrough_keys:
-        if key in method_overrides:
-            native_method_cfg[key] = deepcopy(method_overrides[key])
-
-    evaluation_cfg = deepcopy(reference_config.get("evaluation", {}))
-    metrics_cfg = evaluation_cfg.get("metrics", [])
-    native_evaluation_cfg = []
-    for metric_cfg in metrics_cfg:
-        metric_name = str(metric_cfg.get("name", "")).lower()
-        native_metric_cfg = {"name": metric_name}
-        if "hyperparameters" in metric_cfg:
-            native_metric_cfg.update(deepcopy(metric_cfg["hyperparameters"]))
-        native_evaluation_cfg.append(native_metric_cfg)
-
-    return {
-        "name": experiment_name,
-        "logger": {
-            "level": str(experiment_cfg.get("logger", "INFO")).upper(),
-            "path": f"./logs/{experiment_name}.log",
-        },
-        "caching": {"path": "./cache/"},
-        "dataset": {"name": dataset_name},
-        "preprocess": [
-            {
-                "name": "scale",
-                "seed": seed,
-                "scaling": preprocessing_strategy,
-                "range": True,
-            },
-            {
-                "name": "encode",
-                "seed": seed,
-                "encoding": "onehot",
-            },
-            {
-                "name": "reorder",
-                "seed": seed,
-                "order": REFERENCE_FEATURE_ORDER,
-            },
-            {
-                "name": "split",
-                "seed": seed,
-                "split": 1.0 - train_split,
-            },
-        ],
-        "model": native_model_cfg,
-        "method": native_method_cfg,
-        "evaluation": native_evaluation_cfg,
-    }
+def _resolve_target_index(class_to_index: dict[int | str, int], value: Any) -> int:
+    if value in class_to_index:
+        return int(class_to_index[value])
+    if isinstance(value, float) and float(value).is_integer():
+        return int(class_to_index[int(value)])
+    if isinstance(value, np.floating) and float(value).is_integer():
+        return int(class_to_index[int(value)])
+    return int(class_to_index[str(value)])
 
 
 def _reference_style_split(dataset, split_preprocess) -> tuple[object, object]:
@@ -242,21 +213,13 @@ def _compute_model_metrics(model, testset) -> dict[str, float]:
     y = testset.get(target=True).iloc[:, 0]
     class_to_index = model.get_class_to_index()
     encoded_target = torch.tensor(
-        [
-            (
-                class_to_index[int(value)]
-                if isinstance(value, float) and float(value).is_integer()
-                else class_to_index[value]
-            )
-            for value in y.tolist()
-        ],
+        [_resolve_target_index(class_to_index, value) for value in y.tolist()],
         dtype=torch.long,
     )
 
     accuracy = float((prediction == encoded_target).to(dtype=torch.float32).mean())
     positive_index = class_to_index.get(1, max(class_to_index.values()))
-    unique_labels = sorted(set(encoded_target.tolist()))
-    if len(unique_labels) < 2:
+    if len(set(encoded_target.tolist())) < 2:
         auc = float("nan")
     else:
         auc = float(
@@ -275,165 +238,355 @@ def _build_frozen_dataset(template, df: pd.DataFrame, marker: str):
     return dataset
 
 
-def _select_factual_indices(
-    model,
-    feature_pool: pd.DataFrame,
-    experiment_cfg: dict,
-) -> pd.Index:
-    selection_mode = str(
-        experiment_cfg.get("factual_selection", "negative_class")
-    ).lower()
-    sample_seed = int(experiment_cfg.get("seed", 42))
-    num_factuals = int(experiment_cfg.get("num_factuals", 20))
+def _build_experiment_config(case: ReproductionCase, device: str) -> dict[str, Any]:
+    training = REFERENCE_TRAINING[(case.dataset_name, case.model_name)]
+    preprocess = [
+        {
+            "name": "scale",
+            "seed": SEED,
+            "scaling": "normalize",
+            "range": True,
+        },
+        {
+            "name": "encode",
+            "seed": SEED,
+            "encoding": "onehot",
+        },
+        {
+            "name": "reorder",
+            "seed": SEED,
+            "order": list(REFERENCE_FEATURE_ORDER[(case.dataset_name, case.model_name)]),
+        },
+        {
+            "name": "split",
+            "seed": SEED,
+            "split": 1.0 - TRAIN_SPLIT,
+        },
+    ]
+    model_cfg: dict[str, Any] = {
+        "name": case.model_name,
+        "seed": SEED,
+        "device": device,
+        "epochs": int(training["epochs"]),
+        "learning_rate": float(training["learning_rate"]),
+        "batch_size": int(training["batch_size"]),
+        "optimizer": "rms",
+        "criterion": "cross_entropy",
+        "output_activation": "softmax",
+        "save_name": f"probe_reference_{case.slug}",
+    }
+    if case.model_name == "mlp":
+        model_cfg["layers"] = list(training["layers"])
 
-    predictions = model.get_prediction(feature_pool, proba=False).argmax(dim=1).cpu()
+    return {
+        "name": f"probe_reference_{case.slug}",
+        "logger": {
+            "level": "INFO",
+            "path": f"./logs/probe_reference_{case.slug}.log",
+        },
+        "caching": {"path": "./cache/"},
+        "dataset": {"name": case.dataset_name},
+        "preprocess": preprocess,
+        "model": model_cfg,
+        "method": {
+            "name": "probe",
+            "seed": SEED,
+            "device": device,
+            "lr": METHOD_LR,
+            "lambda_": METHOD_LAMBDA,
+            "y_target": list(METHOD_Y_TARGET),
+            "n_iter": METHOD_N_ITER,
+            "t_max_min": METHOD_T_MAX_MIN,
+            "norm": 1,
+            "clamp": True,
+            "loss_type": "BCE",
+            "binary_cat_features": True,
+            "noise_variance": NOISE_VARIANCE,
+            "invalidation_target": INVALIDATION_TARGET,
+            "inval_target_eps": INVARIANCE_EPS,
+        },
+        "evaluation": [],
+    }
+
+
+def _select_negative_factuals(model, combined_dataset, n_cfs: int | None):
+    features = combined_dataset.get(target=False)
+    predictions = model.get_prediction(features, proba=False).argmax(dim=1).cpu().numpy()
     class_to_index = model.get_class_to_index()
     negative_index = class_to_index.get(0, min(class_to_index.values()))
-    negative_mask = predictions.numpy() == negative_index
-    negative_index_pool = feature_pool.index[negative_mask]
+    negative_mask = predictions == negative_index
+    negative_indices = features.index[negative_mask]
 
-    if selection_mode == "negative_class":
-        if negative_index_pool.shape[0] < num_factuals:
-            raise ValueError(
-                "Not enough predicted negative-class instances for factual selection"
-            )
-        selected = pd.Series(negative_index_pool).sample(
-            n=num_factuals,
-            random_state=sample_seed,
-        )
-        return pd.Index(selected.tolist())
-    if selection_mode == "all":
-        return pd.Index(negative_index_pool)
+    if n_cfs is not None:
+        negative_indices = negative_indices[:n_cfs]
 
-    raise ValueError(f"Unsupported factual_selection mode: {selection_mode}")
-
-
-def _save_results(
-    output_dir: Path,
-    experiment_name: str,
-    summary: dict,
-    metrics: pd.DataFrame,
-    output_format: str,
-) -> None:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    summary_df = pd.DataFrame([summary])
-
-    resolved_format = output_format.lower()
-    if resolved_format not in {"csv", "json", "both"}:
-        raise ValueError("output_format must be one of {'csv', 'json', 'both'}")
-
-    if resolved_format in {"csv", "both"}:
-        summary_df.to_csv(
-            output_dir / f"{experiment_name}_summary.csv",
-            index=False,
-        )
-        metrics.to_csv(
-            output_dir / f"{experiment_name}_metrics.csv",
-            index=False,
-        )
-
-    if resolved_format in {"json", "both"}:
-        with (output_dir / f"{experiment_name}_summary.json").open(
-            "w",
-            encoding="utf-8",
-        ) as file:
-            json.dump(summary, file, indent=2)
-        with (output_dir / f"{experiment_name}_metrics.json").open(
-            "w",
-            encoding="utf-8",
-        ) as file:
-            json.dump(metrics.to_dict(orient="records"), file, indent=2)
-
-
-def run_reproduction(config_path: str | Path = DEFAULT_CONFIG_PATH) -> dict:
-    resolved_config_path = Path(config_path).resolve()
-    reference_config = _load_config(resolved_config_path)
-    experiment_cfg = deepcopy(reference_config.get("experiment", {}))
-
-    native_config = _translate_reference_config(reference_config, _resolve_device())
-    experiment = Experiment(native_config)
-    logger = experiment._logger
-
-    trainset, testset = _materialize_datasets(experiment)
-
-    logger.info("Training target model")
-    experiment._target_model.fit(trainset)
-    model_metrics = _compute_model_metrics(experiment._target_model, testset)
-    logger.info("Test accuracy M1: %.4f", model_metrics["test_accuracy"])
-    logger.info("Test AUC M1: %.4f", model_metrics["test_auc"])
-
-    logger.info("Training PROBE")
-    experiment._method.fit(trainset)
-
-    train_df = pd.concat(
-        [trainset.get(target=False), trainset.get(target=True)], axis=1
+    combined_df = pd.concat(
+        [combined_dataset.get(target=False), combined_dataset.get(target=True)],
+        axis=1,
     )
-    test_df = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
-    combined_df = pd.concat([train_df, test_df], axis=0)
-    combined = _build_frozen_dataset(trainset, combined_df, "combined_source")
+    factual_df = combined_df.loc[negative_indices].copy(deep=True)
+    return _build_frozen_dataset(combined_dataset, factual_df, "selected_for_probe")
 
-    selected_indices = _select_factual_indices(
-        experiment._target_model,
-        combined.get(target=False),
-        experiment_cfg,
-    )
-    factual_df = combined_df.loc[selected_indices].copy(deep=True)
-    factuals = _build_frozen_dataset(combined, factual_df, "selected_for_probe")
-    logger.info("Selected %d factual instances", len(factuals))
 
-    logger.info("Generating counterfactuals")
-    counterfactuals = experiment._method.predict(factuals)
+def _estimate_air(experiment: Experiment, counterfactual_rows: pd.DataFrame, monte_carlo_samples: int) -> list[float]:
+    method = experiment._method
+    air_values: list[float] = []
+    for _, row in counterfactual_rows.iterrows():
+        candidate = torch.tensor(
+            row.to_numpy(dtype="float32"),
+            dtype=torch.float32,
+            device=method._device,
+        ).reshape(1, -1)
+        random_samples = reparametrization_trick(
+            candidate,
+            torch.tensor(
+                float(method._noise_variance),
+                dtype=torch.float32,
+                device=method._device,
+            ),
+            monte_carlo_samples,
+        )
+        air = compute_invalidation_rate(
+            lambda batch: method._predict_probabilities_tensor(batch, target_index=1),
+            random_samples,
+        )
+        air_values.append(float(air.detach().cpu().item()))
+    return air_values
 
-    evaluation_results = [
-        evaluation_step.evaluate(factuals, counterfactuals)
-        for evaluation_step in experiment._evaluation
-    ]
-    metrics = pd.concat(evaluation_results, axis=1)
-    experiment._metrics = metrics
 
-    _, _, evaluation_mask, success_mask = resolve_evaluation_inputs(
+def _aggregate_probe_metrics(
+    experiment: Experiment,
+    factuals,
+    counterfactuals,
+    monte_carlo_samples: int,
+) -> dict[str, float]:
+    factual_features, counterfactual_features, evaluation_mask, success_mask = resolve_evaluation_inputs(
         factuals,
         counterfactuals,
     )
-    successful_count = int((evaluation_mask & success_mask).sum())
-    summary = {
-        "device": native_config["model"]["device"],
-        "num_factuals_selected": int(len(factuals)),
-        "num_counterfactuals_evaluated": int(evaluation_mask.sum()),
-        "num_counterfactuals_successful": successful_count,
-        **model_metrics,
-    }
+    selected_mask = evaluation_mask & success_mask
+    num_factuals = int(evaluation_mask.sum())
+    num_successful = int(selected_mask.sum())
+    ra = float(num_successful / num_factuals) if num_factuals > 0 else float("nan")
 
-    if bool(experiment_cfg.get("save_results", True)):
-        _save_results(
-            output_dir=Path(str(experiment_cfg.get("output_dir", "./results/probe"))),
-            experiment_name=native_config["name"],
-            summary=summary,
-            metrics=metrics,
-            output_format=str(experiment_cfg.get("output_format", "both")),
-        )
+    if num_successful == 0:
+        return {
+            "ra": ra,
+            "air_mean": float("nan"),
+            "air_std": float("nan"),
+            "ac_mean": float("nan"),
+            "ac_std": float("nan"),
+            "num_factuals": num_factuals,
+            "num_successful": num_successful,
+        }
 
-    print(json.dumps(summary, indent=2, sort_keys=True))
-    print(metrics.to_string(index=False))
+    factual_success = factual_features.loc[selected_mask.to_numpy()]
+    counterfactual_success = counterfactual_features.loc[selected_mask.to_numpy()]
+
+    air_values = _estimate_air(
+        experiment=experiment,
+        counterfactual_rows=counterfactual_success,
+        monte_carlo_samples=monte_carlo_samples,
+    )
+    deltas = np.abs(
+        counterfactual_success.to_numpy(dtype=np.float32)
+        - factual_success.to_numpy(dtype=np.float32)
+    )
+    l1_values = deltas.sum(axis=1).astype(np.float64)
 
     return {
-        "summary": summary,
-        "metrics": metrics,
-        "factuals": factuals,
-        "counterfactuals": counterfactuals,
+        "ra": ra,
+        "air_mean": float(np.mean(air_values)),
+        "air_std": float(np.std(air_values, ddof=0)),
+        "ac_mean": float(np.mean(l1_values)),
+        "ac_std": float(np.std(l1_values, ddof=0)),
+        "num_factuals": num_factuals,
+        "num_successful": num_successful,
     }
+
+
+def _build_result_row(case: ReproductionCase, model_metrics: dict[str, float], probe_metrics: dict[str, float]) -> dict[str, Any]:
+    paper = PAPER_PROBE_RESULTS[(case.dataset_name, case.model_name)]
+    return {
+        "dataset": "compas" if case.dataset_name == "compas_carla" else "gmc",
+        "dataset_internal": case.dataset_name,
+        "model": case.model_name,
+        "test_accuracy": float(model_metrics["test_accuracy"]),
+        "test_auc": float(model_metrics["test_auc"]),
+        "paper_accuracy": float(paper["paper_accuracy"]),
+        "accuracy_delta": float(model_metrics["test_accuracy"] - paper["paper_accuracy"]),
+        "ra": float(probe_metrics["ra"]),
+        "paper_ra": float(paper["ra"]),
+        "ra_delta": float(probe_metrics["ra"] - paper["ra"]),
+        "air_mean": float(probe_metrics["air_mean"]),
+        "paper_air_mean": float(paper["air_mean"]),
+        "air_mean_delta": float(probe_metrics["air_mean"] - paper["air_mean"]),
+        "air_std": float(probe_metrics["air_std"]),
+        "paper_air_std": float(paper["air_std"]),
+        "air_std_delta": float(probe_metrics["air_std"] - paper["air_std"]),
+        "ac_mean": float(probe_metrics["ac_mean"]),
+        "paper_ac_mean": float(paper["ac_mean"]),
+        "ac_mean_delta": float(probe_metrics["ac_mean"] - paper["ac_mean"]),
+        "ac_std": float(probe_metrics["ac_std"]),
+        "paper_ac_std": float(paper["ac_std"]),
+        "ac_std_delta": float(probe_metrics["ac_std"] - paper["ac_std"]),
+        "num_factuals": int(probe_metrics["num_factuals"]),
+        "num_successful": int(probe_metrics["num_successful"]),
+    }
+
+
+def _run_case(case: ReproductionCase, device: str, n_cfs: int | None, monte_carlo_samples: int) -> dict[str, Any]:
+    config = _build_experiment_config(case, device)
+    experiment = Experiment(config)
+    logger = experiment._logger
+
+    trainset, testset = _materialize_datasets(experiment)
+    logger.info("Training target model for %s", case.slug)
+    experiment._target_model.fit(trainset)
+    model_metrics = _compute_model_metrics(experiment._target_model, testset)
+
+    logger.info("Training PROBE for %s", case.slug)
+    experiment._method.fit(trainset)
+
+    combined_df = pd.concat(
+        [
+            pd.concat([trainset.get(target=False), trainset.get(target=True)], axis=1),
+            pd.concat([testset.get(target=False), testset.get(target=True)], axis=1),
+        ],
+        axis=0,
+    )
+    combined = _build_frozen_dataset(trainset, combined_df, "reference_source")
+    factuals = _select_negative_factuals(experiment._target_model, combined, n_cfs)
+    logger.info("Selected %d negative factuals for %s", len(factuals), case.slug)
+
+    counterfactuals = experiment._method.predict(factuals, batch_size=BATCH_SIZE)
+    probe_metrics = _aggregate_probe_metrics(
+        experiment=experiment,
+        factuals=factuals,
+        counterfactuals=counterfactuals,
+        monte_carlo_samples=monte_carlo_samples,
+    )
+    return {
+        "case": case,
+        "model_metrics": model_metrics,
+        "probe_metrics": probe_metrics,
+    }
+
+
+def _save_outputs(output_dir: Path, rows: list[dict[str, Any]], summary: dict[str, Any]) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    frame = pd.DataFrame(rows)
+    frame.to_csv(output_dir / "probe_reference_results.csv", index=False)
+    with (output_dir / "probe_reference_results.json").open("w", encoding="utf-8") as file:
+        json.dump(rows, file, indent=2)
+    with (output_dir / "probe_reference_summary.json").open("w", encoding="utf-8") as file:
+        json.dump(summary, file, indent=2)
+
+
+def run_reproduction(
+    datasets: list[str] | None = None,
+    models: list[str] | None = None,
+    n_cfs: int | None = DEFAULT_N_CFS,
+    monte_carlo_samples: int = MC_SAMPLES,
+    device: str | None = None,
+) -> dict[str, Any]:
+    resolved_device = _resolve_device(device)
+    selected_datasets = datasets or ["compas_carla", "credit_carla"]
+    selected_models = models or ["linear", "mlp"]
+    cases = [
+        ReproductionCase(dataset_name=dataset_name, model_name=model_name)
+        for dataset_name in selected_datasets
+        for model_name in selected_models
+    ]
+
+    rows: list[dict[str, Any]] = []
+    for case in cases:
+        result = _run_case(
+            case=case,
+            device=resolved_device,
+            n_cfs=n_cfs,
+            monte_carlo_samples=monte_carlo_samples,
+        )
+        rows.append(
+            _build_result_row(
+                case=case,
+                model_metrics=result["model_metrics"],
+                probe_metrics=result["probe_metrics"],
+            )
+        )
+
+    frame = pd.DataFrame(rows)
+    summary = {
+        "device": resolved_device,
+        "datasets": selected_datasets,
+        "models": selected_models,
+        "n_cfs": n_cfs,
+        "monte_carlo_samples": monte_carlo_samples,
+        "notes": [
+            "Phase-1 paper-comparable reproduction is limited to compas_carla and credit_carla.",
+            "Adult is intentionally excluded because the local adult dataset schema does not match the original CARLA Adult setup used by the paper.",
+            "Training defaults follow the original reference experiment flow for wachter_rip/PROBE, not the hardcoded Table 3 values.",
+        ],
+    }
+    return {"rows": rows, "frame": frame, "summary": summary}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-p",
-        "--path",
-        default=str(DEFAULT_CONFIG_PATH),
-        help="Path to the reference-style PROBE reproduction YAML",
+        "--datasets",
+        nargs="+",
+        choices=["compas_carla", "credit_carla"],
+        default=None,
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        choices=["linear", "mlp"],
+        default=None,
+    )
+    parser.add_argument(
+        "--n-cfs",
+        type=int,
+        default=DEFAULT_N_CFS,
+        help="Number of negative factuals to evaluate from the full predicted-negative pool.",
+    )
+    parser.add_argument(
+        "--monte-carlo-samples",
+        type=int,
+        default=MC_SAMPLES,
+    )
+    parser.add_argument(
+        "--device",
+        choices=["cpu", "cuda"],
+        default=None,
+    )
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
     )
     args = parser.parse_args()
-    run_reproduction(args.path)
+
+    n_cfs = args.n_cfs
+    mc_samples = args.monte_carlo_samples
+    if args.smoke:
+        n_cfs = min(int(n_cfs), SMOKE_N_CFS)
+        mc_samples = min(int(mc_samples), SMOKE_MC_SAMPLES)
+
+    output = run_reproduction(
+        datasets=args.datasets,
+        models=args.models,
+        n_cfs=n_cfs,
+        monte_carlo_samples=mc_samples,
+        device=args.device,
+    )
+    print(json.dumps(output["summary"], indent=2, sort_keys=True))
+    print(
+        output["frame"].to_string(
+            index=False,
+            float_format=lambda value: f"{value:.4f}",
+        )
+    )
 
 
 if __name__ == "__main__":
