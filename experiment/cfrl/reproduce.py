@@ -10,13 +10,28 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-import pytest
 import torch
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+try:
+    import pytest
+except ModuleNotFoundError:  # pragma: no cover - runtime fallback for script execution
+    class _PytestStub:
+        class mark:
+            @staticmethod
+            def parametrize(*args, **kwargs):
+                del args, kwargs
+
+                def _decorator(func):
+                    return func
+
+                return _decorator
+
+    pytest = _PytestStub()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
