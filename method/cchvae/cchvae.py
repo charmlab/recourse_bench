@@ -254,12 +254,29 @@ class CchvaeMethod(MethodObject):
         instance: np.ndarray,
         high: float,
         low: float,
+        active_mask: np.ndarray | None = None,
     ) -> np.ndarray:
         delta_instance = np.random.randn(self._search_samples, instance.shape[1])
         dist = np.random.rand(self._search_samples) * (high - low) + low
         norm_p = LA.norm(delta_instance, ord=self._p_norm, axis=1)
         d_norm = np.divide(dist, norm_p).reshape(-1, 1)
-        return instance + np.multiply(delta_instance, d_norm)
+        delta = np.multiply(delta_instance, d_norm)
+        if active_mask is not None:
+            delta = delta * active_mask.reshape(1, -1)
+        return instance + delta
+
+    def _active_latent_mask(self, logvar_qz: torch.Tensor) -> np.ndarray:
+        if self._degree_active == 1.0:
+            return np.ones(logvar_qz.shape[1], dtype=np.float32)
+
+        return (
+            (torch.exp(logvar_qz).mean(dim=0) < self._degree_active)
+            .to(dtype=torch.float32)
+            .detach()
+            .cpu()
+            .numpy()
+            .astype("float32", copy=False)
+        )
 
     def _inference_stats(
         self,
@@ -267,6 +284,7 @@ class CchvaeMethod(MethodObject):
     ) -> tuple[
         list[tuple[torch.Tensor, torch.Tensor]],
         list[tuple[torch.Tensor, torch.Tensor]],
+        np.ndarray,
         np.ndarray,
         StandardScaler,
     ]:
@@ -278,26 +296,24 @@ class CchvaeMethod(MethodObject):
         _, conditional_stats = normalize_feature_block(
             conditional_tensor, self._conditional_specs
         )
-        z_values = (
-            self._model.encode_deterministic(
-                free_values=free_tensor,
-                conditional_values=conditional_tensor,
-                free_stats=free_stats,
-                conditional_stats=conditional_stats,
-            )
-            .detach()
-            .cpu()
-            .numpy()
+        mean_qz, logvar_qz = self._model.latent_stats(
+            free_values=free_tensor,
+            conditional_values=conditional_tensor,
+            free_stats=free_stats,
+            conditional_stats=conditional_stats,
         )
+        z_values = mean_qz.detach().cpu().numpy()
+        active_mask = self._active_latent_mask(logvar_qz)
         scaler = StandardScaler().fit(
             factuals.loc[:, self._free_features].to_numpy(dtype="float32")
         )
-        return free_stats, conditional_stats, z_values, scaler
+        return free_stats, conditional_stats, z_values, active_mask, scaler
 
     def _counterfactual_search(
         self,
         factual: pd.Series,
         latent_z: np.ndarray,
+        active_mask: np.ndarray,
         free_stats: list[tuple[torch.Tensor, torch.Tensor]],
         scaler: StandardScaler,
     ) -> np.ndarray:
@@ -328,6 +344,7 @@ class CchvaeMethod(MethodObject):
                 latent_z.reshape(1, -1),
                 high=high,
                 low=low,
+                active_mask=active_mask,
             )
             decoded_free = (
                 self._model.sample_from_latent(
@@ -372,13 +389,16 @@ class CchvaeMethod(MethodObject):
 
         factuals = factuals.loc[:, self._feature_names].copy(deep=True)
         with seed_context(self._seed):
-            free_stats, _, latent_z, scaler = self._inference_stats(factuals)
+            free_stats, _, latent_z, active_mask, scaler = self._inference_stats(
+                factuals
+            )
             rows = []
             for index, (_, row) in enumerate(factuals.iterrows()):
                 rows.append(
                     self._counterfactual_search(
                         factual=row,
                         latent_z=latent_z[index],
+                        active_mask=active_mask,
                         free_stats=free_stats,
                         scaler=scaler,
                     )

@@ -316,13 +316,13 @@ class TypedCchvaeNet(nn.Module):
         return loss, reconstruction.mean(), kl_z.mean(), kl_s.mean()
 
     @torch.no_grad()
-    def encode_deterministic(
+    def latent_stats(
         self,
         free_values: torch.Tensor,
         conditional_values: torch.Tensor,
         free_stats: list[tuple[torch.Tensor, torch.Tensor]],
         conditional_stats: list[tuple[torch.Tensor, torch.Tensor]],
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         normalized_free = normalize_with_stats(free_values, self.free_specs, free_stats)
         normalized_conditional = normalize_with_stats(
             conditional_values, self.conditional_specs, conditional_stats
@@ -333,10 +333,25 @@ class TypedCchvaeNet(nn.Module):
         samples_s = F.one_hot(log_pi.argmax(dim=1), num_classes=self.s_dim).to(
             dtype=free_values.dtype
         )
-        mean_qz, _ = self._poe_qz(
+        return self._poe_qz(
             normalized_free=normalized_free,
             normalized_conditional=normalized_conditional,
             samples_s=samples_s,
+        )
+
+    @torch.no_grad()
+    def encode_deterministic(
+        self,
+        free_values: torch.Tensor,
+        conditional_values: torch.Tensor,
+        free_stats: list[tuple[torch.Tensor, torch.Tensor]],
+        conditional_stats: list[tuple[torch.Tensor, torch.Tensor]],
+    ) -> torch.Tensor:
+        mean_qz, _ = self.latent_stats(
+            free_values=free_values,
+            conditional_values=conditional_values,
+            free_stats=free_stats,
+            conditional_stats=conditional_stats,
         )
         return mean_qz
 
