@@ -1,0 +1,37 @@
+Level Badge
+Level 1: Congruent Reproduction
+Reason: The pre-standardization reproduction log did not assign a numeric reproduction badge.
+
+Method
+CFVAE benchmark reproduction
+
+Summary
+- Restored original badge: `No explicit original level badge`
+- Current extracted scalar-result coverage under the standardized criterion: `R = 96`, `R_rep = 96`
+- Average raw delta across extracted scalar results: `0.001082`
+- Average variance-adjusted delta across extracted scalar results: `0.001082`
+
+Scalar Result Coverage
+- `R = 96` total extracted scalar results
+- `R_rep = 96` extracted scalar results with `Δ <= 0.15`
+- `R - R_rep = 0` extracted scalar results outside the threshold
+
+Reproducibility Criterion
+- A result is treated as one scalar `(dataset, model, metric)` value.
+- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
+- Numerical-stability constant: `ε0 = 1e-12`.
+- Fixed reproduction tolerance: `δ = 0.15`.
+
+Reference Scope
+- Adult-age and adult-age-ed result families only; despite many scalar outputs, the current script/log does not claim full paper-wide experiment coverage.
+
+Observed Result Highlights
+- All currently extracted scalar-result pairs are within the 15% threshold.
+- The current structured log still represents a bounded subset of the original paper’s total experiment space.
+
+Notes / Caveats
+- Provisional Level 3 by scalar-result counts is downgraded to Level 2 because full paper coverage is not established.
+
+Next Steps
+- Confirm whether the original paper reports additional datasets/settings beyond the currently logged adult subsets.
+- Only assign Level 3 once the script demonstrates full paper experiment coverage.

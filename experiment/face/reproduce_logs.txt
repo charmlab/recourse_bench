@@ -1,0 +1,33 @@
+Level Badge
+Level 0: No Reproduction
+Reason: Dataset used in original paper is not available, nor does the original paper have any reproducible metrics.
+
+Method
+FACE benchmark reproduction
+
+Summary
+- Restored original badge status: `No explicit original level badge`
+- Current scalar-result coverage is not classifiable from the available pipeline artifacts.
+
+Scalar Result Coverage
+- `R`: not classifiable from the available scalar-result pipeline
+- `R_rep`: not classifiable from the available scalar-result pipeline
+
+Reproducibility Criterion
+- A scored result must be one scalar `(dataset, model, metric)` pair with both observed and paper/reference values available.
+- The scalar criterion would use `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
+- Numerical-stability constant: `ε0 = 1e-12`.
+- Fixed reproduction tolerance: `δ = 0.15`.
+
+Reference Scope
+- The log reports benchmark summary tables and threshold-style behavioral checks, but not extractable paper/reference scalar result pairs.
+
+Observed Result Highlights
+- The current run provides benchmark summary statistics and qualitative reachability checks.
+- No scalar paper/reference result set is currently available for R / R_rep scoring.
+
+Notes / Caveats
+- This method is rewritten into the standardized format but remains unscored under the current criterion.
+
+Next Steps
+- Expose explicit scalar paper/reference result pairs if FACE should enter the same scoring pipeline.

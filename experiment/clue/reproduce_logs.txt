@@ -1,0 +1,52 @@
+Level Badge
+Level 1: Minimal Reproduction
+Reason: We are able to run the compas only experiment, with metric values that are congruent with the main paper results.
+
+Method
+CLUE benchmark reproduction
+
+Reproduction Results
+{
+    "device": "cuda",
+  "paper_style_abs_errors": {
+    "table1_aleatoric": 0.040275508348581485,
+    "table1_epistemic": 0.0028932188134525028,
+    "table2_aleatoric": 0.044,
+    "table2_epistemic": 0.0001067811865474999
+  },
+  "paper_style_comparison": {
+    "table1_aleatoric": 0.22027550834858148,
+    "table1_epistemic": 0.7071067811865475,
+    "table2_aleatoric": 0.0,
+    "table2_epistemic": 0.7071067811865475
+  },
+  "paper_style_targets": {
+    "table1_aleatoric": 0.18,
+    "table1_epistemic": 0.71,
+    "table2_aleatoric": 0.044,
+    "table2_epistemic": 0.707
+  },
+  "selected_counts": {
+    "aleatoric": 327,
+    "epistemic": 103
+  }
+}
+
+Summary
+
+Reproducibility Criterion
+- A result is treated as one scalar `(dataset, model, metric)` value.
+- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
+- Numerical-stability constant: `ε0 = 1e-12`.
+- Fixed reproduction tolerance: `δ = 0.15`.
+
+Reference Scope
+
+Observed Result Highlights
+
+
+Notes / Caveats
+
+Next Steps
+
+

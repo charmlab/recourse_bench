@@ -1,0 +1,37 @@
+Level Badge
+Level 1: Minimal Reproduction
+Reason: The pre-standardization reproduction log did not assign a numeric reproduction badge.
+
+Method
+ROAR benchmark reproduction
+
+Summary
+- Restored original badge: `No explicit original level badge`
+- Current extracted scalar-result coverage under the standardized criterion: `R = 7`, `R_rep = 5`
+- Average raw delta across extracted scalar results: `0.087796`
+- Average variance-adjusted delta across extracted scalar results: `0.036479`
+
+Scalar Result Coverage
+- `R = 7` total extracted scalar results
+- `R_rep = 5` extracted scalar results with `Δ <= 0.15`
+- `R - R_rep = 2` extracted scalar results outside the threshold
+
+Reproducibility Criterion
+- A result is treated as one scalar `(dataset, model, metric)` value.
+- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
+- Numerical-stability constant: `ε0 = 1e-12`.
+- Fixed reproduction tolerance: `δ = 0.15`.
+
+Reference Scope
+- Single German MLP setting only; current log does not claim full paper-wide experiment coverage.
+
+Observed Result Highlights
+- Most extracted scalar targets are within the threshold.
+- The current script/log covers one benchmark setting rather than the full paper experiment set.
+
+Notes / Caveats
+- Coverage gate fails because full paper coverage is not established.
+
+Next Steps
+- Add any remaining paper datasets/settings not covered by the current German MLP run.
+- Only assign Level 3 after full experiment coverage is explicit.

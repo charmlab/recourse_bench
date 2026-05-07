@@ -1,0 +1,37 @@
+Level Badge
+Level 1: Minimal Reproduction
+Reason: The pre-standardization reproduction log did not assign a numeric reproduction badge.
+
+Method
+LARR benchmark reproduction
+
+Summary
+- Restored original badge: `No explicit original level badge`
+- Current extracted scalar-result coverage under the standardized criterion: `R = 2`, `R_rep = 2`
+- Average raw delta across extracted scalar results: `0.010110`
+- Average variance-adjusted delta across extracted scalar results: `0.000000`
+
+Scalar Result Coverage
+- `R = 2` total extracted scalar results
+- `R_rep = 2` extracted scalar results with `Δ <= 0.15`
+- `R - R_rep = 0` extracted scalar results outside the threshold
+
+Reproducibility Criterion
+- A result is treated as one scalar `(dataset, model, metric)` value.
+- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
+- Numerical-stability constant: `ε0 = 1e-12`.
+- Fixed reproduction tolerance: `δ = 0.15`.
+
+Reference Scope
+- Current log reports one averaged robustness/consistency experiment; it does not establish full paper-wide experiment coverage.
+
+Observed Result Highlights
+- All currently extracted scalar-result pairs are within the threshold.
+- The current script/log still appears to cover only a bounded experiment slice.
+
+Notes / Caveats
+- Provisional Level 3 by scalar-result counts is downgraded to Level 2 because full paper coverage is not established.
+
+Next Steps
+- Confirm the complete set of paper experiments and extend the script if more are required.
+- Only assign Level 3 once full paper coverage is explicit.

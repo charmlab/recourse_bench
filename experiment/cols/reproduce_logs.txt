@@ -1,0 +1,53 @@
+Level Badge
+Level 1: Congruent Reproduction
+Reason: The benchmark COLS implementation reproduces the paper-style COMPAS behavior and matches several key aggregate metrics closely, especially FS@1, PAC, Cov, and Val, but it does not reproduce exact numerical parity across all reported metrics. The largest remaining gaps are on Div, Prox, and Spars, which keeps this run below a partial quantitative reproduction claim.
+
+Method
+COLS reproduction for the benchmark implementation under `method/cols/`, using the reproduction harness in `experiment/cols/`, the `compas_carla` dataset path, scalar-encoded COMPAS features, and a 5-seed aggregate comparison against the paper target table.
+
+Reproduction Summary
+Reference setting:
+- dataset: compas_carla
+- target column: score
+- desired class: 1
+- model: MLP with hidden layers [20]
+- training: 2000 epochs, Adam, learning rate 0.00001, batch size 32
+- COLS hyperparameters: num_cfs 10, num_mcmc 1000, budget 5000, num_parallel_runs 1, hamming_dist 2, perturb_type all, init_type ham_2, iter_type best, variance 0.001
+- reproduction seeds: 1, 2, 3, 4, 5
+
+Observed result:
+- balanced_rows = 2288
+- train_rows = 1415
+- val_rows = 229
+- provisional_rows = 1000
+- provisional_unique_rows = 644
+- factual_rows = 491
+- val_accuracy = 0.6856
+- mean_queries = 5011.00
+- mean_valid_cfs = 9.98 to 9.99 across seeds
+- coverage_seed_1 = 0.8126
+- coverage_seed_2 = 0.8187
+- coverage_seed_3 = 0.8248
+- coverage_seed_4 = 0.8024
+- coverage_seed_5 = 0.8248
+- mean_emc_seed_1 = 18879.8591
+- mean_emc_seed_2 = 18749.9225
+- mean_emc_seed_3 = 19027.9234
+- mean_emc_seed_4 = 18706.3383
+- mean_emc_seed_5 = 19257.2494
+
+Paper / reference comparison:
+- FS@1: paper 82.23, reproduced_mean 81.262729, reproduced_std 0.728658, absolute_gap 0.967271
+- PAC: paper 0.24, reproduced_mean 0.262230, reproduced_std 0.009500, absolute_gap 0.022230
+- Cov: paper 82.23, reproduced_mean 81.670061, reproduced_std 0.844662, absolute_gap 0.559939
+- Div: paper 29.32, reproduced_mean 24.264649, reproduced_std 0.174996, absolute_gap 5.055351
+- Prox: paper 77.82, reproduced_mean 82.843748, reproduced_std 0.131193, absolute_gap 5.023748
+- Spars: paper 70.05, reproduced_mean 75.463386, reproduced_std 0.173032, absolute_gap 5.413386
+- Val: paper 95.48, reproduced_mean 97.295316, reproduced_std 0.166658, absolute_gap 1.815316
+- FS@1, PAC, Cov, and Val are reasonably close, but Div, Prox, and Spars remain the limiting gaps for stronger reproduction claims.
+
+Next Steps
+- Recheck whether the benchmark split and class-balancing logic exactly matches the reference COMPAS pipeline.
+- Reconfirm whether search-budget accounting and accepted-set aggregation match the reference EMC-COLS implementation literally.
+- Inspect diversity, proximity, and sparsity computation together with raw-feature decoding before changing the core COLS search loop.
+- If metric definitions are already identical, rerun after tightening seed and model-checkpoint parity with the reference setup.
