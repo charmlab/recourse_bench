@@ -1,6 +1,7 @@
 from evaluation.constraints import ConstraintsEvaluation
 from evaluation.distance import DistanceEvaluation
 from evaluation.evaluation_object import EvaluationObject
+from evaluation.runtime import RuntimeEvaluation
 from evaluation.examples import ExamplesEvaluation
 from evaluation.knn import KnnEvaluation
 from evaluation.validity import ValidityEvaluation
