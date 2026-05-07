@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
-from sklearn.linear_model import LogisticRegression
+from lime.lime_tabular import LimeTabularExplainer
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.neighbors import KNeighborsClassifier
 from tqdm import tqdm
@@ -260,6 +260,78 @@ def _aggregate_boundary_metrics(
     }
 
 
+def _build_lime_explainer(schema_method, target_model, seed: int):
+    feature_names = list(schema_method._feature_names)
+    train_features = (
+        schema_method._trainset_reference.get(target=False)
+        .loc[:, feature_names]
+        .to_numpy(dtype=np.float32)
+    )
+    class_to_index = target_model.get_class_to_index()
+    index_to_class = {
+        int(index): str(class_value) for class_value, index in class_to_index.items()
+    }
+    class_names = [index_to_class[index] for index in sorted(index_to_class)]
+
+    return LimeTabularExplainer(
+        training_data=train_features,
+        mode="classification",
+        feature_names=feature_names,
+        class_names=class_names,
+        discretize_continuous=False,
+        feature_selection="none",
+        random_state=seed,
+    )
+
+
+def _predict_lime_probabilities(
+    target_model,
+    feature_names: list[str],
+    samples: np.ndarray,
+) -> np.ndarray:
+    sample_array = np.asarray(samples, dtype=np.float32)
+    if sample_array.ndim == 1:
+        sample_array = sample_array.reshape(1, -1)
+    prediction = target_model.get_prediction(
+        pd.DataFrame(sample_array, columns=feature_names),
+        proba=True,
+    )
+    if isinstance(prediction, torch.Tensor):
+        prediction = prediction.detach().cpu().numpy()
+    return np.asarray(prediction, dtype=np.float64)
+
+
+def _scale_lime_features(
+    explainer: LimeTabularExplainer,
+    samples: np.ndarray,
+) -> np.ndarray:
+    sample_array = np.asarray(samples, dtype=np.float64)
+    return (sample_array - explainer.scaler.mean_) / explainer.scaler.scale_
+
+
+def _predict_with_lime_explanation(
+    explainer: LimeTabularExplainer,
+    explanation,
+    samples: np.ndarray,
+    class_indices: tuple[int, ...],
+) -> np.ndarray:
+    scaled_samples = _scale_lime_features(explainer, samples)
+    class_scores = np.zeros(
+        (scaled_samples.shape[0], len(class_indices)),
+        dtype=np.float64,
+    )
+
+    for column_index, class_index in enumerate(class_indices):
+        coefficients = np.zeros(scaled_samples.shape[1], dtype=np.float64)
+        for feature_index, weight in explanation.local_exp[class_index]:
+            coefficients[int(feature_index)] = float(weight)
+        class_scores[:, column_index] = (
+            float(explanation.intercept[class_index]) + scaled_samples @ coefficients
+        )
+
+    return np.asarray(class_indices, dtype=np.int64)[np.argmax(class_scores, axis=1)]
+
+
 def _evaluate_setting(
     factual_features: pd.DataFrame,
     target_model,
@@ -495,12 +567,18 @@ def _evaluate_lime_proxy(
         .astype(np.float32)
     )
     desired_class = schema_method._desired_class
-    desired_index = int(target_model.get_class_to_index()[desired_class])
-    train_radius = max(2.0, max(radii))
+    class_to_index = target_model.get_class_to_index()
+    desired_index = int(class_to_index[desired_class])
+    class_indices = tuple(sorted(int(index) for index in class_to_index.values()))
     mads = _compute_mads(
         trainset=schema_method._trainset_reference,
         continuous_indices=continuous_indices,
         feature_names=feature_names,
+    )
+    explainer = _build_lime_explainer(
+        schema_method=schema_method,
+        target_model=target_model,
+        seed=seed,
     )
 
     boundary_truth = {radius: [] for radius in radii}
@@ -510,40 +588,22 @@ def _evaluate_lime_proxy(
     iterator = tqdm(
         factual_features.iterrows(),
         total=factual_features.shape[0],
-        desc="lime-proxy",
+        desc="lime",
         leave=False,
     )
     for _, row in iterator:
         factual = row.to_numpy(dtype=np.float32)
-        local_train = _sample_boundary_points(
-            factual=factual,
+        explanation = explainer.explain_instance(
+            data_row=factual,
+            predict_fn=lambda samples: _predict_lime_probabilities(
+                target_model=target_model,
+                feature_names=feature_names,
+                samples=samples,
+            ),
+            labels=class_indices,
+            num_features=len(feature_names),
             num_samples=lime_num_samples,
-            radius_multiplier=train_radius,
-            continuous_indices=continuous_indices,
-            mads=mads,
-            lower_bounds=lower_bounds,
-            upper_bounds=upper_bounds,
-            categorical_groups=categorical_groups,
-            binary_feature_value_map=schema_method._binary_feature_value_map,
-            rng=rng,
         )
-        train_prediction = target_model.get_prediction(
-            pd.DataFrame(local_train, columns=feature_names),
-            proba=False,
-        )
-        y_local = train_prediction.argmax(dim=1).detach().cpu().numpy()
-
-        lime_model = None
-        constant_prediction: int | None = None
-        if np.unique(y_local).shape[0] >= 2:
-            lime_model = LogisticRegression(
-                max_iter=1000,
-                random_state=seed,
-                solver="lbfgs",
-            )
-            lime_model.fit(local_train, y_local)
-        else:
-            constant_prediction = int(y_local[0])
 
         for radius in radii:
             boundary_points = _sample_boundary_points(
@@ -563,10 +623,12 @@ def _evaluate_lime_proxy(
                 proba=False,
             )
             y_true = target_prediction.argmax(dim=1).detach().cpu().numpy().tolist()
-            if lime_model is None:
-                y_pred = [constant_prediction] * len(y_true)
-            else:
-                y_pred = lime_model.predict(boundary_points).tolist()
+            y_pred = _predict_with_lime_explanation(
+                explainer=explainer,
+                explanation=explanation,
+                samples=boundary_points,
+                class_indices=class_indices,
+            ).tolist()
             boundary_truth[radius].extend(y_true)
             boundary_pred[radius].extend(y_pred)
 
@@ -947,6 +1009,13 @@ def _run_candidate(
     target_model.fit(trainset)
     accuracy = _compute_model_accuracy(target_model, testset)
     logger.info("Target model test accuracy: %.4f", accuracy)
+    logger.info(
+        "DiCE defaults: init_near_query_instance=%s, respect_mutability=%s, "
+        "posthoc_sparsity_enabled=%s",
+        config["method"].get("init_near_query_instance"),
+        config["method"].get("respect_mutability"),
+        config["method"].get("posthoc_sparsity_enabled"),
+    )
 
     desired_class = config["method"]["desired_class"]
     factual_features = _select_factual_features(
@@ -986,6 +1055,21 @@ def _run_candidate(
         "RandomInitCF": {
             "algorithm": "RandomInitCF",
             "diversity_weight": float(config["method"].get("diversity_weight", 1.0)),
+        },
+        "DiverseCF-Sparse": {
+            "algorithm": "DiverseCF",
+            "diversity_weight": float(config["method"].get("diversity_weight", 1.0)),
+            "posthoc_sparsity_enabled": True,
+        },
+        "NoDiversityCF-Sparse": {
+            "algorithm": "DiverseCF",
+            "diversity_weight": 0.0,
+            "posthoc_sparsity_enabled": True,
+        },
+        "RandomInitCF-Sparse": {
+            "algorithm": "RandomInitCF",
+            "diversity_weight": float(config["method"].get("diversity_weight", 1.0)),
+            "posthoc_sparsity_enabled": True,
         },
     }
 

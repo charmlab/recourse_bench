@@ -59,6 +59,7 @@ method:
   stopping_threshold: 0.5
   posthoc_sparsity_param: 0.1
   posthoc_sparsity_algorithm: linear
+  posthoc_sparsity_enabled: false
   respect_mutability: false
 evaluation:
   - name: validity
@@ -81,7 +82,7 @@ assertions:
     - 4
   boundary_f1_floor: 0.35
   boundary_lime_ratio_floor: 0.6
-  lime_num_samples: 500
+  lime_num_samples: 5000
 autorepro:
   enabled: true
   screening_num_factuals: 2
