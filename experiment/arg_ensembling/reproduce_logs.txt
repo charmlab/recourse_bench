@@ -1,5 +1,37 @@
-- Reproduction level: Level 1 (Congruent Reproduction). The transplanted method appears faithful at the argumentation level and reproduces the paper's qualitative behavior, but the current checked-in reproduction does not yet match the original experiments numerically across a paper-identical setup.
+Level Badge
+Level 1: Congruent Reproduction
+Reason: Restored original badge from the pre-standardization reproduction log.
 
-- Next step: reproduce the reference experimental pipeline more literally by matching the original datasets, preprocessing, and model-pool construction used in original, especially for `credit`, `compas`, and `heloc`.
+Method
+Argumentative ensembling benchmark reproduction
 
-- Next step: extend the reproduction harness to evaluate the original set-level outputs and metrics directly, including selected model/CE sets and properties like coherence, non-triviality, abstention, and CE validity, and then decide explicitly whether final parity should target the paper, the reference code, or the cleaned-up benchmark implementation where those differ.
+Summary
+- Restored original badge: `Level 1: Congruent Reproduction`
+- Current extracted scalar-result coverage under the standardized criterion: `R = 66`, `R_rep = 64`
+- Average raw delta across extracted scalar results: `0.045748`
+- Average variance-adjusted delta across extracted scalar results: `0.045748`
+
+Scalar Result Coverage
+- `R = 66` total extracted scalar results
+- `R_rep = 64` extracted scalar results with `Δ <= 0.15`
+- `R - R_rep = 2` extracted scalar results outside the threshold
+
+Reproducibility Criterion
+- A result is treated as one scalar `(dataset, model, metric)` value.
+- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
+- Numerical-stability constant: `ε0 = 1e-12`.
+- Fixed reproduction tolerance: `δ = 0.15`.
+
+Reference Scope
+- Current reproduction log only reports a COMPAS Table 4-style local variant; additional paper datasets/settings are not covered.
+
+Observed Result Highlights
+- Most extracted COMPAS scalar targets are within the 15% threshold.
+- The current script/log does not establish full paper-wide coverage beyond this variant.
+
+Notes / Caveats
+- Level 2 follows directly from scalar-result counts and remains capped by limited experiment coverage.
+
+Next Steps
+- Reproduce the remaining paper datasets and model-pool constructions.
+- Add standardized scalar comparisons for all original Table 4 settings.
