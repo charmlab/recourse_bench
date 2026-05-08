@@ -518,7 +518,7 @@ class ScalePreProcess(PreProcessObject):
                 override=self._override,
             )
 
-            scaling_stats: dict[str, dict[str, float | str]] | None = None
+            scaling_stats: dict[str, dict[str, float | str]]
             if self._refset is not None:
                 if self._cached_scaling_stats is None:
                     ref_df = self._resolve_ref_df(self._refset)
@@ -531,41 +531,40 @@ class ScalePreProcess(PreProcessObject):
                         selected_modes=selected_modes,
                     )
                 scaling_stats = self._cached_scaling_stats
+            else:
+                scaling_stats = self._compute_scaling_stats(
+                    df=df,
+                    target_column=target_column,
+                    feature_type=feature_type,
+                    selected_modes=selected_modes,
+                )
+                for column, mode in selected_modes.items():
+                    if mode != "normalize":
+                        continue
+                    bounds = fixed_scale_bounds.get(column)
+                    if bounds is None:
+                        continue
+                    if not isinstance(bounds, (list, tuple)) or len(bounds) != 2:
+                        raise ValueError(
+                            "scale_bounds entries must be [min, max] pairs"
+                        )
+                    scaling_stats[column]["min"] = float(bounds[0])
+                    scaling_stats[column]["max"] = float(bounds[1])
 
             scaled_df = df.copy(deep=True)
             for column, mode in selected_modes.items():
                 series = scaled_df[column].astype("float64")
 
                 if mode == "standardize":
-                    if scaling_stats is None:
-                        mean_value = float(series.mean())
-                        std_value = float(series.std(ddof=0))
-                    else:
-                        mean_value = float(scaling_stats[column]["mean"])
-                        std_value = float(scaling_stats[column]["std"])
+                    mean_value = float(scaling_stats[column]["mean"])
+                    std_value = float(scaling_stats[column]["std"])
                     if std_value == 0.0:
                         scaled_df[column] = 0.0
                     else:
                         scaled_df[column] = (series - mean_value) / std_value
                 elif mode == "normalize":
-                    if scaling_stats is None:
-                        bounds = fixed_scale_bounds.get(column)
-                        if bounds is not None:
-                            if (
-                                not isinstance(bounds, (list, tuple))
-                                or len(bounds) != 2
-                            ):
-                                raise ValueError(
-                                    "scale_bounds entries must be [min, max] pairs"
-                                )
-                            min_value = float(bounds[0])
-                            max_value = float(bounds[1])
-                        else:
-                            min_value = float(series.min())
-                            max_value = float(series.max())
-                    else:
-                        min_value = float(scaling_stats[column]["min"])
-                        max_value = float(scaling_stats[column]["max"])
+                    min_value = float(scaling_stats[column]["min"])
+                    max_value = float(scaling_stats[column]["max"])
                     scale_value = max_value - min_value
                     if scale_value == 0.0:
                         scaled_df[column] = 0.0
@@ -579,6 +578,7 @@ class ScalePreProcess(PreProcessObject):
                     )
 
             input.update("scaling", selected_modes, df=scaled_df)
+            input.update("scaling_stats", scaling_stats)
             return input
 
 

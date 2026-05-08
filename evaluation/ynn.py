@@ -6,16 +6,32 @@ import torch
 
 from dataset.dataset_object import DatasetObject
 from evaluation.evaluation_object import EvaluationObject
-from evaluation.evaluation_utils import resolve_evaluation_inputs, to_float_tensor
+from evaluation.evaluation_utils import (
+    distance,
+    resolve_evaluation_inputs,
+    resolve_restore_mode,
+    restore_features,
+    to_float_tensor,
+)
 from utils.registry import register
 
 
 @register("ynn")
 class YnnEvaluation(EvaluationObject):
-    def __init__(self, k: int = 5, **kwargs):
+    def __init__(
+        self,
+        k: int = 5,
+        restore_categorical: bool | str = False,
+        restore_numerical: bool | str = False,
+        **kwargs,
+    ):
         self._k = int(k)
         if self._k < 1:
             raise ValueError("k must be >= 1")
+        (
+            self._binarize_categorical,
+            self._restore_mode,
+        ) = resolve_restore_mode(restore_categorical, restore_numerical)
 
     @staticmethod
     def _resolve_index_series(
@@ -65,16 +81,55 @@ class YnnEvaluation(EvaluationObject):
         except AttributeError:
             return pd.DataFrame([{"ynn": float("nan")}])
 
-        factual_tensor = to_float_tensor(factual_features)
         selected_counterfactuals = counterfactual_features.loc[selected_mask.to_numpy()]
-        selected_counterfactual_tensor = to_float_tensor(selected_counterfactuals)
         selected_targets = target_prediction_index.loc[selected_mask.to_numpy()]
 
-        k = min(self._k, factual_tensor.shape[0])
+        if self._restore_mode != "none":
+            counterfactuals_clone = counterfactuals.clone()
+            counterfactuals_clone._rawdf = pd.concat(
+                [counterfactual_features, counterfactuals.get(target=True)], axis=1
+            )
+            counterfactuals_clone.freeze()
+            factual_features, counterfactual_features = restore_features(
+                factuals, counterfactuals_clone, mode=self._restore_mode
+            )
+            selected_counterfactuals = counterfactual_features.loc[
+                selected_mask.to_numpy()
+            ]
+
+        if self._binarize_categorical:
+            binarize_list = [
+                column
+                for column, feature_type in factual_features.attrs.get(
+                    "raw_feature_type", {}
+                ).items()
+                if str(feature_type).lower() == "categorical"
+            ]
+            distances = torch.stack(
+                [
+                    distance(
+                        factual_features,
+                        pd.DataFrame(
+                            [row.to_dict()] * factual_features.shape[0],
+                            index=factual_features.index,
+                            columns=factual_features.columns,
+                        ),
+                        "l2",
+                        binarize_list=binarize_list,
+                    )
+                    for _, row in selected_counterfactuals.iterrows()
+                ]
+            )
+            factual_count = factual_features.shape[0]
+        else:
+            factual_tensor = to_float_tensor(factual_features)
+            selected_counterfactual_tensor = to_float_tensor(selected_counterfactuals)
+            distances = torch.cdist(selected_counterfactual_tensor, factual_tensor, p=2)
+            factual_count = factual_tensor.shape[0]
+        k = min(self._k, factual_count)
         if k < 1:
             return pd.DataFrame([{"ynn": float("nan")}])
 
-        distances = torch.cdist(selected_counterfactual_tensor, factual_tensor, p=2)
         knn_indices = torch.topk(distances, k=k, largest=False).indices.cpu().numpy()
         factual_pred_values = factual_prediction_index.to_numpy(dtype=np.int64)
         target_values = selected_targets.to_numpy(dtype=np.int64)

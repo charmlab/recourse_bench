@@ -6,8 +6,11 @@ import torch
 from dataset.dataset_object import DatasetObject
 from evaluation.evaluation_object import EvaluationObject
 from evaluation.evaluation_utils import (
+    distance,
     resolve_evaluation_inputs,
     resolve_ref_df,
+    resolve_restore_mode,
+    restore_features,
     to_float_tensor,
 )
 from utils.registry import register
@@ -15,7 +18,14 @@ from utils.registry import register
 
 @register("knn")
 class KnnEvaluation(EvaluationObject):
-    def __init__(self, refset: DatasetObject, k: int = 5, **kwargs):
+    def __init__(
+        self,
+        refset: DatasetObject,
+        k: int = 5,
+        restore_categorical: bool | str = False,
+        restore_numerical: bool | str = False,
+        **kwargs,
+    ):
         if refset is None:
             raise ValueError("refset must not be None")
         if int(k) < 1:
@@ -23,6 +33,10 @@ class KnnEvaluation(EvaluationObject):
 
         self._refset = refset
         self._k = int(k)
+        (
+            self._binarize_categorical,
+            self._restore_mode,
+        ) = resolve_restore_mode(restore_categorical, restore_numerical)
 
     def set_refset(self, refset: DatasetObject) -> None:
         if refset is None:
@@ -54,11 +68,48 @@ class KnnEvaluation(EvaluationObject):
             )
 
         counterfactual_success = counterfactual_features.loc[selected_mask.to_numpy()]
-        ref_tensor = to_float_tensor(ref_features)
-        counterfactual_tensor = to_float_tensor(counterfactual_success)
+        if self._restore_mode != "none":
+            counterfactuals_clone = counterfactuals.clone()
+            counterfactuals_clone._rawdf = pd.concat(
+                [counterfactual_features, counterfactuals.get(target=True)], axis=1
+            )
+            counterfactuals_clone.freeze()
+            ref_features, counterfactual_features = restore_features(
+                self._refset, counterfactuals_clone, mode=self._restore_mode
+            )
+            counterfactual_success = counterfactual_features.loc[
+                selected_mask.to_numpy()
+            ]
 
-        neighbor_count = min(self._k, ref_tensor.shape[0])
-        distances = torch.cdist(counterfactual_tensor, ref_tensor, p=2)
+        if self._binarize_categorical:
+            binarize_list = [
+                column
+                for column, feature_type in ref_features.attrs.get(
+                    "raw_feature_type", {}
+                ).items()
+                if str(feature_type).lower() == "categorical"
+            ]
+            distances = torch.stack(
+                [
+                    distance(
+                        ref_features,
+                        pd.DataFrame(
+                            [row.to_dict()] * ref_features.shape[0],
+                            index=ref_features.index,
+                            columns=ref_features.columns,
+                        ),
+                        "l2",
+                        binarize_list=binarize_list,
+                    )
+                    for _, row in counterfactual_success.iterrows()
+                ]
+            )
+        else:
+            ref_tensor = to_float_tensor(ref_features)
+            counterfactual_tensor = to_float_tensor(counterfactual_success)
+            distances = torch.cdist(counterfactual_tensor, ref_tensor, p=2)
+
+        neighbor_count = min(self._k, ref_features.shape[0])
         nearest = torch.topk(distances, k=neighbor_count, largest=False, dim=1).values
         value = nearest.mean(dim=1).mean().item()
         return pd.DataFrame([{result_column: float(value)}])
