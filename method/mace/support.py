@@ -12,10 +12,13 @@ from model.linear.linear import LinearModel
 from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
 from model.randomforest.randomforest import RandomForestModel
+from model.sklearn_logistic_regression.sklearn_logistic_regression import (
+    SklearnLogisticRegressionModel,
+)
 from preprocess.preprocess_utils import resolve_feature_metadata
 
 TorchModelTypes = (LinearModel, MlpModel)
-BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
+BlackBoxModelTypes = (RandomForestModel, SklearnLogisticRegressionModel)
 
 
 def ensure_supported_target_model(
@@ -136,15 +139,7 @@ class RecourseModelAdapter:
             return prediction.detach().cpu().numpy()
         return np.asarray(prediction)
 
-    def predict(
-        self, X: pd.DataFrame | np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1)
-
+    def predict(self, X: pd.DataFrame | np.ndarray | torch.Tensor) -> np.ndarray:
         features = self.get_ordered_features(X)
         prediction = self._target_model.get_prediction(features, proba=False)
         if isinstance(prediction, torch.Tensor):
@@ -156,12 +151,6 @@ class RecourseModelAdapter:
     def predict_label_indices(
         self, X: pd.DataFrame | np.ndarray | torch.Tensor
     ) -> np.ndarray:
-        if isinstance(X, torch.Tensor) and isinstance(
-            self._target_model, TorchModelTypes
-        ):
-            probabilities = differentiable_predict_proba(self._target_model, X)
-            return probabilities.argmax(dim=1).detach().cpu().numpy()
-
         features = self.get_ordered_features(X)
         probabilities = self._target_model.get_prediction(features, proba=True)
         if isinstance(probabilities, torch.Tensor):

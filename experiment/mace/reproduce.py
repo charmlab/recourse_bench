@@ -4,7 +4,6 @@ import argparse
 import json
 import sys
 import time
-from copy import deepcopy
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -13,130 +12,427 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import numpy as np
 import pandas as pd
-import yaml
 
+import dataset  # noqa: F401
+import evaluation  # noqa: F401
+import method  # noqa: F401
+import model  # noqa: F401
+import preprocess  # noqa: F401
+from dataset.adult.adult import AdultDataset
+from dataset.credit.credit import CreditDataset
+from dataset.dataset_object import DatasetObject
+from evaluation.evaluation_object import EvaluationObject
 from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiment import Experiment
+from evaluation.validity import ValidityEvaluation
 from method.mace.library import normalizedDistance
+from method.mace.mace import MaceDatasetWrapper, MaceMethod
+from model.sklearn_logistic_regression.sklearn_logistic_regression import (
+    SklearnLogisticRegressionModel,
+)
+from preprocess.balance import BalancePreProcess
+from preprocess.common import FinalizePreProcess, SplitPreProcess
+from preprocess.preprocess_object import PreProcessObject
+from preprocess.preprocess_utils import ensure_flag_absent
+from utils.caching import set_cache_dir
+from utils.registry import register
+from utils.seed import seed_context
 
-DEFAULT_CONFIG_PATHS = {
-    "adult": Path(__file__).with_name("adult_randomforest_mace_reproduce.yaml"),
-    "credit": Path(__file__).with_name("credit_randomforest_mace_reproduce.yaml"),
-    "compas": Path(__file__).with_name("compas_randomforest_mace_reproduce.yaml"),
+SEED = 54321
+DEFAULTS = {
+    "adult": {
+        "dataset_cls": AdultDataset,
+        "split": 6601,
+        "targets": {"zero_norm": 62.0, "one_norm": 92.0, "infty_norm": 86.0},
+    },
+    "credit": {
+        "dataset_cls": CreditDataset,
+        "split": 3900,
+        "targets": {"zero_norm": 80.0, "one_norm": 82.0, "infty_norm": 80.0},
+    },
 }
-EPSILON_SEQUENCE = [1.0e-1, 1.0e-3, 1.0e-5]
 NORM_TO_METRIC = {
     "zero_norm": "distance_l0",
     "one_norm": "distance_l1",
     "infty_norm": "distance_linf",
 }
-MACE_DISTANCE_NORMS = {
-    "distance_l0": "zero_norm",
-    "distance_l1": "one_norm",
-    "distance_linf": "infty_norm",
-}
 
 
-def _load_config(config_path: Path) -> dict:
-    with config_path.open("r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-    if not isinstance(config, dict):
-        raise ValueError("Reproduction config must parse to a dictionary")
-    return config
+# Distance
+def _dataset_has_attr(dataset: DatasetObject, flag: str) -> bool:
+    try:
+        dataset.attr(flag)
+    except AttributeError:
+        return False
+    return True
 
 
-def _apply_overrides(
-    config: dict,
-    norm_type: str,
-    epsilon: float,
-    desired_class: int | str | None,
-) -> dict:
-    cfg = deepcopy(config)
-    cfg["model"]["device"] = "cpu"
-    cfg["method"]["device"] = "cpu"
-    cfg["method"]["norm_type"] = str(norm_type)
-    cfg["method"]["epsilon"] = float(epsilon)
-    cfg["method"]["desired_class"] = desired_class
-    cfg["name"] = (
-        f"{cfg['dataset']['name']}_randomforest_mace_"
-        f"{str(norm_type).lower()}_{epsilon:.0e}".replace("+", "")
-    )
-    cfg["logger"]["path"] = f"./logs/{cfg['name']}.log"
-    return cfg
+def _normalize_actionability(value: object) -> str:
+    normalized = str(value).lower()
+    return "none" if normalized == "same" else normalized
 
 
-def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
-    datasets = [experiment._raw_dataset]
-    for preprocess_step in experiment._preprocess:
-        next_datasets = []
-        for current_dataset in datasets:
-            transformed = preprocess_step.transform(current_dataset)
-            if isinstance(transformed, tuple):
-                next_datasets.extend(list(transformed))
-            else:
-                next_datasets.append(transformed)
-        datasets = next_datasets
-    return experiment._resolve_train_test(datasets)
-
-
-def _subset_dataset(dataset, indices: pd.Index, flag_name: str):
+def build_mace_wrapper(dataset: DatasetObject) -> MaceDatasetWrapper:
     feature_df = dataset.get(target=False)
-    target_df = dataset.get(target=True)
-    subset_df = pd.concat(
-        [feature_df.loc[indices], target_df.loc[indices]],
-        axis=1,
-    ).reindex(columns=dataset.ordered_features())
-    subset = dataset.clone()
+    feature_names = list(feature_df.columns)
+    if not _dataset_has_attr(dataset, "mace_encoded_attr_type"):
+        raise ValueError("MACE normalized distance requires mace-encoded datasets")
+
+    bounds_raw = dataset.attr("mace_encoded_bounds")
+    feature_type = dataset.attr("mace_encoded_attr_type")
+    mutability = dataset.attr("encoded_feature_mutability")
+    actionability = dataset.attr("encoded_feature_actionability")
+    encoded_parent = dataset.attr("mace_encoded_parent")
+    dataset_name = (
+        str(dataset.attr("name")) if _dataset_has_attr(dataset, "name") else ""
+    )
+
+    return MaceDatasetWrapper(
+        dataset_name=dataset_name,
+        feature_names=feature_names,
+        feature_types={key: str(value).lower() for key, value in feature_type.items()},
+        bounds={
+            key: tuple(map(float, value))
+            for key, value in bounds_raw.items()
+            if key in feature_names
+        },
+        mutability={key: bool(value) for key, value in mutability.items()},
+        actionability={
+            key: _normalize_actionability(value) for key, value in actionability.items()
+        },
+        encoded_parent={key: str(value) for key, value in encoded_parent.items()},
+    )
+
+
+@register("mace_normalized_distance")
+class MaceNormalizedDistanceEvaluation(EvaluationObject):
+    @staticmethod
+    def _resolve_metrics(metrics: list[str] | None) -> list[str]:
+        aliases = {
+            "l0": "zero_norm",
+            "l1": "one_norm",
+            "l2": "two_norm",
+            "linf": "infty_norm",
+        }
+        resolved = []
+        for metric in metrics or ["zero_norm", "one_norm", "infty_norm"]:
+            metric = str(metric).lower()
+            resolved.append(aliases.get(metric, metric))
+        invalid = [
+            metric
+            for metric in resolved
+            if metric not in {"zero_norm", "one_norm", "two_norm", "infty_norm"}
+        ]
+        if invalid:
+            raise ValueError(f"Unsupported MACE normalized distance metrics: {invalid}")
+        return resolved
+
+    def __init__(self, metrics: list[str] | None = None, **kwargs):
+        self._metrics = self._resolve_metrics(metrics)
+
+    def evaluate(
+        self, factuals: DatasetObject, counterfactuals: DatasetObject
+    ) -> pd.DataFrame:
+        (
+            factual_features,
+            counterfactual_features,
+            evaluation_mask,
+            success_mask,
+        ) = resolve_evaluation_inputs(factuals, counterfactuals)
+
+        selected_mask = evaluation_mask & success_mask
+        results: dict[str, float] = {}
+        if int(selected_mask.sum()) == 0:
+            for metric in self._metrics:
+                results[f"mace_distance_{metric}"] = float("nan")
+            return pd.DataFrame([results])
+
+        wrapper = build_mace_wrapper(factuals)
+        factual_success = factual_features.loc[selected_mask.to_numpy()]
+        counterfactual_success = counterfactual_features.loc[selected_mask.to_numpy()]
+
+        distances = {metric: [] for metric in self._metrics}
+        for row_index in factual_success.index:
+            factual_sample = wrapper.factual_to_short_dict(
+                factual_success.loc[row_index], predicted_label=0
+            )
+            counterfactual_sample = wrapper.factual_to_short_dict(
+                counterfactual_success.loc[row_index], predicted_label=1
+            )
+            for metric in self._metrics:
+                distances[metric].append(
+                    float(
+                        normalizedDistance.getDistanceBetweenSamples(
+                            factual_sample,
+                            counterfactual_sample,
+                            metric,
+                            wrapper,
+                        )
+                    )
+                )
+
+        for metric, values in distances.items():
+            results[f"mace_distance_{metric}"] = float(np.mean(values))
+        return pd.DataFrame([results])
+
+
+# End
+
+
+# PreProcess
+def _dataset_has_attr(dataset: DatasetObject, flag: str) -> bool:
+    try:
+        dataset.attr(flag)
+    except AttributeError:
+        return False
+    return True
+
+
+def _mace_metadata(
+    dataset: DatasetObject,
+) -> tuple[dict[str, str], dict[str, bool], dict[str, str]]:
+    if _dataset_has_attr(dataset, "mace_feature_type"):
+        return (
+            dataset.attr("mace_feature_type"),
+            dataset.attr("mace_feature_mutability"),
+            dataset.attr("mace_feature_actionability"),
+        )
+    return (
+        dataset.attr("raw_feature_type"),
+        dataset.attr("raw_feature_mutability"),
+        dataset.attr("raw_feature_actionability"),
+    )
+
+
+def _format_int(value: object) -> str:
+    value = float(value)
+    if not value.is_integer():
+        raise ValueError(
+            f"MACE categorical/ordinal values must be integer-like: {value}"
+        )
+    return str(int(value))
+
+
+def _as_int_categories(series: pd.Series, lower: float, upper: float) -> list[int]:
+    lower_int = int(round(float(lower)))
+    upper_int = int(round(float(upper)))
+    values = sorted({int(round(float(value))) for value in series.dropna().unique()})
+    expected = list(range(lower_int, upper_int + 1))
+    if values != expected:
+        raise ValueError(
+            "MACE encoding expects contiguous integer categories from "
+            f"{lower_int} to {upper_int}, got {values}"
+        )
+    return values
+
+
+@register("mace_encode")
+class MaceEncodePreProcess(PreProcessObject):
+    def __init__(self, seed: int | None = None, **kwargs):
+        self._seed = seed
+
+    @staticmethod
+    def _build_onehot(
+        series: pd.Series,
+        feature_name: str,
+        categories: list[int],
+    ) -> pd.DataFrame:
+        values = series.astype("float64").round().astype("int64")
+        columns = {}
+        for offset, category in enumerate(categories):
+            columns[f"{feature_name}_cat_{offset}"] = (values == category).astype(
+                "float64"
+            )
+        return pd.DataFrame(columns, index=series.index)
+
+    @staticmethod
+    def _build_thermometer(
+        series: pd.Series,
+        feature_name: str,
+        categories: list[int],
+    ) -> pd.DataFrame:
+        lower = categories[0]
+        values = series.astype("float64").round().astype("int64")
+        columns = {}
+        for offset, _category in enumerate(categories):
+            columns[f"{feature_name}_ord_{offset}"] = (values >= lower + offset).astype(
+                "float64"
+            )
+        return pd.DataFrame(columns, index=series.index)
+
+    def transform(self, input: DatasetObject) -> DatasetObject:
+        with seed_context(self._seed):
+            ensure_flag_absent(input, "encoding")
+            ensure_flag_absent(input, "mace_encoding")
+
+            df = input.snapshot()
+            target_column = input.target_column
+            feature_type, feature_mutability, feature_actionability = _mace_metadata(
+                input
+            )
+            source_bound_min = {}
+            source_bound_max = {}
+            if _dataset_has_attr(input, "balanced"):
+                balanced = input.attr("balanced")
+                if isinstance(balanced, dict):
+                    candidate_min = balanced.get("feature_min")
+                    candidate_max = balanced.get("feature_max")
+                    if isinstance(candidate_min, dict) and isinstance(
+                        candidate_max, dict
+                    ):
+                        source_bound_min = candidate_min
+                        source_bound_max = candidate_max
+
+            final_parts: list[pd.DataFrame] = []
+            encoded_sources: dict[str, str] = {}
+            encoding: dict[str, list[str]] = {}
+            encoded_feature_type: dict[str, str] = {}
+            encoded_feature_mutability: dict[str, bool] = {}
+            encoded_feature_actionability: dict[str, str] = {}
+            encoded_attr_type: dict[str, str] = {}
+            encoded_parent: dict[str, str] = {}
+            encoded_specs: dict[str, dict[str, object]] = {}
+            source_bounds: dict[str, tuple[float, float]] = {}
+            encoded_bounds: dict[str, tuple[float, float]] = {}
+
+            for column in df.columns:
+                if column == target_column:
+                    final_parts.append(df.loc[:, [column]].copy(deep=True))
+                    continue
+
+                kind = str(feature_type[column]).lower()
+                series = df[column]
+                lower = float(source_bound_min.get(column, series.min()))
+                upper = float(source_bound_max.get(column, series.max()))
+                source_bounds[column] = (lower, upper)
+
+                if kind == "categorical":
+                    categories = _as_int_categories(series, lower, upper)
+                    encoded = self._build_onehot(series, column, categories)
+                    output_columns = list(encoded.columns)
+                    attr_type = "sub-categorical"
+                    encoding_mode = "onehot"
+                    encoded_specs[column] = {
+                        "encoding": encoding_mode,
+                        "categories": categories,
+                        "columns": output_columns,
+                    }
+                elif kind == "ordinal":
+                    categories = _as_int_categories(series, lower, upper)
+                    encoded = self._build_thermometer(series, column, categories)
+                    output_columns = list(encoded.columns)
+                    attr_type = "sub-ordinal"
+                    encoding_mode = "thermometer"
+                    encoded_specs[column] = {
+                        "encoding": encoding_mode,
+                        "categories": categories,
+                        "columns": output_columns,
+                    }
+                else:
+                    encoded = df.loc[:, [column]].copy(deep=True)
+                    output_columns = [column]
+                    attr_type = kind
+                    encoding_mode = "none"
+                    encoded_specs[column] = {
+                        "encoding": encoding_mode,
+                        "categories": None,
+                        "columns": output_columns,
+                    }
+
+                final_parts.append(encoded)
+                encoding[column] = output_columns
+                for encoded_column in output_columns:
+                    encoded_sources[encoded_column] = column
+                    encoded_feature_type[encoded_column] = (
+                        "binary" if attr_type.startswith("sub-") else kind
+                    )
+                    encoded_feature_mutability[encoded_column] = bool(
+                        feature_mutability[column]
+                    )
+                    encoded_feature_actionability[encoded_column] = str(
+                        feature_actionability[column]
+                    )
+                    encoded_attr_type[encoded_column] = attr_type
+                    encoded_parent[encoded_column] = (
+                        column if attr_type.startswith("sub-") else encoded_column
+                    )
+                    if attr_type == "sub-categorical":
+                        encoded_bounds[encoded_column] = (0.0, 1.0)
+                    elif attr_type == "sub-ordinal":
+                        offset = int(encoded_column.rsplit("_", 1)[-1])
+                        encoded_bounds[encoded_column] = (
+                            (1.0, 1.0) if offset == 0 else (0.0, 1.0)
+                        )
+                    else:
+                        encoded_bounds[encoded_column] = (lower, upper)
+
+            final_df = pd.concat(final_parts, axis=1)
+            encoded_count = final_df.shape[1] - 1
+            input.update("encoding", encoding, df=final_df)
+            input.update("mace_encoding", encoded_specs)
+            input.update("mace_encoded_sources", encoded_sources)
+            input.update("mace_encoded_attr_type", encoded_attr_type)
+            input.update("mace_encoded_parent", encoded_parent)
+            input.update("mace_source_bounds", source_bounds)
+            input.update("mace_encoded_bounds", encoded_bounds)
+            input.update("mace_encoded_dim", int(encoded_count))
+            input.update("encoded_feature_type", encoded_feature_type)
+            input.update("encoded_feature_mutability", encoded_feature_mutability)
+            input.update("encoded_feature_actionability", encoded_feature_actionability)
+            return input
+
+
+# End
+
+
+def _materialize_dataset(dataset_name: str):
+    raw = DEFAULTS[dataset_name]["dataset_cls"]()
+    current = BalancePreProcess(
+        seed=SEED, strategy="downsample", round_to=250, shuffle=True, range=True
+    ).transform(raw)
+    current = MaceEncodePreProcess(seed=SEED).transform(current)
+    trainset, testset = SplitPreProcess(
+        seed=SEED, split=int(DEFAULTS[dataset_name]["split"])
+    ).transform(current)
+    trainset = FinalizePreProcess(seed=SEED).transform(trainset)
+    testset = FinalizePreProcess(seed=SEED).transform(testset)
+    return trainset, testset
+
+
+def _subset_dataset(dataset_obj, indices: pd.Index, flag_name: str):
+    feature_df = dataset_obj.get(target=False)
+    target_df = dataset_obj.get(target=True)
+    subset_df = pd.concat([feature_df.loc[indices], target_df.loc[indices]], axis=1)
+    subset_df = subset_df.reindex(columns=dataset_obj.ordered_features())
+    subset = dataset_obj.clone()
     subset.update(flag_name, True, df=subset_df)
     subset.freeze()
     return subset
 
 
-def _select_factuals(dataset, target_model, desired_class, num_factuals: int):
+def _target_index(target_model, desired_class) -> int:
+    class_to_index = target_model.get_class_to_index()
+    if desired_class is None:
+        if len(class_to_index) != 2:
+            raise ValueError("desired_class=None requires binary classification")
+        return 1
+    return int(class_to_index[desired_class])
+
+
+def _select_factuals(dataset_obj, target_model, desired_class, num_factuals: int):
     predictions = (
-        target_model.predict(dataset, batch_size=max(1, len(dataset)))
+        target_model.predict(dataset_obj, batch_size=max(1, len(dataset_obj)))
         .argmax(dim=1)
         .detach()
         .cpu()
         .numpy()
     )
-    target_index = _resolve_target_index(target_model, desired_class)
-
-    keep_mask = predictions != target_index
-    keep_index = dataset.get(target=False).index[keep_mask]
+    target_index = _target_index(target_model, desired_class)
+    keep_index = dataset_obj.get(target=False).index[predictions != target_index]
     if keep_index.shape[0] < num_factuals:
         raise ValueError(
             f"Requested {num_factuals} factuals but only found {keep_index.shape[0]}"
         )
-    selected_index = keep_index[:num_factuals]
-    return _subset_dataset(dataset, selected_index, "testset")
-
-
-def _evaluate(experiment: Experiment, factuals, counterfactuals) -> pd.DataFrame:
-    evaluation_results = [
-        evaluation_step.evaluate(factuals, counterfactuals)
-        for evaluation_step in experiment._evaluation
-    ]
-    return pd.concat(evaluation_results, axis=1)
-
-
-def _resolve_target_index(target_model, desired_class) -> int:
-    class_to_index = target_model.get_class_to_index()
-    if desired_class is None:
-        if len(class_to_index) != 2:
-            raise ValueError(
-                "desired_class=None selection requires binary classification"
-            )
-        return 1
-    return int(class_to_index[desired_class])
-
-
-def _to_builtin_scalar(value):
-    if pd.isna(value):
-        return float("nan")
-    if hasattr(value, "item"):
-        return value.item()
-    return value
+    return _subset_dataset(dataset_obj, keep_index[:num_factuals], "testset")
 
 
 def _build_counterfactual_dataset(factuals, counterfactual_features, desired_class):
@@ -153,25 +449,27 @@ def _build_counterfactual_dataset(factuals, counterfactual_features, desired_cla
     output = factuals.clone()
     output.update("counterfactual", True, df=counterfactual_df)
     if desired_class is not None:
-        evaluation_filter = pd.DataFrame(
-            True,
-            index=counterfactual_df.index,
-            columns=["evaluation_filter"],
-            dtype=bool,
+        output.update(
+            "evaluation_filter",
+            pd.DataFrame(
+                True,
+                index=counterfactual_df.index,
+                columns=["evaluation_filter"],
+                dtype=bool,
+            ),
         )
-        output.update("evaluation_filter", evaluation_filter)
     output.freeze()
     return output
 
 
-def _select_observable_pool(dataset, target_model, desired_class):
-    predictions = target_model.predict(dataset).argmax(dim=1).detach().cpu().numpy()
-    target_index = _resolve_target_index(target_model, desired_class)
-    pool_index = dataset.get(target=False).index[predictions == target_index]
-    observable_pool = dataset.get(target=False).loc[pool_index].copy(deep=True)
-    if observable_pool.shape[0] == 0:
+def _select_observable_pool(dataset_obj, target_model, desired_class):
+    predictions = target_model.predict(dataset_obj).argmax(dim=1).detach().cpu().numpy()
+    target_index = _target_index(target_model, desired_class)
+    pool_index = dataset_obj.get(target=False).index[predictions == target_index]
+    pool = dataset_obj.get(target=False).loc[pool_index].copy(deep=True)
+    if pool.empty:
         raise ValueError("Observable pool is empty for MO baseline")
-    return observable_pool
+    return pool
 
 
 def _violates_actionability(wrapper, factual_sample, observable_sample) -> bool:
@@ -194,24 +492,19 @@ def _violates_actionability(wrapper, factual_sample, observable_sample) -> bool:
     return False
 
 
-def _compute_mo_counterfactuals(
-    experiment: Experiment, factuals, observable_pool: pd.DataFrame
-):
-    wrapper = experiment._method._dataset_wrapper
+def _compute_mo_counterfactuals(method_obj, factuals, observable_pool: pd.DataFrame):
+    wrapper = method_obj._dataset_wrapper
     factual_features = factuals.get(target=False)
-    factual_labels = experiment._method._predict_label(factual_features)
-    observable_labels = experiment._method._predict_label(observable_pool)
+    factual_labels = method_obj._predict_label(factual_features)
+    observable_labels = method_obj._predict_label(observable_pool)
 
-    observable_samples = []
-    for row_position, row_index in enumerate(observable_pool.index):
-        observable_samples.append(
-            wrapper.factual_to_short_dict(
-                observable_pool.loc[row_index],
-                int(observable_labels[row_position]),
-            )
-        )
+    observable_samples = [
+        wrapper.factual_to_short_dict(observable_pool.loc[row_index], int(label))
+        for row_index, label in zip(observable_pool.index, observable_labels)
+    ]
 
     rows = []
+    norm_type = str(method_obj._norm_type[0])
     for row_position, row_index in enumerate(factual_features.index):
         factual_sample = wrapper.factual_to_short_dict(
             factual_features.loc[row_index],
@@ -219,20 +512,15 @@ def _compute_mo_counterfactuals(
         )
         best_sample = None
         best_distance = float("inf")
-        norm_type = str(experiment._method._norm_type[0])
 
         for observable_sample in observable_samples:
             if observable_sample["y"] == factual_sample["y"]:
                 continue
             if _violates_actionability(wrapper, factual_sample, observable_sample):
                 continue
-
             candidate_distance = float(
                 normalizedDistance.getDistanceBetweenSamples(
-                    factual_sample,
-                    observable_sample,
-                    norm_type,
-                    wrapper,
+                    factual_sample, observable_sample, norm_type, wrapper
                 )
             )
             if candidate_distance < best_distance:
@@ -254,11 +542,11 @@ def _compute_mo_counterfactuals(
     return _build_counterfactual_dataset(
         factuals,
         counterfactual_features,
-        getattr(experiment._method, "_desired_class", None),
+        getattr(method_obj, "_desired_class", None),
     )
 
 
-def _compute_distance_summary(experiment: Experiment, factuals, counterfactuals):
+def _distance_summary(method_obj, factuals, counterfactuals):
     (
         factual_features,
         counterfactual_features,
@@ -266,22 +554,19 @@ def _compute_distance_summary(experiment: Experiment, factuals, counterfactuals)
         success_mask,
     ) = resolve_evaluation_inputs(factuals, counterfactuals)
     selected_mask = evaluation_mask & success_mask
-
+    distances_by_metric = {metric: [] for metric in NORM_TO_METRIC.values()}
     if int(selected_mask.sum()) == 0:
-        empty_metrics = {
-            metric_name: float("nan") for metric_name in MACE_DISTANCE_NORMS
-        }
-        empty_rows = {metric_name: [] for metric_name in MACE_DISTANCE_NORMS}
-        return empty_metrics, empty_rows
+        return (
+            {metric: float("nan") for metric in NORM_TO_METRIC.values()},
+            distances_by_metric,
+        )
 
     factual_success = factual_features.loc[selected_mask.to_numpy()]
     counterfactual_success = counterfactual_features.loc[selected_mask.to_numpy()]
+    wrapper = method_obj._dataset_wrapper
+    factual_labels = method_obj._predict_label(factual_success)
+    counterfactual_labels = method_obj._predict_label(counterfactual_success)
 
-    wrapper = experiment._method._dataset_wrapper
-    factual_labels = experiment._method._predict_label(factual_success)
-    counterfactual_labels = experiment._method._predict_label(counterfactual_success)
-
-    distances_by_metric = {metric_name: [] for metric_name in MACE_DISTANCE_NORMS}
     for row_position, row_index in enumerate(factual_success.index):
         factual_sample = wrapper.factual_to_short_dict(
             factual_success.loc[row_index],
@@ -291,409 +576,160 @@ def _compute_distance_summary(experiment: Experiment, factuals, counterfactuals)
             counterfactual_success.loc[row_index],
             int(counterfactual_labels[row_position]),
         )
-        for metric_name, norm_type in MACE_DISTANCE_NORMS.items():
+        for norm_type, metric_name in NORM_TO_METRIC.items():
             distances_by_metric[metric_name].append(
                 float(
                     normalizedDistance.getDistanceBetweenSamples(
-                        factual_sample,
-                        counterfactual_sample,
-                        norm_type,
-                        wrapper,
+                        factual_sample, counterfactual_sample, norm_type, wrapper
                     )
                 )
             )
 
     summary = {
-        metric_name: float(sum(values) / len(values))
+        metric_name: float(np.mean(values)) if values else float("nan")
         for metric_name, values in distances_by_metric.items()
     }
     return summary, distances_by_metric
 
 
-def _compute_mace_vs_mo_comparison(
-    norm_type: str,
-    epsilon: float,
-    mace_distances: dict[str, float],
-    mo_distances: dict[str, float],
-    mace_pointwise: dict[str, list[float]],
-    mo_pointwise: dict[str, list[float]],
-) -> dict[str, float | str]:
-    optimized_metric = NORM_TO_METRIC[str(norm_type)]
-    mace_distance = float(mace_distances[optimized_metric])
-    mo_distance = float(mo_distances[optimized_metric])
+def _validity(factuals, counterfactuals) -> float:
+    return float(
+        ValidityEvaluation().evaluate(factuals, counterfactuals)["validity"][0]
+    )
 
-    improvement_terms = []
+
+def _run_single(dataset_name: str, norm_type: str, epsilon: float, num_factuals: int):
+    trainset, testset = _materialize_dataset(dataset_name)
+    encoded_dim = int(trainset.attr("mace_encoded_dim"))
+    target_model = SklearnLogisticRegressionModel(fit_mode="default", device="cpu")
+    target_model.fit(trainset)
+
+    factuals = _select_factuals(
+        testset,
+        target_model,
+        desired_class=None,
+        num_factuals=num_factuals,
+    )
+    method_obj = MaceMethod(
+        target_model=target_model,
+        seed=SEED,
+        device="cpu",
+        norm_type=norm_type,
+        epsilon=epsilon,
+    )
+    method_obj.fit(trainset)
+
+    start = time.perf_counter()
+    mace_counterfactuals = method_obj.predict(
+        factuals, batch_size=max(1, len(factuals))
+    )
+    mace_seconds = time.perf_counter() - start
+    mace_validity = _validity(factuals, mace_counterfactuals)
+    mace_summary, mace_pointwise = _distance_summary(
+        method_obj, factuals, mace_counterfactuals
+    )
+
+    observable_pool = _select_observable_pool(testset, target_model, desired_class=None)
+    mo_start = time.perf_counter()
+    mo_counterfactuals = _compute_mo_counterfactuals(
+        method_obj, factuals, observable_pool
+    )
+    mo_seconds = time.perf_counter() - mo_start
+    mo_validity = _validity(factuals, mo_counterfactuals)
+    mo_summary, mo_pointwise = _distance_summary(
+        method_obj, factuals, mo_counterfactuals
+    )
+
+    optimized_metric = NORM_TO_METRIC[norm_type]
+    terms = []
     for mace_value, mo_value in zip(
         mace_pointwise[optimized_metric], mo_pointwise[optimized_metric]
     ):
-        if mo_value <= 0:
-            continue
-        improvement_terms.append(1.0 - float(mace_value) / float(mo_value))
-
-    if improvement_terms:
-        improvement = 100.0 * float(sum(improvement_terms) / len(improvement_terms))
-    else:
-        improvement = float("nan")
+        if mo_value > 0:
+            terms.append(1.0 - float(mace_value) / float(mo_value))
+    improvement = 100.0 * float(np.mean(terms)) if terms else float("nan")
 
     return {
+        "dataset": dataset_name,
+        "norm_type": norm_type,
+        "epsilon": float(epsilon),
+        "num_factuals": int(len(factuals)),
+        "encoded_dim": encoded_dim,
+        "mace_seconds": float(mace_seconds),
+        "mo_seconds": float(mo_seconds),
+        "mace_validity": mace_validity,
+        "mo_validity": mo_validity,
+        "mace_distances": mace_summary,
+        "mo_distances": mo_summary,
         "optimized_metric": optimized_metric,
-        "mace_distance": mace_distance,
-        "mo_distance": mo_distance,
         "mace_vs_mo_improvement": improvement,
     }
 
 
-def _run_single(
-    config: dict,
-    num_factuals: int,
-) -> dict:
-    experiment = Experiment(config)
-    trainset, testset = _materialize_datasets(experiment)
-
-    experiment._target_model.fit(trainset)
-    factuals = _select_factuals(
-        testset,
-        experiment._target_model,
-        getattr(experiment._method, "_desired_class", None),
-        num_factuals,
-    )
-
-    experiment._method.fit(trainset)
-    start_time = time.perf_counter()
-    counterfactuals = experiment._method.predict(
-        factuals,
-        batch_size=max(1, len(factuals)),
-    )
-    generation_seconds = time.perf_counter() - start_time
-    metrics = _evaluate(experiment, factuals, counterfactuals)
-    mace_distances, mace_pointwise = _compute_distance_summary(
-        experiment,
-        factuals,
-        counterfactuals,
-    )
-
-    observable_pool = _select_observable_pool(
-        testset,
-        experiment._target_model,
-        getattr(experiment._method, "_desired_class", None),
-    )
-    mo_start_time = time.perf_counter()
-    mo_counterfactuals = _compute_mo_counterfactuals(
-        experiment, factuals, observable_pool
-    )
-    mo_generation_seconds = time.perf_counter() - mo_start_time
-    mo_metrics_df = _evaluate(experiment, factuals, mo_counterfactuals)
-    mo_distances, mo_pointwise = _compute_distance_summary(
-        experiment,
-        factuals,
-        mo_counterfactuals,
-    )
-    comparison = _compute_mace_vs_mo_comparison(
-        norm_type=str(config["method"]["norm_type"]),
-        epsilon=float(config["method"]["epsilon"]),
-        mace_distances=mace_distances,
-        mo_distances=mo_distances,
-        mace_pointwise=mace_pointwise,
-        mo_pointwise=mo_pointwise,
-    )
-
-    metric_row = {
-        key: _to_builtin_scalar(value)
-        for key, value in metrics.iloc[0].to_dict().items()
-    }
-    metric_row.update(mace_distances)
-
-    mo_metric_row = {
-        key: _to_builtin_scalar(value)
-        for key, value in mo_metrics_df.iloc[0].to_dict().items()
-    }
-    mo_metric_row.update(mo_distances)
-
-    return {
-        "config_name": config["name"],
-        "dataset": config["dataset"]["name"],
-        "norm_type": config["method"]["norm_type"],
-        "epsilon": float(config["method"]["epsilon"]),
-        "num_factuals": int(len(factuals)),
-        "generation_seconds": float(generation_seconds),
-        "metrics": metric_row,
-        "mo_generation_seconds": float(mo_generation_seconds),
-        "mo_metrics": mo_metric_row,
-        "comparison": comparison,
-    }
-
-
-TABLE3_FOREST_MO_REFERENCES = {
-    1.0e-5: {
-        "adult": {"zero_norm": 51.0, "one_norm": 82.0, "infty_norm": 71.0},
-        "credit": {"zero_norm": 68.0, "one_norm": 97.0, "infty_norm": 96.0},
-        "compas": {"zero_norm": 1.0, "one_norm": 6.0, "infty_norm": 6.0},
-    },
-    1.0e-3: {
-        "adult": {"zero_norm": 51.0, "one_norm": 81.0, "infty_norm": 69.0},
-        "credit": {"zero_norm": 68.0, "one_norm": 61.0, "infty_norm": 38.0},
-        "compas": {"zero_norm": 1.0, "one_norm": 6.0, "infty_norm": 6.0},
-    },
-}
-
-
-def _paper_reference_improvement(
-    dataset: str,
-    norm_type: str,
-    epsilon: float,
-) -> float | None:
-    epsilon_key = float(epsilon)
-    if epsilon_key not in TABLE3_FOREST_MO_REFERENCES:
-        return None
-    dataset_refs = TABLE3_FOREST_MO_REFERENCES[epsilon_key]
-    if dataset not in dataset_refs:
-        return None
-    return dataset_refs[dataset].get(norm_type)
-
-
-def _assert_result(result: dict, expected_num_factuals: int, epsilon: float) -> None:
-    if int(result["num_factuals"]) != int(expected_num_factuals):
+def _assert_smoke(result: dict, requested: int):
+    if int(result["num_factuals"]) != int(requested):
+        raise AssertionError("factual count mismatch")
+    if int(result["encoded_dim"]) != (51 if result["dataset"] == "adult" else 20):
         raise AssertionError(
-            "Selected factual count does not match requested count: "
-            f"{result['num_factuals']} vs {expected_num_factuals}"
+            f"unexpected encoded dimension for {result['dataset']}: "
+            f"{result['encoded_dim']}"
         )
+    if float(result["mace_validity"]) <= 0:
+        raise AssertionError("MACE did not produce any valid counterfactuals")
+    if float(result["mo_validity"]) <= 0:
+        raise AssertionError("MO did not produce any valid counterfactuals")
+    for distances in [result["mace_distances"], result["mo_distances"]]:
+        for value in distances.values():
+            if pd.isna(value):
+                raise AssertionError("distance summary contains NaN")
 
-    metrics = result["metrics"]
-    mo_metrics = result["mo_metrics"]
-    comparison = result["comparison"]
 
-    if float(metrics["validity"]) != 1.0:
-        raise AssertionError(f"Expected MACE validity == 1.0, got {metrics['validity']}")
-    if float(mo_metrics["validity"]) != 1.0:
-        raise AssertionError(f"Expected MO validity == 1.0, got {mo_metrics['validity']}")
-
-    for name, value in metrics.items():
-        if name.startswith("distance_") and pd.isna(value):
-            raise AssertionError(f"MACE metric {name} is NaN")
-    for name, value in mo_metrics.items():
-        if name.startswith("distance_") and pd.isna(value):
-            raise AssertionError(f"MO metric {name} is NaN")
-
-    if float(comparison["mace_distance"]) > float(comparison["mo_distance"]) + float(
-        epsilon
-    ) + 1e-8:
+def _assert_strict(result: dict):
+    expected = DEFAULTS[result["dataset"]]["targets"][result["norm_type"]]
+    actual = round(float(result["mace_vs_mo_improvement"]))
+    if actual != int(expected):
         raise AssertionError(
-            f"{comparison['optimized_metric']} expected MACE <= MO + epsilon, got "
-            f"{comparison['mace_distance']} vs {comparison['mo_distance']}"
+            f"Table 3 mismatch for {result['dataset']} {result['norm_type']}: "
+            f"expected {expected:.0f}, got {actual}"
         )
-
-    improvement = comparison["mace_vs_mo_improvement"]
-    if not pd.isna(improvement) and float(improvement) < -1e-8:
-        raise AssertionError(
-            "MACE vs MO improvement must be >= 0, "
-            f"got {comparison['mace_vs_mo_improvement']}"
-        )
-
-
-def _iter_jobs(
-    datasets: list[str],
-    norms: list[str],
-    epsilon: float,
-    desired_class: int | str | None,
-    num_factuals: int,
-):
-    for dataset in datasets:
-        base_config = _load_config(DEFAULT_CONFIG_PATHS[dataset])
-        for norm_type in norms:
-            yield {
-                "dataset": dataset,
-                "norm_type": norm_type,
-                "epsilon": float(epsilon),
-                "desired_class": desired_class,
-                "num_factuals": int(num_factuals),
-                "config": _apply_overrides(
-                    base_config,
-                    norm_type=norm_type,
-                    epsilon=epsilon,
-                    desired_class=desired_class,
-                ),
-            }
-
-
-def _build_summary(results: list[dict], errors: list[dict]) -> dict:
-    summary_table = []
-    successful_results = []
-    for result in results:
-        assert_passed = bool(result.get("assert_passed", False))
-        paper_ref = _paper_reference_improvement(
-            dataset=str(result["dataset"]),
-            norm_type=str(result["norm_type"]),
-            epsilon=float(result["epsilon"]),
-        )
-        summary_table.append(
-            {
-                "dataset": result["dataset"],
-                "norm_type": result["norm_type"],
-                "epsilon": result["epsilon"],
-                "num_factuals": result["num_factuals"],
-                "mace_validity": result["metrics"]["validity"],
-                "mo_validity": result["mo_metrics"]["validity"],
-                "optimized_metric": result["comparison"]["optimized_metric"],
-                "mace_distance": result["comparison"]["mace_distance"],
-                "mo_distance": result["comparison"]["mo_distance"],
-                "mace_vs_mo_improvement": result["comparison"][
-                    "mace_vs_mo_improvement"
-                ],
-                "paper_improvement_reference": paper_ref,
-                "assert_passed": assert_passed,
-                "assert_error": result.get("assert_error"),
-            }
-        )
-        if assert_passed:
-            successful_results.append(result)
-
-    aggregate: dict[str, object] = {
-        "num_jobs": len(results) + len(errors),
-        "num_results": len(results),
-        "num_errors": len(errors),
-        "num_assert_passed": sum(1 for result in results if result.get("assert_passed")),
-    }
-
-    if successful_results:
-        aggregate["overall"] = {
-            "mean_mace_distance": float(
-                sum(
-                    float(result["comparison"]["mace_distance"])
-                    for result in successful_results
-                )
-                / len(successful_results)
-            ),
-            "mean_mo_distance": float(
-                sum(
-                    float(result["comparison"]["mo_distance"])
-                    for result in successful_results
-                )
-                / len(successful_results)
-            ),
-            "mean_mace_vs_mo_improvement": float(
-                sum(
-                    float(result["comparison"]["mace_vs_mo_improvement"])
-                    for result in successful_results
-                    if not pd.isna(result["comparison"]["mace_vs_mo_improvement"])
-                )
-                / max(
-                    1,
-                    sum(
-                        1
-                        for result in successful_results
-                        if not pd.isna(result["comparison"]["mace_vs_mo_improvement"])
-                    ),
-                )
-            ),
-        }
-
-        per_dataset = {}
-        for dataset in sorted({result["dataset"] for result in successful_results}):
-            dataset_results = [
-                result
-                for result in successful_results
-                if result["dataset"] == dataset
-            ]
-            per_dataset[dataset] = {
-                "mean_mace_distance": float(
-                    sum(float(item["comparison"]["mace_distance"]) for item in dataset_results)
-                    / len(dataset_results)
-                ),
-                "mean_mo_distance": float(
-                    sum(float(item["comparison"]["mo_distance"]) for item in dataset_results)
-                    / len(dataset_results)
-                ),
-            }
-        aggregate["per_dataset"] = per_dataset
-
-    return {
-        "summary_table": summary_table,
-        "aggregate": aggregate,
-        "errors": errors,
-    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", choices=sorted(DEFAULT_CONFIG_PATHS), action="append")
-    parser.add_argument("--datasets", choices=sorted(DEFAULT_CONFIG_PATHS), nargs="+")
-    parser.add_argument("--norm", choices=sorted(NORM_TO_METRIC), action="append")
-    parser.add_argument("--norms", choices=sorted(NORM_TO_METRIC), nargs="+")
-    parser.add_argument("--epsilon", type=float, default=1.0e-5)
-    parser.add_argument("--desired-class", type=int, default=1)
-    parser.add_argument("--num-factuals", type=int, default=500)
-    parser.add_argument("--output-json", default=None)
-    parser.add_argument("--continue-on-error", dest="continue_on_error", action="store_true")
+    parser.add_argument("--dataset", choices=sorted(DEFAULTS), default="adult")
+    parser.add_argument(
+        "--norm",
+        choices=sorted(NORM_TO_METRIC),
+        action="append",
+        default=None,
+    )
+    parser.add_argument("--epsilon", type=float, default=1.0e-3)
+    parser.add_argument("--nfactuals", "--num-factuals", type=int, default=500)
     parser.add_argument("--strict", action="store_true")
-    parser.set_defaults(continue_on_error=True)
+    parser.add_argument("--cache-dir", default="./cache/")
     args = parser.parse_args()
 
-    datasets = args.datasets or args.dataset or list(DEFAULT_CONFIG_PATHS)
-    norms = args.norms or args.norm or list(NORM_TO_METRIC)
+    set_cache_dir(args.cache_dir)
+    norms = args.norm or ["zero_norm", "one_norm", "infty_norm"]
+    results = []
+    for norm_type in norms:
+        result = _run_single(
+            dataset_name=args.dataset,
+            norm_type=norm_type,
+            epsilon=float(args.epsilon),
+            num_factuals=int(args.nfactuals),
+        )
+        _assert_smoke(result, int(args.nfactuals))
+        if args.strict:
+            _assert_strict(result)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        results.append(result)
 
-    results: list[dict] = []
-    errors: list[dict] = []
-
-    for job in _iter_jobs(
-        datasets=datasets,
-        norms=norms,
-        epsilon=args.epsilon,
-        desired_class=args.desired_class,
-        num_factuals=args.num_factuals,
-    ):
-        try:
-            result = _run_single(job["config"], job["num_factuals"])
-            try:
-                _assert_result(result, job["num_factuals"], job["epsilon"])
-                result["assert_passed"] = True
-                result["assert_error"] = None
-            except Exception as error:
-                result["assert_passed"] = False
-                result["assert_error"] = str(error)
-                if args.strict:
-                    raise
-            results.append(result)
-        except Exception as error:
-            error_record = {
-                "dataset": job["dataset"],
-                "norm_type": job["norm_type"],
-                "epsilon": job["epsilon"],
-                "num_factuals": job["num_factuals"],
-                "error_message": str(error),
-            }
-            errors.append(error_record)
-            if args.strict:
-                payload = {
-                    "results": results,
-                    **_build_summary(results, errors),
-                }
-                rendered = json.dumps(payload, indent=2, sort_keys=True)
-                if args.output_json:
-                    Path(args.output_json).write_text(rendered, encoding="utf-8")
-                print(rendered)
-                raise SystemExit(1)
-            if not args.continue_on_error:
-                payload = {
-                    "results": results,
-                    **_build_summary(results, errors),
-                }
-                rendered = json.dumps(payload, indent=2, sort_keys=True)
-                if args.output_json:
-                    Path(args.output_json).write_text(rendered, encoding="utf-8")
-                print(rendered)
-                raise SystemExit(1)
-
-    payload = {
-        "results": results,
-        **_build_summary(results, errors),
+    rounded = {
+        result["norm_type"]: round(float(result["mace_vs_mo_improvement"]))
+        for result in results
     }
-    rendered = json.dumps(payload, indent=2, sort_keys=True)
-    if args.output_json:
-        Path(args.output_json).write_text(rendered, encoding="utf-8")
-    print(rendered)
-
-    if args.strict and errors:
-        raise SystemExit(1)
+    print("rounded_table3:", json.dumps(rounded, sort_keys=True))
 
 
 if __name__ == "__main__":

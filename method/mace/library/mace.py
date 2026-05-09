@@ -650,20 +650,18 @@ def findClosestCounterfactualSample(
         return (lower_bound + upper_bound) / 2
 
     def assertPrediction(dict_sample, model_trained, dataset_obj):
-        vectorized_sample = []
-        for attr_name_kurz in dataset_obj.getInputAttributeNames("kurz"):
-            vectorized_sample.append(dict_sample[attr_name_kurz])
-        feature_names = (
-            list(dataset_obj._feature_names)
-            if hasattr(dataset_obj, "_feature_names")
-            else list(dataset_obj.getInputAttributeNames("kurz"))
-        )
-        vectorized_sample_df = pd.DataFrame(
-            [vectorized_sample],
-            columns=feature_names,
-        )
+        feature_names = list(dataset_obj.getInputAttributeNames("kurz"))
+        vectorized_sample = [
+            dict_sample[attr_name_kurz] for attr_name_kurz in feature_names
+        ]
+        if hasattr(dataset_obj, "_feature_names"):
+            sample_for_model = pd.DataFrame(
+                [vectorized_sample], columns=list(dataset_obj._feature_names)
+            )
+        else:
+            sample_for_model = [vectorized_sample]
 
-        sklearn_prediction = int(model_trained.predict(vectorized_sample_df)[0])
+        sklearn_prediction = int(model_trained.predict(sample_for_model)[0])
         pysmt_prediction = int(dict_sample["y"])
         factual_prediction = int(factual_sample["y"])
 
@@ -671,7 +669,7 @@ def findClosestCounterfactualSample(
         #            ends up super close to (if not on) the decision boundary; here
         #            the label is underfined which causes inconsistency errors
         #            between pysmt and sklearn. We skip the assert at such points.
-        class_predict_proba = model_trained.predict_proba(vectorized_sample_df)[0]
+        class_predict_proba = model_trained.predict_proba(sample_for_model)[0]
         if np.abs(class_predict_proba[0] - class_predict_proba[1]) < 1e-10:
             return
 
