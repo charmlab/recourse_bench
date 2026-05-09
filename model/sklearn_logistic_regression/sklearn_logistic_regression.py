@@ -27,6 +27,7 @@ class SklearnLogisticRegressionModel(ModelObject):
         scoring: str = "roc_auc",
         n_jobs: int = -1,
         c_values: Iterable[float] | None = None,
+        fit_mode: str = "grid_search",
         **kwargs,
     ):
         self._seed = seed
@@ -38,6 +39,7 @@ class SklearnLogisticRegressionModel(ModelObject):
         self._cv = int(cv)
         self._scoring = str(scoring)
         self._n_jobs = int(n_jobs)
+        self._fit_mode = str(fit_mode).lower()
         self._c_values = (
             [float(value) for value in c_values]
             if c_values is not None
@@ -54,6 +56,8 @@ class SklearnLogisticRegressionModel(ModelObject):
             raise ValueError("cv must be >= 2")
         if not self._c_values:
             raise ValueError("c_values must not be empty")
+        if self._fit_mode not in {"grid_search", "default"}:
+            raise ValueError("fit_mode must be 'grid_search' or 'default'")
 
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:
@@ -63,6 +67,12 @@ class SklearnLogisticRegressionModel(ModelObject):
 
         with seed_context(self._seed):
             X, labels, _ = self.extract_training_data(trainset)
+            if self._fit_mode == "default":
+                self._model = LogisticRegression().fit(X, labels.cpu().numpy())
+                self._grid_search = None
+                self._is_trained = True
+                return
+
             estimator = LogisticRegression(
                 max_iter=self._max_iter,
                 solver=self._solver,
