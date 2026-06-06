@@ -1,12 +1,16 @@
 Level Badge
 Level 1: Congruent Reproduction
-Reason: The benchmark COLS implementation reproduces the paper-style COMPAS behavior and matches several key aggregate metrics closely, especially FS@1, PAC, Cov, and Val, but it does not reproduce exact numerical parity across all reported metrics. The largest remaining gaps are on Div, Prox, and Spars, which keeps this run below a partial quantitative reproduction claim.
+
+Reason
+The benchmark COLS implementation reproduces the paper-style COMPAS behavior and matches several key aggregate metrics closely, especially FS@1, PAC, Cov, and Val, but it does not reproduce exact numerical parity across all reported metrics. The largest remaining gaps are on Div, Prox, and Spars, which keeps this run below a partial quantitative reproduction claim.
 
 Method
 COLS reproduction for the benchmark implementation under `method/cols/`, using the reproduction harness in `experiment/cols/`, the `compas_carla` dataset path, scalar-encoded COMPAS features, and a 5-seed aggregate comparison against the paper target table.
 
 Reproduction Summary
-Reference setting:
+No value available.
+
+Reference Scope
 - dataset: compas_carla
 - target column: score
 - desired class: 1
@@ -15,7 +19,7 @@ Reference setting:
 - COLS hyperparameters: num_cfs 10, num_mcmc 1000, budget 5000, num_parallel_runs 1, hamming_dist 2, perturb_type all, init_type ham_2, iter_type best, variance 0.001
 - reproduction seeds: 1, 2, 3, 4, 5
 
-Observed result:
+Observed Result
 - balanced_rows = 2288
 - train_rows = 1415
 - val_rows = 229
@@ -36,7 +40,11 @@ Observed result:
 - mean_emc_seed_4 = 18706.3383
 - mean_emc_seed_5 = 19257.2494
 
-Paper / reference comparison:
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `reproduction.paper_targets.COLS` in `experiment/cols/reproduce_configs.yaml` provides the paper targets listed below.
 - FS@1: paper 82.23, reproduced_mean 81.262729, reproduced_std 0.728658, absolute_gap 0.967271
 - PAC: paper 0.24, reproduced_mean 0.262230, reproduced_std 0.009500, absolute_gap 0.022230
 - Cov: paper 82.23, reproduced_mean 81.670061, reproduced_std 0.844662, absolute_gap 0.559939
@@ -45,6 +53,15 @@ Paper / reference comparison:
 - Spars: paper 70.05, reproduced_mean 75.463386, reproduced_std 0.173032, absolute_gap 5.413386
 - Val: paper 95.48, reproduced_mean 97.295316, reproduced_std 0.166658, absolute_gap 1.815316
 - FS@1, PAC, Cov, and Val are reasonably close, but Div, Prox, and Spars remain the limiting gaps for stronger reproduction claims.
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+No value available.
 
 Next Steps
 - Recheck whether the benchmark split and class-balancing logic exactly matches the reference COMPAS pipeline.

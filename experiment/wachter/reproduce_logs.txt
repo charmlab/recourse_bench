@@ -1,0 +1,43 @@
+Level Badge
+No value available.
+
+Reason
+No value available.
+
+Method
+Wachter
+
+Reproduction Summary
+- Smoke script: `experiment/wachter/smoke.py`
+- Smoke configuration: `experiment/wachter/credit_linear_wachter_smoke.yaml`
+
+Reference Scope
+- dataset: credit
+- model: linear
+- method: wachter
+- desired_class: 1
+- split sample: 256
+- method max_iter: 100
+- method max_minutes: 0.05
+- evaluations: validity and distance
+
+Observed Result
+No value available.
+
+Reproduction Assessment
+No value available.
+
+Paper Result
+No value available.
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+- The initial repository contains a smoke script and configuration but no recorded smoke execution result.
+
+Next Steps
+No value available.

@@ -1,12 +1,16 @@
 Level Badge
 Level 1: Congruent Reproduction
-Reason: The implementation reproduces the qualitative German Credit behavior from the SNS paper and matches several key metrics closely, especially for SNS invalidation, but the fully paper-aligned ART-baseline path has not yet been revalidated on the full 200-factual run after the latest baseline correction.
+
+Reason
+The implementation reproduces the qualitative German Credit behavior from the SNS paper and matches several key metrics closely, especially for SNS invalidation, but the fully paper-aligned ART-baseline path has not yet been revalidated on the full 200-factual run after the latest baseline correction.
 
 Method
 SNS German Credit reproduction for the benchmark implementation under `method/sns/`, using `german_full`, 61 one-hot features, a paper-matched MLP architecture, and RS / LOO model families in `experiment/sns/`.
 
 Reproduction Summary
-Reference setting:
+No value available.
+
+Reference Scope
 - dataset: German Credit
 - raw attributes: 20
 - encoded features: 61
@@ -14,7 +18,7 @@ Reference setting:
 - training: 100 epochs, Adam, batch size 32
 - metrics: LOO / RS invalidation and l2 cost for Min.l2 and Min.l2 + SNS
 
-Observed result before ART baseline alignment (full 200-factual run):
+Observed Result
 - base_loo_invalidation_rate = 0.5773
 - base_rs_invalidation_rate = 0.7099
 - sns_loo_invalidation_rate = 0.0001
@@ -35,11 +39,24 @@ Observed result after ART-aligned Min.l2 baseline update (bounded run):
 - sns_loo_invalidation_rate = 0.0000
 - sns_rs_invalidation_rate = 0.0667
 
-Paper comparison:
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `reproduction.paper` in `experiment/sns/config.yaml` provides the targets listed below.
 - Min.l2 paper targets: LOO 0.36, RS 0.56, l2 cost 4.49.
 - Min.l2 + SNS paper targets: LOO 0.00, RS 0.06, l2 cost 6.23.
 - SNS itself is already close on invalidation, and the ART-aligned bounded run moved both Min.l2 and SNS costs into the correct range.
 - The remaining uncertainty is the full paper-sized rerun after the ART baseline alignment, especially for the Min.l2 invalidation rates and success-rate regime.
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+No value available.
 
 Next Steps
 - Re-run the full 200-factual / 100 RS / 100 LOO reproduction after the ART baseline alignment.

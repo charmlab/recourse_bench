@@ -1,12 +1,16 @@
 Level Badge
 Level 1: Congruent Reproduction
-Reason: The implementation reproduces the paper's qualitative diabetes behavior for DiverseDist and matches validity across all four reproduced conditions, but it does not yet reproduce the paper's exact quantitative metrics closely enough to count as a partial numerical reproduction.
+
+Reason
+The implementation reproduces the paper's qualitative diabetes behavior for DiverseDist and matches validity across all four reproduced conditions, but it does not yet reproduce the paper's exact quantitative metrics closely enough to count as a partial numerical reproduction.
 
 Method
 DiverseDist diabetes reproduction for the benchmark implementation under `method/diverse_dist/`, using the `diabetes` dataset, a benchmark `mlp` with hidden layers `[20, 10]`, and the paper-style method settings `total_cfs=5`, `alpha=50`, `beta=0.5`, `gamma=0.1` in `experiment/diverse_dist/`.
 
 Reproduction Summary
-Reference setting:
+No value available.
+
+Reference Scope
 - dataset: diabetes
 - model: MLP with hidden layers `[20, 10]`
 - method: `diverse_dist`
@@ -18,7 +22,7 @@ Reference setting:
   - `opt=False, norm=1`
   - `opt=False, norm=2`
 
-Observed result from the best completed full reproduction:
+Observed Result
 - `opt=True, norm=1`
   - validity = `100.0%`
   - k-distance = `0.69 ± 0.25`
@@ -48,12 +52,29 @@ Observed result from the best completed full reproduction:
   - set-distance dmax = `0.25 ± 0.17`
   - time = `0.08 ± 0.03`
 
-Paper Comparison
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `reproduction.paper_targets` in `experiment/diverse_dist/config.yaml`:
+  - opt_true / l1: validity = 100.0, k_distance = 1.13 +- 0.43, k_diversity = 1.39 +- 0.46, set_distance_sum = 0.21 +- 0.20, set_distance_max = 0.51 +- 0.44, time = 0.02 +- 0.00
+  - opt_true / l2: validity = 100.0, k_distance = 0.52 +- 0.20, k_diversity = 0.63 +- 0.22, set_distance_sum = 0.09 +- 0.03, set_distance_max = 0.24 +- 0.20, time = 0.02 +- 0.00
+  - opt_false / l1: validity = 100.0, k_distance = 1.38 +- 0.29, k_diversity = 1.71 +- 0.30, set_distance_sum = 0.22 +- 0.24, set_distance_max = 0.63 +- 0.56, time = 0.01 +- 0.00
+  - opt_false / l2: validity = 100.0, k_distance = 0.64 +- 0.14, k_diversity = 0.78 +- 0.15, set_distance_sum = 0.10 +- 0.11, set_distance_max = 0.29 +- 0.26, time = 0.01 +- 0.00
 - Paper targets are the diabetes `ours` rows embedded in `experiment/diverse_dist/config.yaml`.
 - Validity matches all four paper targets at `100%`.
 - Set-distance metrics are reasonably close and reproduce the intended robustness trend.
 - k-distance and k-diversity are systematically lower than the paper targets in all four conditions.
 - Runtime is consistently higher than the paper's reported `0.01-0.02 s` range.
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+No value available.
 
 Next Steps
 - Align the benchmark MLP training protocol more literally with the reference TensorFlow/Keras setup used by the paper code.

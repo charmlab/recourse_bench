@@ -1,11 +1,22 @@
 Level Badge
 Level 1: Minimal Reproduction
-Reason: Is able to accurately reproduce several metrics for a single experiment
+
+Reason
+Is able to accurately reproduce several metrics for a single experiment
 
 Method
 CFRL benchmark reproduction
 
-Reproduction Results
+Reproduction Summary
+- Restored original badge: `No explicit original level badge`
+- Current extracted scalar-result coverage under the standardized criterion: `R = 7`, `R_rep = 3`
+- Average raw delta across extracted scalar results: `0.360983`
+- Average variance-adjusted delta across extracted scalar results: `0.000000`
+
+Reference Scope
+- Adult random-forest reproduction only; current log does not show full paper experiment coverage.
+
+Observed Result
 {
     "accuracy": 0.859665
     "validity": 0.981000
@@ -16,11 +27,21 @@ Reproduction Results
     "target_conditional_mmd_cls_1": 0.062746
 }
 
-Summary
-- Restored original badge: `No explicit original level badge`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 7`, `R_rep = 3`
-- Average raw delta across extracted scalar results: `0.360983`
-- Average variance-adjusted delta across extracted scalar results: `0.000000`
+- Some scalar metrics reproduce within the threshold, but several do not.
+- The current log covers one benchmark setting rather than all paper experiments.
+
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `REFERENCE_RESULTS` in `experiment/cfrl/reproduce.py`:
+  - accuracy = 0.86
+  - validity = 0.9859
+  - sparsity_cat_l0 = 0.11
+  - sparsity_num_l1 = 0.19
+  - immutability_violation_rate = 0.0
+  - target_conditional_mmd_cls_0 = 0.36
+  - target_conditional_mmd_cls_1 = 0.43
 
 Scalar Result Coverage
 - `R = 7` total extracted scalar results
@@ -32,13 +53,6 @@ Reproducibility Criterion
 - The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
 - Numerical-stability constant: `ε0 = 1e-12`.
 - Fixed reproduction tolerance: `δ = 0.15`.
-
-Reference Scope
-- Adult random-forest reproduction only; current log does not show full paper experiment coverage.
-
-Observed Result Highlights
-- Some scalar metrics reproduce within the threshold, but several do not.
-- The current log covers one benchmark setting rather than all paper experiments.
 
 Notes / Caveats
 - CFRL tolerances are used in the delta pipeline, but the level here is based on raw scalar-result thresholding with δ = 0.15.

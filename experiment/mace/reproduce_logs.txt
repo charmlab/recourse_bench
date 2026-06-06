@@ -1,0 +1,42 @@
+Level Badge
+No value available.
+
+Reason
+No value available.
+
+Method
+MACE
+
+Reproduction Summary
+- Reproduction script: `experiment/mace/reproduce.py`
+- Supported datasets: adult and credit
+- Supported norms: zero_norm, one_norm, and infty_norm
+
+Reference Scope
+- default dataset: adult
+- default number of factuals: 500
+- default epsilon: 1.0e-3
+- seed: 54321
+
+Observed Result
+No value available.
+
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `DEFAULTS` targets in `experiment/mace/reproduce.py`:
+  - adult: zero_norm = 62.0, one_norm = 92.0, infty_norm = 86.0
+  - credit: zero_norm = 80.0, one_norm = 82.0, infty_norm = 80.0
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+- In strict mode, the script rounds `mace_vs_mo_improvement` and requires it to equal the corresponding dataset and norm target in `DEFAULTS`.
+
+Notes / Caveats
+- The initial repository contains the reproduction script but no `reproduce_logs.txt` file or recorded reproduction result.
+
+Next Steps
+No value available.

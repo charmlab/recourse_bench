@@ -1,11 +1,19 @@
 Level Badge
 Level 1: Minimal Reproduction
-Reason: We are able to run the compas only experiment, with metric values that are congruent with the main paper results.
+
+Reason
+We are able to run the compas only experiment, with metric values that are congruent with the main paper results.
 
 Method
 CLUE benchmark reproduction
 
-Reproduction Results
+Reproduction Summary
+No value available.
+
+Reference Scope
+No value available.
+
+Observed Result
 {
     "device": "cuda",
   "paper_style_abs_errors": {
@@ -32,7 +40,18 @@ Reproduction Results
   }
 }
 
-Summary
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `COMPAS_PAPER_RESULTS` in `experiment/clue/reproduce.py`:
+  - table1_epistemic = 0.71
+  - table1_aleatoric = 0.18
+  - table2_epistemic = 0.707
+  - table2_aleatoric = 0.044
+
+Scalar Result Coverage
+No value available.
 
 Reproducibility Criterion
 - A result is treated as one scalar `(dataset, model, metric)` value.
@@ -40,13 +59,8 @@ Reproducibility Criterion
 - Numerical-stability constant: `ε0 = 1e-12`.
 - Fixed reproduction tolerance: `δ = 0.15`.
 
-Reference Scope
-
-Observed Result Highlights
-
-
 Notes / Caveats
+No value available.
 
 Next Steps
-
-
+No value available.

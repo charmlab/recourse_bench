@@ -1,11 +1,23 @@
 Level Badge
 Level 2: Partial Reproduction
-Reason: The updated PROBE run covers multiple paper-comparable settings and reproduces many scalar results within the tolerance threshold, but it does not yet establish full paper-wide experiment coverage.
+
+Reason
+The updated PROBE run covers multiple paper-comparable settings and reproduces many scalar results within the tolerance threshold, but it does not yet establish full paper-wide experiment coverage.
 
 Method
 PROBE benchmark reproduction
 
-Reproduction Results
+Reproduction Summary
+- This run expands PROBE beyond the previous single-setting COMPAS MLP reproduction and now covers four paper-comparable rows across two datasets and two model classes.
+- The current run shows strong agreement on test accuracy and recourse availability, while a smaller subset of AIR and AC metrics remains noticeably off-target.
+- Full paper-wide experiment coverage is still not established because the current scope is intentionally limited to `credit_carla` and `compas_carla`.
+
+Reference Scope
+- Current paper-comparable scope is intentionally limited to `credit_carla` and `compas_carla` with `linear` and `mlp` models.
+- Adult is excluded because the local adult dataset schema does not match the original CARLA Adult setup used by the paper.
+- The current run therefore improves breadth materially, but it still does not represent the full paper experiment set.
+
+Observed Result
 {
   "datasets": [
     "credit_carla",
@@ -31,10 +43,19 @@ dataset dataset_internal  model  test_accuracy  test_auc  paper_accuracy  accura
  compas     compas_carla linear         0.8356    0.8165          0.8400         -0.0044 1.0000    1.0000    0.0000    0.2874          0.2800          0.0074   0.0163         0.0200        -0.0037   0.5677         0.6300        -0.0623  0.3350        0.3900       -0.0550           291             291
  compas     compas_carla    mlp         0.8445    0.8532          0.8500         -0.0055 1.0000    1.0000    0.0000    0.3335          0.3300          0.0035   0.0276         0.0200         0.0076   0.5081         0.8000        -0.2919  0.3506        0.3400        0.0106           500             500
 
-Summary
-- This run expands PROBE beyond the previous single-setting COMPAS MLP reproduction and now covers four paper-comparable rows across two datasets and two model classes.
-- The current run shows strong agreement on test accuracy and recourse availability, while a smaller subset of AIR and AC metrics remains noticeably off-target.
-- Full paper-wide experiment coverage is still not established because the current scope is intentionally limited to `credit_carla` and `compas_carla`.
+- `test_accuracy` and `ra` are very close to the paper targets across all four reported rows.
+- The strongest remaining outlier is `compas_carla / mlp / ac_mean`, where `0.5081` remains far below the paper value `0.8000`.
+- `credit_carla / linear / air_mean` and `credit_carla / linear / ac_std` are also notable remaining gaps, though much of the table is already in the correct regime.
+
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `PAPER_PROBE_RESULTS` in `experiment/probe/reproduce.py`:
+  - compas_carla / linear: paper_accuracy = 0.84, ra = 1.00, air_mean = 0.28, air_std = 0.02, ac_mean = 0.63, ac_std = 0.39
+  - compas_carla / mlp: paper_accuracy = 0.85, ra = 1.00, air_mean = 0.33, air_std = 0.02, ac_mean = 0.80, ac_std = 0.34
+  - credit_carla / linear: paper_accuracy = 0.92, ra = 1.00, air_mean = 0.24, air_std = 0.01, ac_mean = 0.60, ac_std = 0.56
+  - credit_carla / mlp: paper_accuracy = 0.93, ra = 1.00, air_mean = 0.25, air_std = 0.03, ac_mean = 0.47, ac_std = 0.21
 
 Scalar Result Coverage
 - `R = 24` scalar paper-targeted result pairs are represented in the four-row comparison table.
@@ -46,16 +67,6 @@ Reproducibility Criterion
 - The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
 - Numerical-stability constant: `ε0 = 1e-12`.
 - Fixed reproduction tolerance: `δ = 0.15`.
-
-Reference Scope
-- Current paper-comparable scope is intentionally limited to `credit_carla` and `compas_carla` with `linear` and `mlp` models.
-- Adult is excluded because the local adult dataset schema does not match the original CARLA Adult setup used by the paper.
-- The current run therefore improves breadth materially, but it still does not represent the full paper experiment set.
-
-Observed Result Highlights
-- `test_accuracy` and `ra` are very close to the paper targets across all four reported rows.
-- The strongest remaining outlier is `compas_carla / mlp / ac_mean`, where `0.5081` remains far below the paper value `0.8000`.
-- `credit_carla / linear / air_mean` and `credit_carla / linear / ac_std` are also notable remaining gaps, though much of the table is already in the correct regime.
 
 Notes / Caveats
 - The deltas printed in the table are signed differences for convenience; the scalar reproduction criterion uses the absolute symmetric relative error.
