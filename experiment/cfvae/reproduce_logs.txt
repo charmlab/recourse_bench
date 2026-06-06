@@ -1,15 +1,70 @@
 Level Badge
 Level 1: Congruent Reproduction
-Reason: The pre-standardization reproduction log did not assign a numeric reproduction badge.
+
+Reason
+The pre-standardization reproduction log did not assign a numeric reproduction badge.
 
 Method
 CFVAE benchmark reproduction
 
-Summary
+Reproduction Summary
 - Restored original badge: `No explicit original level badge`
 - Current extracted scalar-result coverage under the standardized criterion: `R = 96`, `R_rep = 96`
 - Average raw delta across extracted scalar results: `0.001082`
 - Average variance-adjusted delta across extracted scalar results: `0.001082`
+
+Reference Scope
+- Adult-age and adult-age-ed result families only; despite many scalar outputs, the current script/log does not claim full paper-wide experiment coverage.
+
+Observed Result
+- All currently extracted scalar-result pairs are within the 15% threshold.
+- The current structured log still represents a bounded subset of the original paper’s total experiment space.
+
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `REFERENCE_RESULTS` in `experiment/cfvae/reproduce.py`:
+  - adult-age / BaseCVAE:
+    - target_class_validity = [100.0, 100.0, 100.0]
+    - constraint_feasibility_score = [56.82554814, 56.93040991, 56.9399428]
+    - cont_proximity = [-2.24059021, -2.254801, -2.24498223]
+    - cat_proximity = [-3.26024786, -3.26024786, -3.26024786]
+  - adult-age / BaseVAE:
+    - target_class_validity = [100.0, 100.0, 100.0]
+    - constraint_feasibility_score = [42.85033365, 43.11248808, 42.99014935]
+    - cont_proximity = [-2.66647616, -2.66112855, -2.66558379]
+    - cat_proximity = [-3.12011439, -3.12011439, -3.12011439]
+  - adult-age / ModelApprox:
+    - target_class_validity = [99.5900858, 99.5900858, 99.55513187]
+    - constraint_feasibility_score = [84.26668079, 83.60122942, 83.58960991]
+    - cont_proximity = [-2.73294234, -2.73510212, -2.73455902]
+    - cat_proximity = [-3.26167779, -3.26172545, -3.26151891]
+  - adult-age / ExampleBased:
+    - target_class_validity = [99.52335558, 99.52812202, 99.46298062]
+    - constraint_feasibility_score = [74.03769743, 74.18632186, 74.21309514]
+    - cont_proximity = [-6.80110826, -6.7996033, -6.80052672]
+    - cat_proximity = [-3.72411821, -3.7242612, -3.72443597]
+  - adult-age-ed / BaseCVAE:
+    - target_class_validity = [100.0, 100.0, 100.0]
+    - constraint_feasibility_score = [57.01620591, 57.20209724, 56.80012711]
+    - cont_proximity = [-2.25337728, -2.24797755, -2.24245525]
+    - cat_proximity = [-3.26024786, -3.26024786, -3.26024786]
+  - adult-age-ed / BaseVAE:
+    - target_class_validity = [100.0, 100.0, 100.0]
+    - constraint_feasibility_score = [42.59294566, 43.06482364, 43.02192564]
+    - cont_proximity = [-2.6661057, -2.66556556, -2.6650458]
+    - cat_proximity = [-3.12011439, -3.12011439, -3.12011439]
+  - adult-age-ed / ModelApprox:
+    - target_class_validity = [100.0, 100.0, 100.0]
+    - constraint_feasibility_score = [79.5042898, 79.32793136, 79.30092151]
+    - cont_proximity = [-2.90320554, -2.90264891, -2.90204051]
+    - cat_proximity = [-3.22097235, -3.22054337, -3.21916111]
+  - adult-age-ed / ExampleBased:
+    - target_class_validity = [99.93326978, 99.89513823, 99.92691452]
+    - constraint_feasibility_score = [66.35181132, 66.50929669, 66.46958292]
+    - cont_proximity = [-3.20324281, -3.2077721, -3.20357766]
+    - cat_proximity = [-3.5914204, -3.59394662, -3.59634573]
 
 Scalar Result Coverage
 - `R = 96` total extracted scalar results
@@ -21,13 +76,6 @@ Reproducibility Criterion
 - The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
 - Numerical-stability constant: `ε0 = 1e-12`.
 - Fixed reproduction tolerance: `δ = 0.15`.
-
-Reference Scope
-- Adult-age and adult-age-ed result families only; despite many scalar outputs, the current script/log does not claim full paper-wide experiment coverage.
-
-Observed Result Highlights
-- All currently extracted scalar-result pairs are within the 15% threshold.
-- The current structured log still represents a bounded subset of the original paper’s total experiment space.
 
 Notes / Caveats
 - Provisional Level 3 by scalar-result counts is downgraded to Level 2 because full paper coverage is not established.

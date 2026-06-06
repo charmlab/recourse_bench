@@ -1,11 +1,19 @@
 Level Badge
 Level 1: Minimal Reproduction
-Reason: Is able to reproduce trends
+
+Reason
+Is able to reproduce trends
 
 Method
 DICE reproduction
 
-Reproduction Results
+Reproduction Summary
+No value available.
+
+Reference Scope
+No value available.
+
+Observed Result
              setting  k  model_accuracy  validity  categorical_proximity  continuous_distance  continuous_proximity  categorical_diversity  continuous_diversity  count_diversity  continuous_sparsity  factual_class_index  desired_class_index                                                                       
            DiverseCF  1        0.653409     1.000               0.790000             2.110065             -2.110065               0.000000              0.000000         0.000000                 0.00                  1.0                  0.0
            DiverseCF  2        0.653409     0.970               0.712500             1.872637             -1.872637               0.405000              1.222208         0.512000                 0.04                  1.0                  0.0
@@ -25,3 +33,23 @@ NoDiversityCF-Sparse  4        0.653409     0.685               0.755417        
  RandomInitCF-Sparse  1        0.653409     1.000               0.790000             2.094630             -2.094630               0.000000              0.000000         0.000000                 0.10                  1.0                  0.0
  RandomInitCF-Sparse  2        0.653409     0.810               0.765000             2.146065             -2.146065               0.130000              0.164386         0.228000                 0.08                  1.0                  0.0
  RandomInitCF-Sparse  4        0.653409     0.765               0.738333             2.067164             -2.067164               0.198333              0.623615         0.330667                 0.10                  1.0                  0.0
+
+Reproduction Assessment
+No value available.
+
+Paper Result
+- Default paper assertion target encoded in `experiment/dice/reproduce.py`:
+  - model_accuracy = 0.67
+- The script uses a default absolute accuracy tolerance of 0.05.
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+No value available.
+
+Next Steps
+No value available.

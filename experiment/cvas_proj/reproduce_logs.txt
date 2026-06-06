@@ -1,12 +1,16 @@
 Level Badge
 Level 2: Partial Reproduction
-Reason: The implementation reproduces a specific subset of the original CVAS experiments with close quantitative agreement, but the full set of experiments from the paper has not been validated in this repository.
+
+Reason
+The implementation reproduces a specific subset of the original CVAS experiments with close quantitative agreement, but the full set of experiments from the paper has not been validated in this repository.
 
 Method
 CVAS-PROJ / FR-CVAS-PROJ aggregate reproduction for the German setting.
 
 Reproduction Summary
-Reference setting:
+No value available.
+
+Reference Scope
 - mode: aggregate_table1
 - device: cuda
 - method: fr_rmpm
@@ -14,7 +18,7 @@ Reference setting:
 - num_future_models: 100
 - max_ins: 200
 
-Observed result:
+Observed Result
 - cost_mean = 0.985806
 - cost_std = 0.045377
 - current_mean = 0.924000
@@ -23,9 +27,21 @@ Observed result:
 - future_std = 0.040042
 - feasible_mean = 0.995000
 
-Paper comparison:
+Reproduction Assessment
+No value available.
+
+Paper Result
 - German FR-CVAS-PROJ in reference/cvas.pdf is approximately: cost 1.04 +- 0.02, current validity 0.94 +- 0.03, future validity 0.79 +- 0.01.
 - The reproduced result is close numerically and matches the expected qualitative behavior for this experiment.
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+No value available.
 
 Next Steps
 - Extend aggregate validation to the remaining CVAS datasets and reported settings.

@@ -1,19 +1,30 @@
 Level Badge
 Level 1: Minimal Reproduction
-Reason: Is able to accurately reproduce several metrics for a single experiment
+
+Reason
+Is able to accurately reproduce several metrics for a single experiment
 
 Method
 CCHVAE benchmark reproduction
 
-Reproduction Results
+Reproduction Summary
+No value available.
+
+Reference Scope
+No value available.
+
+Observed Result
 dataset device  n_train  n_test  n_search_candidates_total  n_counterfactuals_requested  n_counterfactuals_evaluated  n_counterfactuals_success  validity  outlier_rate_k_1  predicted_local_outliers_pct_k_1  outlier_rate_k_5  predicted_local_outliers_pct_k_5  outlier_rate_k_10  predicted_local_outliers_pct_k_10  outlier_rate_k_15  predicted_local_outliers_pct_k_15  outlier_rate_k_20  predicted_local_outliers_pct_k_20  connectedness_reference_rows  not_connected_rate_eps_1  not_connected_pct_eps_1  not_connected_rate_eps_5  not_connected_pct_eps_5  not_connected_rate_eps_10  not_connected_pct_eps_10  not_connected_rate_eps_15  not_connected_pct_eps_15  not_connected_rate_eps_20  not_connected_pct_eps_20
 credit_cchvae    cpu    96215   24054                        139                           25                           25                         25       1.0               0.0                               0.0              0.04                               4.0               0.04                                4.0               0.04                                4.0               0.04                                4.0                         89261                       1.0                    100.0                      0.72                     72.0                       0.08                       8.0                        0.0                       0.0                        0.0                       0.0
 
-Summary
+Reproduction Assessment
+No value available.
 
+Paper Result
+No value available.
 
 Scalar Result Coverage
-
+No value available.
 
 Reproducibility Criterion
 - A result is treated as one scalar `(dataset, model, metric)` value.
@@ -21,12 +32,8 @@ Reproducibility Criterion
 - Numerical-stability constant: `ε0 = 1e-12`.
 - Fixed reproduction tolerance: `δ = 0.15`.
 
-Reference Scope
-
-Observed Result Highlights
-
-
 Notes / Caveats
+No value available.
 
 Next Steps
-
+No value available.

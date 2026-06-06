@@ -1,17 +1,21 @@
 Level Badge
 Level 1: Congruent Reproduction
-Reason: The implementation functionally reproduces the Hepatitis / HCV CEMSP reproduction under `method/cemsp/` and `experiment/cemsp/`, with valid counterfactual generation for the full evaluated subset and credible model quality, but it does not match the key quantitative metrics closely enough to qualify as a partial exact reproduction.
+
+Reason
+The implementation functionally reproduces the Hepatitis / HCV CEMSP reproduction under `method/cemsp/` and `experiment/cemsp/`, with valid counterfactual generation for the full evaluated subset and credible model quality, but it does not match the key quantitative metrics closely enough to qualify as a partial exact reproduction.
 
 Method
 CEMSP Hepatitis / HCV Figure 4-style local-reference reproduction for the benchmark implementation under `method/cemsp/`, using the reproduction script in `experiment/cemsp/` with a reproduction-local weighted-sampler MLP inside `experiment/cemsp/reproduce.py`.
 
 Reproduction Summary
-Reference scope:
+No value available.
+
+Reference Scope
 - dataset: hepatitis / HCV
 - target: bundled original-repo Hepatitis CEMSP Figure 4-style reference metrics from `reference/CEMSP/cfgen-update/hepatitis/Hepatitis_cemsp.json`
 - reproduction style: local-reference-MLP benchmark reproduction
 
-Observed result:
+Observed Result
 - model_a_test_accuracy = 0.967568
 - model_a_test_f1 = 0.981481
 - model_b_test_accuracy = 0.956757
@@ -27,11 +31,36 @@ Observed result:
 - mean_count_diversity = 0.275556
 - mean_count_diversity2 = 0.304167
 
-Paper / repo comparison:
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `reproduction.reference_model` and `reproduction.reference_metrics` in `experiment/cemsp/config.yaml`:
+  - test_accuracy = 0.957
+  - test_f1 = 0.9754601226993865
+  - num_with_cf = 20.0
+  - mean_num_cf = 2.7
+  - mean_sparsity = 0.7055555555555553
+  - mean_aps = 0.06909776055124893
+  - mean_proximity = 1.5435558842295323
+  - mean_diversity = 1.35596991730314
+  - mean_diversity2 = 1.5717481658370183
+  - mean_inconsistency = 0.7474046082754859
+  - mean_count_diversity = 0.2673809523809524
+  - mean_count_diversity2 = 0.32333333333333336
 - Model quality is credible and close to the bundled reference classifier line, with model B matching the reference F1 exactly to the printed precision.
 - The reproduction matches `num_with_cf = 20`, so the method remains functionally valid on the full abnormal factual set used in this run.
 - The main quantitative gaps remain on `mean_num_cf`, `mean_diversity2`, and especially `mean_inconsistency`, which stay too far from the bundled reference values to claim exact or near-exact subset reproduction.
 - The benchmark CEMSP solver and reproduction path therefore corroborate the original behavior qualitatively, but do not reproduce the reference Hepatitis metric line closely enough for Level 2.
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+No value available.
 
 Next Steps
 - Compare against the original pretrained Hepatitis checkpoint pair directly, if allowed, to isolate model-path drift from solver-path drift.

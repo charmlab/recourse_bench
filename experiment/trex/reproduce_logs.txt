@@ -1,12 +1,16 @@
 Level Badge
 Level 1: Congruent Reproduction
-Reason: The benchmark TreX implementation reproduces the qualitative German Credit behavior from the paper and matches the robustness-oriented metrics closely, but it does not reproduce the exact numerical cost. The strongest identified cause is that the reconstructed benchmark German split / encoding does not match the reference processed German arrays in `reference/TReX-Counterfactuals/dataset/data/`.
+
+Reason
+The benchmark TreX implementation reproduces the qualitative German Credit behavior from the paper and matches the robustness-oriented metrics closely, but it does not reproduce the exact numerical cost. The strongest identified cause is that the reconstructed benchmark German split / encoding does not match the reference processed German arrays in `reference/TReX-Counterfactuals/dataset/data/`.
 
 Method
 TreX German reproduction for the benchmark implementation under `method/trex/`, using the reproduction harness in `experiment/trex/`, a 61-feature processed German Credit input, and WI / LO changed-model evaluation.
 
 Reproduction Summary
-Reference setting:
+No value available.
+
+Reference Scope
 - dataset: German Credit
 - processed features: 61
 - model: MLP with hidden layers [128, 128]
@@ -14,7 +18,7 @@ Reference setting:
 - TreX hyperparameters: tau_l1 0.80, sigma 0.15, k 1000, cf_steps 60, cf_step_size 0.02, trex_steps 200, trex_step_size 0.01
 - evaluation: 50 WI models and 50 LO models
 
-Observed result:
+Observed Result
 - processed_dim = 61
 - train/test = 670/330
 - rejected_factuals = 197
@@ -26,13 +30,29 @@ Observed result:
 - wi_validity_pct = 97.6244
 - lo_validity_pct = 96.6802
 
-Paper / reference comparison:
+Reproduction Assessment
+No value available.
+
+Paper Result
+- `evaluation.paper_targets` in `experiment/trex/config.yaml` contains the same L1 and L2 targets as `PAPER_TARGETS` in `experiment/trex/reproduce.py`.
+- `PAPER_TARGETS` in `experiment/trex/reproduce.py`:
+  - l1: cost = 4.81, lof = 0.72, wi_validity_pct = 98.0, lo_validity_pct = 96.5
+  - l2: cost = 1.20, lof = 0.75, wi_validity_pct = 99.2, lo_validity_pct = 98.7
 - paper cost target = 4.81 versus reproduced 3.0869
 - paper LOF target = 0.72 versus reproduced 0.7157
 - paper WI validity target = 98.0 versus reproduced 97.6244
 - paper LO validity target = 96.5 versus reproduced 96.6802
 - the largest gap is counterfactual cost, while robustness metrics are already close to the paper regime
 - the benchmark reconstruction matches the reference shape but not the reference German `X` / `y` arrays, so the current run is not using a paper-identical processed dataset path
+
+Scalar Result Coverage
+No value available.
+
+Reproducibility Criterion
+No value available.
+
+Notes / Caveats
+No value available.
 
 Next Steps
 - Align the reproduction with the exact reference German processed arrays or reconstruct the preprocessing pipeline so the resulting `X_train`, `X_test`, `y_train`, and `y_test` match the reference code exactly.
