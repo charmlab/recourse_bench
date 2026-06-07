@@ -1,0 +1,59 @@
+name: clue_smoke
+logger:
+  level: INFO
+  path: ./logs/clue_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas_clue
+  path: ./dataset/compas_clue/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+model:
+  name: mlp_bayesian
+  seed: 0
+  device: auto
+  epochs: 200
+  learning_rate: 0.01
+  batch_size: 256
+  layers: [64, 64]
+  optimizer: sghmc
+  criterion: cross_entropy
+  output_activation: softmax
+  burn_in: 40
+  sim_steps: 10
+  n_saves: 20
+  resample_its: 10
+  resample_prior_its: 50
+  re_burn: 10000
+  grad_std_mul: 30.0
+  base_C: 0.05
+  gauss_sig: 0.1
+  subsample: 1
+method:
+  name: clue
+  seed: 0
+  device: auto
+  lr: 0.01
+  min_steps: 3
+  max_steps: 25
+  early_stop_patience: 3
+  width: 128
+  depth: 2
+  latent_dim: 8
+  batch_size: 128
+  epochs: 200
+  early_stop: 25
+  learning_rate: 0.001
+evaluation:
+  - name: validity
+  - name: distance

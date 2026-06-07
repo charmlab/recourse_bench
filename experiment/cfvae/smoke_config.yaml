@@ -1,0 +1,41 @@
+name: cfvae_smoke
+logger:
+  level: INFO
+  path: ./logs/cfvae_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers: [64, 32]
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: cfvae
+  seed: 0
+  device: cpu
+  epoch: 20
+  batch_size: 64
+  n_samples: 10
+evaluation:
+  - name: validity
+  - name: distance

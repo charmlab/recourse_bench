@@ -1,0 +1,47 @@
+name: roar_smoke
+logger:
+  level: INFO
+  path: ./logs/roar_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers: [64, 32]
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: roar
+  seed: 0
+  device: cpu
+  lr: 0.001
+  lambda_: 0.1
+  delta_max: 0.1
+  norm: 1
+  max_minutes: 0.25
+  loss_type: BCE
+  lime_seed: 0
+  discretize_continuous: false
+  enforce_encoding: false
+evaluation:
+  - name: validity
+  - name: distance
