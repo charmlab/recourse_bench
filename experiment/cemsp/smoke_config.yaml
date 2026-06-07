@@ -1,0 +1,43 @@
+name: cemsp_smoke
+logger:
+  level: INFO
+  path: ./logs/cemsp_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers: [64, 32]
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: cemsp
+  seed: 0
+  device: cpu
+  replacement_policy: positive_median
+  replacement_quantile: 0.5
+  replacement_statistic: median
+  max_counterfactuals: 1
+  return_mode: first
+evaluation:
+  - name: validity
+  - name: distance

@@ -12,7 +12,6 @@ if ROOT.as_posix() not in sys.path:
 
 from experiment import Experiment
 
-
 def load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as file:
         config = yaml.safe_load(file)

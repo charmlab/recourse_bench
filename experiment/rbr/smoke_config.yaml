@@ -1,0 +1,49 @@
+name: rbr_smoke
+logger:
+  level: INFO
+  path: ./logs/rbr_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers: [64, 32]
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: rbr
+  seed: 0
+  device: auto
+  num_samples: 100
+  perturb_radius: 0.2
+  delta_plus: 1.0
+  sigma: 1.0
+  epsilon_op: 0.5
+  epsilon_pe: 1.0
+  max_iter: 200
+  clamp: false
+  enforce_encoding: false
+  show_progress: true
+  progress_desc: rbr-cf
+evaluation:
+  - name: validity
+  - name: distance

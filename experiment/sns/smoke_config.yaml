@@ -1,0 +1,46 @@
+name: sns_smoke
+logger:
+  level: INFO
+  path: ./logs/sns_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers: [64, 32]
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: sns
+  seed: 0
+  device: cpu
+  base_search: min_l2
+  base_steps: 300
+  base_step_size: 0.01
+  base_confidence: 0.5
+  sns_eps: 0.1
+  sns_nb_iters: 100
+  sns_eps_iter: 0.001
+  n_interpolations: 10
+evaluation:
+  - name: validity
+  - name: distance

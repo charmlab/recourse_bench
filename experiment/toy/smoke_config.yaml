@@ -1,0 +1,19 @@
+name: toy_smoke
+logger:
+  level: INFO
+  path: ./logs/toy_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: replace_me
+model:
+  name: replace_me
+  seed: 7
+  device: cpu
+method:
+  name: toy
+  seed: 7
+  device: cpu
+evaluation:
+  - name: validity
+  - name: distance

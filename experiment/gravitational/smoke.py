@@ -31,9 +31,7 @@ def main() -> None:
     parser.add_argument(
         "-p",
         "--path",
-        default=Path(__file__)
-        .with_name("credit_linear_gravitational_smoke.yaml")
-        .as_posix(),
+        default=Path(__file__).with_name("smoke_config.yaml").as_posix(),
     )
     args = parser.parse_args()
 
