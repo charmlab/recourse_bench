@@ -17,7 +17,7 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from experiment import Experiment
+from experiments import Experiment
 from method.sns.support import resolve_target_indices, sns_search, validate_counterfactuals
 from method.sns.support import min_l2_search
 from utils.registry import get_registry

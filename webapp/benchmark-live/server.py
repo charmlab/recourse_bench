@@ -36,7 +36,7 @@ import evaluation  # noqa: F401,E402
 import method  # noqa: F401,E402
 import model  # noqa: F401,E402
 import preprocess  # noqa: F401,E402
-from experiment import Experiment  # noqa: E402
+from experiments import Experiment  # noqa: E402
 from sync_data import sync_live_site_data  # noqa: E402
 from utils.registry import get_registry  # noqa: E402
 

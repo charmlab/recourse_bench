@@ -243,7 +243,7 @@ from pathlib import Path
 
 import yaml
 
-from experiment import Experiment
+from experiments import Experiment
 
 config = yaml.safe_load(Path("experiment/wachter/credit_linear_wachter_smoke.yaml").read_text())
 metrics = Experiment(config).run()

@@ -39,7 +39,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from dataset.dataset_object import DatasetObject
 from evaluation.evaluation_object import EvaluationObject
-from experiment import Experiment
+from experiments import Experiment
 from method.cfrl.cfrl_tabular import get_he_preprocessor
 from model.model_object import ModelObject, process_nan
 from model.model_utils import resolve_device

@@ -26,7 +26,7 @@ import evaluation  # noqa: F401
 import method  # noqa: F401
 import model  # noqa: F401
 import preprocess  # noqa: F401
-from experiment import Experiment
+from experiments import Experiment
 from utils.caching import set_cache_dir
 from utils.logger import setup_logger
 from utils.registry import get_registry

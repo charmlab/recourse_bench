@@ -20,7 +20,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
 from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiment import Experiment
+from experiments import Experiment
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name(
     "news_popularity_randomforest_gs_reproduce.yaml"
