@@ -1,0 +1,72 @@
+--- STDOUT ---
+2026-06-08 18:18:10 | INFO | dice_smoke | Experiment config:
+name: dice_smoke
+logger:
+  level: INFO
+  path: ./logs/dice_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: dice
+  seed: 0
+  device: cpu
+  total_cfs: 1
+  min_iter: 50
+  max_iter: 200
+  init_near_query_instance: false
+  respect_mutability: false
+  feature_weights: inverse_mad
+  posthoc_sparsity_enabled: false
+  optimizer: adam
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-08 18:18:10 | INFO | dice_smoke | Starting preprocess: ScalePreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Completed preprocess: ScalePreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Starting preprocess: EncodePreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Completed preprocess: EncodePreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Starting preprocess: SplitPreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Completed preprocess: SplitPreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Starting preprocess: FinalizePreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Completed preprocess: FinalizePreProcess
+2026-06-08 18:18:11 | INFO | dice_smoke | Training target model: MlpModel
+2026-06-08 18:18:12 | INFO | dice_smoke | Completed target model training
+2026-06-08 18:18:12 | INFO | dice_smoke | Training recourse method: DiceMethod
+2026-06-08 18:18:12 | INFO | dice_smoke | Completed recourse method training
+2026-06-08 18:18:12 | INFO | dice_smoke | Generating counterfactuals
+2026-06-08 18:41:19 | INFO | dice_smoke | Completed counterfactual generation
+2026-06-08 18:41:19 | INFO | dice_smoke | Starting evaluation: ValidityEvaluation
+2026-06-08 18:41:19 | INFO | dice_smoke | Completed evaluation: ValidityEvaluation
+2026-06-08 18:41:19 | INFO | dice_smoke | Starting evaluation: DistanceEvaluation
+2026-06-08 18:41:19 | INFO | dice_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0         4.22     1.654068     1.080176        0.79308

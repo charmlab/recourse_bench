@@ -1,0 +1,53 @@
+--- STDOUT ---
+2026-06-08 18:54:47 | INFO | mace_smoke | Experiment config:
+name: mace_smoke
+logger:
+  level: INFO
+  path: ./logs/mace_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+  path: ./dataset/compas/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: randomforest
+  seed: 0
+  device: cpu
+  n_estimators: 100
+  max_depth: null
+  min_samples_split: 2
+  n_jobs: -1
+  max_features: sqrt
+method:
+  name: mace
+  seed: 0
+  device: cpu
+  norm_type: zero_norm
+  epsilon: 0.001
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-08 18:54:47 | INFO | mace_smoke | Starting preprocess: ScalePreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Completed preprocess: ScalePreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Starting preprocess: EncodePreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Completed preprocess: EncodePreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Starting preprocess: SplitPreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Completed preprocess: SplitPreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Starting preprocess: FinalizePreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Completed preprocess: FinalizePreProcess
+2026-06-08 18:54:47 | INFO | mace_smoke | Training target model: RandomForestModel
+2026-06-08 18:54:45 | INFO | mace_smoke | Completed target model training
+2026-06-08 18:54:45 | INFO | mace_smoke | Training recourse method: MaceMethod

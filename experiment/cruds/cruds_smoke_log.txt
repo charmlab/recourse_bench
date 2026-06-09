@@ -1,0 +1,71 @@
+--- STDOUT ---
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Experiment config:
+name: credit_linear_cruds_smoke
+logger:
+  level: INFO
+  path: ./logs/credit_linear_cruds_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit
+preprocess:
+- name: balance
+  seed: 7
+  strategy: downsample
+  round_to: 250
+  shuffle: true
+  range: true
+- name: scale
+  seed: 7
+  scaling: standardize
+- name: encode
+  seed: 7
+  encoding: onehot
+- name: split
+  seed: 7
+  split: 0.3
+  sample: 256
+- name: finalize
+model:
+  name: linear
+  seed: 7
+  device: cuda
+  epochs: 10
+method:
+  name: cruds
+  seed: 7
+  device: cuda
+  desired_class: 1
+  max_iter: 100
+  vae_epochs: 1
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Starting preprocess: BalancePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Completed preprocess: BalancePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Starting preprocess: ScalePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Completed preprocess: ScalePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Starting preprocess: EncodePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Completed preprocess: EncodePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Starting preprocess: SplitPreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Completed preprocess: SplitPreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Starting preprocess: FinalizePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Completed preprocess: FinalizePreProcess
+2026-06-08 18:13:58 | INFO | credit_linear_cruds_smoke | Training target model: LinearModel
+2026-06-08 18:14:03 | INFO | credit_linear_cruds_smoke | Completed target model training
+2026-06-08 18:14:03 | INFO | credit_linear_cruds_smoke | Training recourse method: CrudsMethod
+2026-06-08 18:14:03 | INFO | method.cruds.model | Training CRUDS CSVAE on 9100 rows with 15 mutable dimensions
+2026-06-08 18:14:03 | INFO | method.cchvae.autoencoder.models.csvae | Start training of CSVAE...
+2026-06-08 18:14:12 | INFO | method.cchvae.autoencoder.models.csvae | epoch 0: x recon loss: 0.49973602629544445
+2026-06-08 18:14:12 | INFO | method.cchvae.autoencoder.models.csvae | epoch 0: y recon loss: 43.87594835381759
+2026-06-08 18:14:13 | INFO | method.cchvae.autoencoder.models.csvae | ... finished training of CSVAE
+2026-06-08 18:14:13 | INFO | credit_linear_cruds_smoke | Completed recourse method training
+2026-06-08 18:14:13 | INFO | credit_linear_cruds_smoke | Generating counterfactuals
+2026-06-08 18:17:27 | INFO | credit_linear_cruds_smoke | Completed counterfactual generation
+2026-06-08 18:17:27 | INFO | credit_linear_cruds_smoke | Starting evaluation: ValidityEvaluation
+2026-06-08 18:17:27 | INFO | credit_linear_cruds_smoke | Completed evaluation: ValidityEvaluation
+2026-06-08 18:17:27 | INFO | credit_linear_cruds_smoke | Starting evaluation: DistanceEvaluation
+2026-06-08 18:17:27 | INFO | credit_linear_cruds_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+ 0.818966    11.578947     9.126577     3.218346       1.907495

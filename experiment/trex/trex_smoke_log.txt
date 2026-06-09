@@ -1,0 +1,477 @@
+--- STDOUT ---
+2026-06-08 20:21:26 | INFO | trex_smoke | Experiment config:
+name: trex_smoke
+logger:
+  level: INFO
+  path: ./logs/trex_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: trex
+  seed: 0
+  device: cpu
+  norm: 2
+  cf_confidence: 0.5
+  cf_steps: 40
+  cf_step_size: 0.02
+  tau: 0.75
+  k: 500
+  sigma: 0.1
+  trex_step_size: 0.01
+  trex_max_steps: 80
+  trex_epsilon: 1.0
+  trex_p: 2
+  batch_size: 1
+  clamp: true
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-08 20:21:26 | INFO | trex_smoke | Starting preprocess: ScalePreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Completed preprocess: ScalePreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Starting preprocess: EncodePreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Completed preprocess: EncodePreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Starting preprocess: SplitPreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Completed preprocess: SplitPreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Starting preprocess: FinalizePreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Completed preprocess: FinalizePreProcess
+2026-06-08 20:21:26 | INFO | trex_smoke | Training target model: MlpModel
+2026-06-08 20:21:27 | INFO | trex_smoke | Completed target model training
+2026-06-08 20:21:27 | INFO | trex_smoke | Training recourse method: TrexMethod
+2026-06-08 20:21:27 | INFO | trex_smoke | Completed recourse method training
+2026-06-08 20:21:27 | INFO | trex_smoke | Generating counterfactuals
+2026-06-08 20:21:27 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:28 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:28 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:29 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:29 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:30 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:30 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:31 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:31 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:32 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:32 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:32 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:32 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:33 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:33 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:34 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:34 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:35 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:35 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:35 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:35 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:36 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:36 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:37 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:37 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:38 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:38 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:39 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:39 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:39 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:39 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:40 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:40 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:41 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:42 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:42 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:43 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:40 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:41 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:42 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:42 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:43 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:43 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:44 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:44 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:44 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:44 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:45 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:45 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:46 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:46 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:47 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:47 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:48 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:48 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:48 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:48 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:49 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:49 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:50 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:50 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:51 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:51 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:51 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:52 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:52 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:52 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:53 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:53 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:54 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:54 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:55 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:55 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:55 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:55 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:56 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:56 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:57 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:57 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:58 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:58 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:59 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:59 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:21:59 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:21:59 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:00 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:00 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:01 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:01 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:02 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:02 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:02 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:03 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:03 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:03 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:04 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:04 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:05 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:05 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:06 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:06 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:06 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:06 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:07 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:07 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:08 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:08 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:09 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:09 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:09 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:10 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:10 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:10 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:11 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:11 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:12 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:12 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:10 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:10 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:11 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:11 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:12 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:12 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:12 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:13 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:13 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:13 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:14 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:14 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:15 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:15 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:16 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:16 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:16 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:16 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:17 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:17 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:18 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:18 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:19 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:19 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:19 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:20 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:20 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:20 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:21 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:21 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:22 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:22 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:23 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:23 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:23 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:24 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:24 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:24 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:25 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:25 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:26 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:26 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:27 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:27 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:28 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:28 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:28 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:28 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:29 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:29 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:30 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:30 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:31 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:31 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:32 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:32 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:32 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:32 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:33 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:33 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:34 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:34 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:35 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:35 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:36 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:36 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:36 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:37 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:37 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:37 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:38 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:38 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:39 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:39 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:40 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:40 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:41 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:42 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:40 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:40 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:41 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:42 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:42 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:42 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:43 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:43 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:44 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:44 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:45 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:45 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:45 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:45 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:46 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:46 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:47 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:47 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:48 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:48 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:49 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:49 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:49 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:49 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:50 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:50 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:51 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:51 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:52 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:52 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:53 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:53 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:53 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:54 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:54 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:54 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:55 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:55 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:56 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:56 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:57 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:57 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:58 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:58 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:58 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:58 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:22:59 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:22:59 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:00 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:00 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:01 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:01 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:01 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:02 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:02 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:02 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:03 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:03 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:04 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:04 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:05 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:05 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:05 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:05 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:06 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:06 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:07 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:07 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:08 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:08 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:09 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:09 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:09 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:09 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:10 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 0.00%
+2026-06-08 20:23:10 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:11 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:11 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:09 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:10 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:10 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:10 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:11 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:11 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:12 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:12 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:13 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:13 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:13 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:13 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:14 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:14 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:15 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:15 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:16 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:16 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:17 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:17 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:17 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:17 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:18 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:18 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:19 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:19 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:20 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:20 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:20 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:21 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:21 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:21 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:22 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:22 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:23 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:23 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:24 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:24 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:25 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:25 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:25 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:25 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:26 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:26 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:27 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:27 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:28 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:28 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:29 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:29 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:29 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:29 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:30 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:30 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:31 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:31 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:32 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:32 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:33 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:33 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:33 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:33 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:34 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:34 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:35 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:35 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:36 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:36 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:37 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:37 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:37 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:38 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:38 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:38 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:39 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:39 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:40 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:40 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:41 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:42 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:39 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:40 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:40 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:41 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:41 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:42 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:42 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:42 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:43 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:43 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:43 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:44 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:44 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:45 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:45 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:46 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:46 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:47 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:47 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:47 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:47 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:48 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:48 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:49 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:49 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:50 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:50 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:51 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:51 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:51 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:51 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:52 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:52 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:53 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:53 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:54 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:54 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:55 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:55 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-08 20:23:55 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-08 20:23:56 | INFO | trex_smoke | Completed counterfactual generation
+2026-06-08 20:23:56 | INFO | trex_smoke | Starting evaluation: ValidityEvaluation
+2026-06-08 20:23:56 | INFO | trex_smoke | Completed evaluation: ValidityEvaluation
+2026-06-08 20:23:56 | INFO | trex_smoke | Starting evaluation: DistanceEvaluation
+2026-06-08 20:23:56 | INFO | trex_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0         4.23     0.764893     0.501191       0.450899
