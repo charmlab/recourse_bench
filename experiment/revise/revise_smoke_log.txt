@@ -1,0 +1,71 @@
+--- STDOUT ---
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Experiment config:
+name: credit_linear_revise_smoke
+logger:
+  level: INFO
+  path: ./logs/credit_linear_revise_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit
+preprocess:
+- name: balance
+  seed: 7
+  strategy: downsample
+  round_to: 250
+  shuffle: true
+  range: true
+- name: encode
+  seed: 7
+  encoding: onehot
+- name: scale
+  seed: 7
+  scaling: normalize
+  range: true
+- name: split
+  seed: 7
+  split: 0.3
+  sample: 256
+- name: finalize
+model:
+  name: linear
+  seed: 7
+  device: cuda
+method:
+  name: revise
+  seed: 7
+  device: cuda
+  desired_class: 1
+  max_iter: 100
+  vae_epochs: 1
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Starting preprocess: BalancePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Completed preprocess: BalancePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Starting preprocess: EncodePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Completed preprocess: EncodePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Starting preprocess: ScalePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Completed preprocess: ScalePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Starting preprocess: SplitPreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Completed preprocess: SplitPreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Starting preprocess: FinalizePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Completed preprocess: FinalizePreProcess
+2026-06-08 19:51:28 | INFO | credit_linear_revise_smoke | Training target model: LinearModel
+2026-06-08 19:52:42 | INFO | credit_linear_revise_smoke | Completed target model training
+2026-06-08 19:52:42 | INFO | credit_linear_revise_smoke | Training recourse method: ReviseMethod
+2026-06-08 19:52:42 | INFO | method.revise.model | Training REVISE VAE on 9100 rows with 15 mutable dimensions
+2026-06-08 19:52:42 | INFO | method.cchvae.autoencoder.models.vae | Start training of Variational Autoencoder...
+2026-06-08 19:52:45 | INFO | method.cchvae.autoencoder.models.vae | [Epoch: 0/1] [objective: 86.277]
+2026-06-08 19:52:45 | INFO | method.cchvae.autoencoder.models.vae | [ELBO train: 86.28]
+2026-06-08 19:52:45 | INFO | method.cchvae.autoencoder.models.vae | ... finished training of Variational Autoencoder.
+2026-06-08 19:52:45 | INFO | credit_linear_revise_smoke | Completed recourse method training
+2026-06-08 19:52:45 | INFO | credit_linear_revise_smoke | Generating counterfactuals
+2026-06-08 19:54:51 | INFO | credit_linear_revise_smoke | Completed counterfactual generation
+2026-06-08 19:54:51 | INFO | credit_linear_revise_smoke | Starting evaluation: ValidityEvaluation
+2026-06-08 19:54:51 | INFO | credit_linear_revise_smoke | Completed evaluation: ValidityEvaluation
+2026-06-08 19:54:51 | INFO | credit_linear_revise_smoke | Starting evaluation: DistanceEvaluation
+2026-06-08 19:54:51 | INFO | credit_linear_revise_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+ 0.724771          9.0     0.547108     0.365437       0.316923
