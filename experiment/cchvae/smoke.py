@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if ROOT.as_posix() not in sys.path:
     sys.path.insert(0, ROOT.as_posix())
 
-from experiment import Experiment
+from experiments import Experiment
 
 
 def load_config(path: Path) -> dict:

@@ -18,7 +18,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
 from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiment import Experiment
+from experiments import Experiment
 from method.probe.utils import compute_invalidation_rate, reparametrization_trick
 
 SEED = 42
