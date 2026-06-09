@@ -34,7 +34,6 @@ class ProbeMethod(MethodObject):
         lambda_: float = 0.01,
         n_iter: int = 1000,
         max_minutes: float | None = None,
-        t_max_min: float | None = None,
         norm: int | float = 1,
         clamp: bool = True,
         loss_type: str = "MSE",
@@ -56,7 +55,7 @@ class ProbeMethod(MethodObject):
         self._is_trained = False
         self._desired_class = desired_class
 
-        resolved_max_minutes = max_minutes if max_minutes is not None else t_max_min
+        resolved_max_minutes = max_minutes
         if resolved_max_minutes is None:
             resolved_max_minutes = 0.5
 
