@@ -248,7 +248,7 @@ def probe_optimize(
     lambda_param: float = 0.01,
     y_target: Sequence[float] | np.ndarray | None = None,
     n_iter: int = 1000,
-    max_minutes: float = 0.5,
+    max_minutes: float = 1.5,
     norm: int | float = 1,
     clamp: bool = True,
     loss_type: str = "MSE",
