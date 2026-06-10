@@ -21,7 +21,7 @@ preprocess:
   - name: split
     seed: 54321
     split: 0.3
-    sample: 256
+    sample: 16
 model:
   name: randomforest
   seed: 54321
