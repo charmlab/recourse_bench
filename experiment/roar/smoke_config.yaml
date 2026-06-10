@@ -18,6 +18,7 @@ preprocess:
 - name: split
   seed: 0
   split: 0.2
+  sample: 4
 model:
   name: mlp
   seed: 0
@@ -37,7 +38,7 @@ method:
   lambda_: 0.1
   delta_max: 0.1
   norm: 1
-  max_minutes: 0.25
+  max_minutes: 0.05
   loss_type: BCE
   lime_seed: 0
   discretize_continuous: false
