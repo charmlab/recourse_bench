@@ -2,7 +2,7 @@
 name: recoursebench-reproduction
 description: Reproduce RecourseBench method checks. Use when Codex needs to run or explain RecourseBench reproduction workflows, especially minimum successful checks across all methods, scoped fallbacks, Slurm execution, status/log capture, and comparison with bundled reproduce_logs.txt files.
 metadata:
-  version: v0.5.0
+  version: v0.6.0
 ---
 
 # RecourseBench Reproduction
@@ -30,12 +30,20 @@ Use `$recoursebench-smoke-tests` when the requested scope is smoke-test health.
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
-PYTHON="$REPO_ROOT/.venv/bin/python"
 ```
 
-2. Use the repository virtual environment:
+2. Use the environment prepared by `$recoursebench-smoke-tests`. Do not install
+or modify dependencies in this skill. Resolve the interpreter:
 
 ```bash
+if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
+  PYTHON="$REPO_ROOT/.venv/bin/python"
+elif [[ "${CONDA_DEFAULT_ENV:-}" == "recoursebench" ]]; then
+  PYTHON="$(command -v python)"
+else
+  echo "Run the installation in \$recoursebench-smoke-tests first." >&2
+  exit 1
+fi
 "$PYTHON" --version
 ```
 
@@ -175,9 +183,10 @@ delta = 0.15
 
 ## Minimum Successful Checks
 
-All commands assume the repository root. Set `PYTHON="$REPO_ROOT/.venv/bin/python"`
-before running locally or through Slurm. The relative `.venv/bin/python`
-spelling in the command table is shorthand for that resolved interpreter.
+All commands assume the repository root. Resolve `PYTHON` as described in the
+Workflow before running locally or through Slurm. The relative
+`.venv/bin/python` spelling in the command table is shorthand for that
+resolved interpreter, including an activated Conda interpreter.
 
 | Method | Minimum successful command | Scope and notes |
 | --- | --- | --- |
