@@ -18,6 +18,7 @@ preprocess:
 - name: split
   seed: 0
   split: 0.2
+  sample: 4
 model:
   name: mlp
   seed: 0
@@ -32,17 +33,17 @@ model:
 method:
   name: rbr
   seed: 0
-  device: auto
-  num_samples: 100
+  device: cpu
+  num_samples: 20
   perturb_radius: 0.2
   delta_plus: 1.0
   sigma: 1.0
   epsilon_op: 0.5
   epsilon_pe: 1.0
-  max_iter: 200
+  max_iter: 30
   clamp: false
   enforce_encoding: false
-  show_progress: true
+  show_progress: false
   progress_desc: rbr-cf
 evaluation:
   - name: validity
