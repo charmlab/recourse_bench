@@ -2,7 +2,7 @@
 name: recoursebench-smoke-tests
 description: Run RecourseBench method smoke tests, save complete per-method results, and write a consolidated Markdown report. Use when Codex needs to check smoke-test health across all or selected experiment methods, preserve stdout/stderr/status evidence, summarize failures, or report branch readiness without claiming paper-level reproduction.
 metadata:
-  version: v0.3.0
+  version: v0.4.0
 ---
 
 # RecourseBench Smoke Tests
@@ -17,6 +17,36 @@ hard-coded method list.
 Treat smoke tests as functionality checks only. Never describe a passing smoke
 test as a full reproduction or as evidence that paper results were reproduced.
 
+## Installation
+
+Own RecourseBench environment installation in this skill. From the repository
+root, use the installation documented in `README.md`:
+
+```bash
+conda create -n recoursebench python=3.12
+conda activate recoursebench
+python -m pip install -r requirements.txt
+```
+
+Do not reinstall an environment that already satisfies the smoke tests. Do not
+install method-specific optional dependencies unless a selected smoke test
+requires them. In particular, do not add `alibi==0.9.6` to the base environment;
+the repository uses a built-in KD-tree fallback for `diverse_dist`.
+
+After installation, prefer an executable repo-local `.venv/bin/python` when it
+exists. Otherwise, require the activated `recoursebench` Conda environment:
+
+```bash
+if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
+  PYTHON="$REPO_ROOT/.venv/bin/python"
+elif [[ "${CONDA_DEFAULT_ENV:-}" == "recoursebench" ]]; then
+  PYTHON="$(command -v python)"
+else
+  echo "Activate/install the recoursebench environment first." >&2
+  exit 1
+fi
+```
+
 ## Workflow
 
 1. Resolve and enter the repository root from the current checkout:
@@ -24,10 +54,10 @@ test as a full reproduction or as evidence that paper results were reproduced.
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
-PYTHON="$REPO_ROOT/.venv/bin/python"
 ```
 
-2. Check the branch, dirty state, and Python environment before running tests:
+2. Follow Installation to resolve `PYTHON`. Check the branch, dirty state, and
+Python environment before running tests:
 
 ```bash
 git status --short --branch
@@ -35,7 +65,8 @@ git status --short --branch
 ```
 
 Use `"$PYTHON"` for every smoke test. Do not silently use system Python.
-Stop and report an environment blocker when that interpreter is missing.
+Install or activate the environment when it is missing. If installation is
+blocked, stop and report the environment blocker.
 
 3. Create one timestamped result directory:
 
