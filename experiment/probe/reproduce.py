@@ -70,12 +70,30 @@ PAPER_PROBE_RESULTS = {
         "ac_std": 0.21,
         "paper_accuracy": 0.93,
     },
+    ("adult_carla", "linear"): {
+        "ra": 1.00,
+        "air_mean": 0.34,
+        "air_std": 0.02,
+        "ac_mean": 1.56,
+        "ac_std": 0.92,
+        "paper_accuracy": 0.83,
+    },
+    ("adult_carla", "mlp"): {
+        "ra": 0.99,
+        "air_mean": 0.35,
+        "air_std": 0.01,
+        "ac_mean": 1.43,
+        "ac_std": 0.49,
+        "paper_accuracy": 0.85,
+    },
 }
 REFERENCE_TRAINING = {
     ("compas_carla", "linear"): {"epochs": 25, "learning_rate": 0.002, "batch_size": 128},
     ("compas_carla", "mlp"): {"epochs": 25, "learning_rate": 0.002, "batch_size": 25, "layers": [50]},
     ("credit_carla", "linear"): {"epochs": 50, "learning_rate": 0.002, "batch_size": 2048},
     ("credit_carla", "mlp"): {"epochs": 50, "learning_rate": 0.002, "batch_size": 2048, "layers": [50]},
+    ("adult_carla", "linear"): {"epochs": 100, "learning_rate": 0.002, "batch_size": 1024},
+    ("adult_carla", "mlp"): {"epochs": 30, "learning_rate": 0.002, "batch_size": 1024, "layers": [50]},
 }
 REFERENCE_FEATURE_ORDER = {
     ("compas_carla", "linear"): [
@@ -126,8 +144,51 @@ REFERENCE_FEATURE_ORDER = {
         "NumberOfTime60-89DaysPastDueNotWorse",
         "NumberOfDependents",
     ],
+    ("adult_carla", "linear"): [
+        "age",
+        "fnlwgt",
+        "education-num",
+        "capital-gain",
+        "capital-loss",
+        "hours-per-week",
+        "workclass_cat_Non-Private",
+        "workclass_cat_Private",
+        "marital-status_cat_Married",
+        "marital-status_cat_Non-Married",
+        "occupation_cat_Managerial-Specialist",
+        "occupation_cat_Other",
+        "relationship_cat_Husband",
+        "relationship_cat_Non-Husband",
+        "race_cat_Non-White",
+        "race_cat_White",
+        "sex_cat_Female",
+        "sex_cat_Male",
+        "native-country_cat_Non-US",
+        "native-country_cat_US",
+    ],
+    ("adult_carla", "mlp"): [
+        "age",
+        "fnlwgt",
+        "education-num",
+        "capital-gain",
+        "capital-loss",
+        "hours-per-week",
+        "workclass_cat_Non-Private",
+        "workclass_cat_Private",
+        "marital-status_cat_Married",
+        "marital-status_cat_Non-Married",
+        "occupation_cat_Managerial-Specialist",
+        "occupation_cat_Other",
+        "relationship_cat_Husband",
+        "relationship_cat_Non-Husband",
+        "race_cat_Non-White",
+        "race_cat_White",
+        "sex_cat_Female",
+        "sex_cat_Male",
+        "native-country_cat_Non-US",
+        "native-country_cat_US",
+    ],
 }
-
 
 @dataclass(frozen=True)
 class ReproductionCase:
@@ -407,8 +468,13 @@ def _aggregate_probe_metrics(
 
 def _build_result_row(case: ReproductionCase, model_metrics: dict[str, float], probe_metrics: dict[str, float]) -> dict[str, Any]:
     paper = PAPER_PROBE_RESULTS[(case.dataset_name, case.model_name)]
+    dataset_label = {
+        "adult_carla": "adult",
+        "compas_carla": "compas",
+        "credit_carla": "gmc",
+    }[case.dataset_name]
     return {
-        "dataset": "compas" if case.dataset_name == "compas_carla" else "gmc",
+        "dataset": dataset_label,
         "dataset_internal": case.dataset_name,
         "model": case.model_name,
         "test_accuracy": float(model_metrics["test_accuracy"]),
@@ -491,7 +557,7 @@ def run_reproduction(
     device: str | None = None,
 ) -> dict[str, Any]:
     resolved_device = _resolve_device(device)
-    selected_datasets = datasets or ["compas_carla", "credit_carla"]
+    selected_datasets = datasets or ["adult_carla", "compas_carla", "credit_carla"]
     selected_models = models or ["linear", "mlp"]
     cases = [
         ReproductionCase(dataset_name=dataset_name, model_name=model_name)
@@ -523,8 +589,7 @@ def run_reproduction(
         "n_cfs": n_cfs,
         "monte_carlo_samples": monte_carlo_samples,
         "notes": [
-            "Phase-1 paper-comparable reproduction is limited to compas_carla and credit_carla.",
-            "Adult is intentionally excluded because the local adult dataset schema does not match the original CARLA Adult setup used by the paper.",
+            "This reproduction now covers adult_carla, compas_carla, and credit_carla.",
             "Training defaults follow the original reference experiment flow for wachter_rip/PROBE, not the hardcoded Table 3 values.",
         ],
     }
@@ -536,7 +601,7 @@ def main() -> None:
     parser.add_argument(
         "--datasets",
         nargs="+",
-        choices=["compas_carla", "credit_carla"],
+        choices=["adult_carla", "compas_carla", "credit_carla"],
         default=None,
     )
     parser.add_argument(
