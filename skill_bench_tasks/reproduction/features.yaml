@@ -1,0 +1,42 @@
+# Judge criteria for the reproduction task.
+
+features:
+  - id: run-dir-created
+    title: A reproduction run directory was created
+    check: glob
+    pattern: "experiment/repro_runs_*"
+    min_count: 1
+
+  - id: per-method-out
+    title: At least one per-method .out log was created
+    check: glob
+    pattern: "experiment/repro_runs_*/*.out"
+    min_count: 1
+
+  - id: per-method-status
+    title: At least one per-method .status file was created
+    check: glob
+    pattern: "experiment/repro_runs_*/*.status"
+    min_count: 1
+
+  - id: status-has-exit-code
+    title: A .status file records EXIT_CODE
+    check: file_contains
+    file_glob: "experiment/repro_runs_*/*.status"
+    pattern: "EXIT_CODE"
+
+  - id: status-has-python-version
+    title: A .status file records Python version
+    check: file_contains_regex
+    file_glob: "experiment/repro_runs_*/*.status"
+    regex: "Python 3\\."
+
+  - id: report-written
+    title: A report or summary file was written
+    check: file_contains_any
+    file_glob: "experiment/repro_runs_*/*.md"
+    patterns:
+      - "Reproduced"
+      - "Smoke OK"
+      - "Failed"
+      - "Scoped OK"

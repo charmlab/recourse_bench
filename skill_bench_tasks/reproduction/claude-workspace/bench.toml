@@ -1,0 +1,6 @@
+name = "Claude workspace"
+provider = "anthropic"
+model = "claude-opus-4-8"
+thinking = "high"
+tools = ["read", "bash", "edit", "write", "grep", "find", "ls"]
+required_skills = ["recoursebench-smoke-tests", "recoursebench-reproduction"]

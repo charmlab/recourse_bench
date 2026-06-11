@@ -1,0 +1,65 @@
+# Judge criteria for the smoke-tests task.
+# Each feature is checked against the agent's git worktree after the run.
+
+features:
+  - id: report-created
+    title: REPORT.md was created in the run directory
+    check: glob
+    pattern: "smoke_test/run_*/REPORT.md"
+    min_count: 1
+
+  - id: result-table-present
+    title: Report contains a result table with Method column
+    check: file_contains
+    file_glob: "smoke_test/run_*/REPORT.md"
+    pattern: "| Method |"
+
+  - id: overall-result-stated
+    title: Report states an overall result (PASS or ISSUES FOUND)
+    check: file_contains_any
+    file_glob: "smoke_test/run_*/REPORT.md"
+    patterns:
+      - "PASS"
+      - "ISSUES FOUND"
+
+  - id: per-method-logs
+    title: At least one per-method .out log file was created
+    check: glob
+    pattern: "smoke_test/run_*/*.out"
+    min_count: 1
+
+  - id: per-method-status
+    title: At least one per-method .status file was created
+    check: glob
+    pattern: "smoke_test/run_*/*.status"
+    min_count: 1
+
+  - id: context-git-status
+    title: git_status.txt context file was saved
+    check: glob
+    pattern: "smoke_test/run_*/git_status.txt"
+    min_count: 1
+
+  - id: context-environment
+    title: environment.txt context file was saved
+    check: glob
+    pattern: "smoke_test/run_*/environment.txt"
+    min_count: 1
+
+  - id: context-git-head
+    title: git_head.txt context file was saved
+    check: glob
+    pattern: "smoke_test/run_*/git_head.txt"
+    min_count: 1
+
+  - id: reference-comparison-present
+    title: Report includes a Reference Comparisons section
+    check: file_contains
+    file_glob: "smoke_test/run_*/REPORT.md"
+    pattern: "Reference Comparisons"
+
+  - id: failures-section-present
+    title: Report includes a Failures and Blockers section
+    check: file_contains
+    file_glob: "smoke_test/run_*/REPORT.md"
+    pattern: "Failures and Blockers"

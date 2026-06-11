@@ -1,0 +1,6 @@
+name = "Gemini workspace"
+provider = "google"
+model = "gemini-2.5-pro"
+thinking = "high"
+tools = ["read", "bash", "edit", "write", "grep", "find", "ls"]
+required_skills = ["recoursebench-smoke-tests", "recoursebench-reproduction"]

@@ -1,0 +1,93 @@
+{
+  "model_key": "gemini",
+  "model_name": "gemini-2.5-pro",
+  "provider": "google",
+  "status": "completed",
+  "exit_code": 0,
+  "started_at": "2026-06-11T17:16:00.738827+00:00",
+  "ended_at": "2026-06-11T17:16:17.396304+00:00",
+  "duration_ms": 16657,
+  "worktree_path": "/u501/hoyarhos/recourse_bench/skill_bench_runs/gemini-smoke-test/gemini/worktree",
+  "stdout_path": "/u501/hoyarhos/recourse_bench/skill_bench_runs/gemini-smoke-test/gemini/stdout.log",
+  "stderr_path": "/u501/hoyarhos/recourse_bench/skill_bench_runs/gemini-smoke-test/gemini/stderr.log",
+  "result_path": "/u501/hoyarhos/recourse_bench/skill_bench_runs/gemini-smoke-test/gemini/result.json",
+  "error": null,
+  "judgment": {
+    "features": [
+      {
+        "feature_id": "report-created",
+        "title": "REPORT.md was created in the run directory",
+        "verdict": "fail",
+        "reason": "expected >=1 match(es) for 'smoke_test/run_*/REPORT.md', got 0",
+        "evidence": ""
+      },
+      {
+        "feature_id": "result-table-present",
+        "title": "Report contains a result table with Method column",
+        "verdict": "fail",
+        "reason": "no file found matching 'smoke_test/run_*/REPORT.md'",
+        "evidence": ""
+      },
+      {
+        "feature_id": "overall-result-stated",
+        "title": "Report states an overall result (PASS or ISSUES FOUND)",
+        "verdict": "fail",
+        "reason": "no file found matching 'smoke_test/run_*/REPORT.md'",
+        "evidence": ""
+      },
+      {
+        "feature_id": "per-method-logs",
+        "title": "At least one per-method .out log file was created",
+        "verdict": "fail",
+        "reason": "expected >=1 match(es) for 'smoke_test/run_*/*.out', got 0",
+        "evidence": ""
+      },
+      {
+        "feature_id": "per-method-status",
+        "title": "At least one per-method .status file was created",
+        "verdict": "fail",
+        "reason": "expected >=1 match(es) for 'smoke_test/run_*/*.status', got 0",
+        "evidence": ""
+      },
+      {
+        "feature_id": "context-git-status",
+        "title": "git_status.txt context file was saved",
+        "verdict": "fail",
+        "reason": "expected >=1 match(es) for 'smoke_test/run_*/git_status.txt', got 0",
+        "evidence": ""
+      },
+      {
+        "feature_id": "context-environment",
+        "title": "environment.txt context file was saved",
+        "verdict": "fail",
+        "reason": "expected >=1 match(es) for 'smoke_test/run_*/environment.txt', got 0",
+        "evidence": ""
+      },
+      {
+        "feature_id": "context-git-head",
+        "title": "git_head.txt context file was saved",
+        "verdict": "fail",
+        "reason": "expected >=1 match(es) for 'smoke_test/run_*/git_head.txt', got 0",
+        "evidence": ""
+      },
+      {
+        "feature_id": "reference-comparison-present",
+        "title": "Report includes a Reference Comparisons section",
+        "verdict": "fail",
+        "reason": "no file found matching 'smoke_test/run_*/REPORT.md'",
+        "evidence": ""
+      },
+      {
+        "feature_id": "failures-section-present",
+        "title": "Report includes a Failures and Blockers section",
+        "verdict": "fail",
+        "reason": "no file found matching 'smoke_test/run_*/REPORT.md'",
+        "evidence": ""
+      }
+    ],
+    "passed": 0,
+    "failed": 10,
+    "skipped": 0,
+    "overall": "fail"
+  }
+}
