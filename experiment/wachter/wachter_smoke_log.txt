@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-08 20:24:10 | INFO | credit_linear_wachter_smoke | Experiment config:
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Experiment config:
 name: credit_linear_wachter_smoke
 logger:
   level: INFO
@@ -42,25 +42,25 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-08 20:24:10 | INFO | credit_linear_wachter_smoke | Starting preprocess: BalancePreProcess
-2026-06-08 20:24:10 | INFO | credit_linear_wachter_smoke | Completed preprocess: BalancePreProcess
-2026-06-08 20:24:10 | INFO | credit_linear_wachter_smoke | Starting preprocess: EncodePreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Completed preprocess: EncodePreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Starting preprocess: ScalePreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Completed preprocess: ScalePreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Starting preprocess: SplitPreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Completed preprocess: SplitPreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Starting preprocess: FinalizePreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Completed preprocess: FinalizePreProcess
-2026-06-08 20:24:11 | INFO | credit_linear_wachter_smoke | Training target model: LinearModel
-2026-06-08 20:25:28 | INFO | credit_linear_wachter_smoke | Completed target model training
-2026-06-08 20:25:28 | INFO | credit_linear_wachter_smoke | Training recourse method: WachterMethod
-2026-06-08 20:25:28 | INFO | credit_linear_wachter_smoke | Completed recourse method training
-2026-06-08 20:25:28 | INFO | credit_linear_wachter_smoke | Generating counterfactuals
-2026-06-08 20:25:35 | INFO | credit_linear_wachter_smoke | Completed counterfactual generation
-2026-06-08 20:25:35 | INFO | credit_linear_wachter_smoke | Starting evaluation: ValidityEvaluation
-2026-06-08 20:25:35 | INFO | credit_linear_wachter_smoke | Completed evaluation: ValidityEvaluation
-2026-06-08 20:25:35 | INFO | credit_linear_wachter_smoke | Starting evaluation: DistanceEvaluation
-2026-06-08 20:25:35 | INFO | credit_linear_wachter_smoke | Completed evaluation: DistanceEvaluation
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Starting preprocess: BalancePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Completed preprocess: BalancePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Starting preprocess: EncodePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Completed preprocess: EncodePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Starting preprocess: ScalePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Completed preprocess: ScalePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Starting preprocess: SplitPreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Completed preprocess: SplitPreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Starting preprocess: FinalizePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Completed preprocess: FinalizePreProcess
+2026-06-11 12:57:55 | INFO | credit_linear_wachter_smoke | Training target model: LinearModel
+2026-06-11 12:59:19 | INFO | credit_linear_wachter_smoke | Completed target model training
+2026-06-11 12:59:19 | INFO | credit_linear_wachter_smoke | Training recourse method: WachterMethod
+2026-06-11 12:59:19 | INFO | credit_linear_wachter_smoke | Completed recourse method training
+2026-06-11 12:59:19 | INFO | credit_linear_wachter_smoke | Generating counterfactuals
+2026-06-11 12:59:25 | INFO | credit_linear_wachter_smoke | Completed counterfactual generation
+2026-06-11 12:59:25 | INFO | credit_linear_wachter_smoke | Starting evaluation: ValidityEvaluation
+2026-06-11 12:59:25 | INFO | credit_linear_wachter_smoke | Completed evaluation: ValidityEvaluation
+2026-06-11 12:59:25 | INFO | credit_linear_wachter_smoke | Starting evaluation: DistanceEvaluation
+2026-06-11 12:59:25 | INFO | credit_linear_wachter_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
       1.0     7.908257      0.35176     0.139118       0.057028
