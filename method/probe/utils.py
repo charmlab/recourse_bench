@@ -406,6 +406,7 @@ def probe_optimize(
                     categorical_groups=categorical_groups,
                     binary_feature_indices=binary_feature_indices,
                 )
+                # print(str(invalidation_rate)+ " " + str(current_probability))
 
         if bool(
             current_probability > DECISION_THRESHOLD
