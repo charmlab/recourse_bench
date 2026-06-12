@@ -8,13 +8,16 @@ from dataset.breast_cancer.breast_cancer import BreastCancerDataset
 from dataset.compas.compas import CompasDataset
 from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from dataset.compas_clue.compas_clue import CompasClueDataset
+from dataset.ctg_trex.ctg_trex import CtgTrexDataset
 from dataset.credit.credit import CreditDataset
 from dataset.credit_cchvae.credit_cchvae import CreditCchvaeDataset
 from dataset.dataset_object import DatasetObject
 from dataset.diabetes.diabetes import DiabetesDataset
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
+from dataset.german_trex.german_trex import GermanTrexDataset
 from dataset.hepatitis.hepatitis import HepatitisDataset
+from dataset.heloc_trex.heloc_trex import HelocTrexDataset
 from dataset.german_sns.german_sns import GermanSnsDataset
 from dataset.news_popularity.news_popularity import NewsPopularityDataset
 from dataset.synthetic_face.synthetic_face import SyntheticFaceDataset
