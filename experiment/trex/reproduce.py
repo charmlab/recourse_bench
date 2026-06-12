@@ -17,7 +17,6 @@ import pandas as pd
 import torch
 import yaml
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
 from sklearn.neighbors import LocalOutlierFactor
 from tqdm.auto import tqdm
 
@@ -25,48 +24,8 @@ from dataset.dataset_object import DatasetObject
 from method.trex.trex import TrexMethod
 from model.mlp.mlp import MlpModel
 
-TARGET_COLUMN = "credit_risk"
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")
-
-NUMERIC_COLUMNS = [
-    "duration",
-    "amount",
-    "installment_rate",
-    "present_residence",
-    "age",
-    "number_credits",
-    "people_liable",
-]
-CAT_COLUMNS = [
-    "status",
-    "credit_history",
-    "purpose",
-    "savings",
-    "employment_duration",
-    "personal_status_sex",
-    "other_debtors",
-    "property",
-    "other_installment_plans",
-    "housing",
-    "job",
-    "telephone",
-    "foreign_worker",
-]
-EXPECTED_INPUT_DIM = 61
-PAPER_TARGETS = {
-    "l1": {
-        "cost": 4.81,
-        "lof": 0.72,
-        "wi_validity_pct": 98.0,
-        "lo_validity_pct": 96.5,
-    },
-    "l2": {
-        "cost": 1.20,
-        "lof": 0.75,
-        "wi_validity_pct": 99.2,
-        "lo_validity_pct": 98.7,
-    },
-}
+DEFAULT_TAU_GRID = [0.70, 0.75, 0.80, 0.85]
 
 
 class FrameDataset(DatasetObject):
@@ -74,7 +33,7 @@ class FrameDataset(DatasetObject):
         self,
         df: pd.DataFrame,
         *,
-        target_column: str = TARGET_COLUMN,
+        target_column: str,
         name: str = "frame_dataset",
     ):
         self._rawdf = df.copy(deep=True)
@@ -96,6 +55,15 @@ class FrameDataset(DatasetObject):
 
     def _read_df(self, path: str) -> pd.DataFrame:
         raise NotImplementedError("FrameDataset reads from an in-memory DataFrame")
+
+
+@dataclass(frozen=True)
+class DataSelection:
+    name: str
+    train_path: Path
+    test_path: Path
+    target_column: str
+    paper_targets: dict[str, dict[str, float]]
 
 
 @dataclass
@@ -146,14 +114,26 @@ def _resolve_project_path(path_value: str) -> Path:
     return path
 
 
-def _single_data_config(config: dict[str, Any]) -> dict[str, Any]:
+def _resolve_data_config(
+    config: dict[str, Any],
+    dataset_name: str | None,
+) -> dict[str, Any]:
     data_cfg = config.get("data")
-    if not isinstance(data_cfg, list) or len(data_cfg) != 1:
-        raise ValueError("TreX reproduction expects exactly one data section")
-    item = data_cfg[0]
-    if not isinstance(item, dict):
-        raise ValueError("Data section must contain a dictionary entry")
-    return item
+    if not isinstance(data_cfg, list) or not data_cfg:
+        raise ValueError("TreX reproduction expects one or more data sections")
+
+    entries = [item for item in data_cfg if isinstance(item, dict)]
+    if len(entries) != len(data_cfg):
+        raise ValueError("Each data section entry must be a dictionary")
+
+    if dataset_name is None:
+        return entries[0]
+
+    for item in entries:
+        if str(item.get("name")) == dataset_name:
+            return item
+    available = ", ".join(str(item.get("name")) for item in entries)
+    raise ValueError(f"Unknown dataset '{dataset_name}'. Available: {available}")
 
 
 def _resolve_settings(
@@ -161,18 +141,13 @@ def _resolve_settings(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
     experiment_cfg = config.get("experiment", {})
-    data_item = _single_data_config(config)
+    data_item = _resolve_data_config(config, args.dataset)
     data_overrides = data_item.get("overrides", {})
     model_overrides = config.get("model", {}).get("overrides", {})
     method_overrides = config.get("method", {}).get("overrides", {})
     evaluation_cfg = config.get("evaluation", {})
     evaluation_overrides = evaluation_cfg.get("overrides", {})
 
-    split_seed = (
-        int(args.split_seed)
-        if args.split_seed is not None
-        else int(data_overrides.get("split_seed", 27))
-    )
     device = _resolve_device(args.device or str(experiment_cfg.get("device", "auto")))
     learning_rate = (
         float(args.learning_rate)
@@ -215,17 +190,25 @@ def _resolve_settings(
     tau_grid = (
         [float(value) for value in args.tau_grid]
         if args.tau_grid is not None
-        else [float(value) for value in method_overrides.get("tau_grid", [0.70, 0.75, 0.80, 0.85])]
+        else [float(value) for value in method_overrides.get("tau_grid", DEFAULT_TAU_GRID)]
     )
     tau_l1 = (
         float(args.tau_l1)
         if args.tau_l1 is not None
-        else method_overrides.get("tau_l1")
+        else (
+            None
+            if method_overrides.get("tau_l1") is None
+            else float(method_overrides.get("tau_l1"))
+        )
     )
     tau_l2 = (
         float(args.tau_l2)
         if args.tau_l2 is not None
-        else method_overrides.get("tau_l2")
+        else (
+            None
+            if method_overrides.get("tau_l2") is None
+            else float(method_overrides.get("tau_l2"))
+        )
     )
     k = int(args.k) if args.k is not None else int(method_overrides.get("k", 1000))
     sigma = (
@@ -266,22 +249,25 @@ def _resolve_settings(
     lof_neighbors = int(evaluation_overrides.get("lof_n_neighbors", 1))
     desired_class = int(method_overrides.get("desired_class", 1))
 
+    train_path = _resolve_project_path(str(data_overrides["train_path"]))
+    test_path = _resolve_project_path(str(data_overrides["test_path"]))
+    target_column = str(data_overrides.get("target_column", "target"))
+    paper_targets = data_overrides.get(
+        "paper_targets",
+        evaluation_cfg.get("paper_targets", {}),
+    )
+    if not isinstance(paper_targets, dict):
+        raise ValueError("paper_targets must be a dictionary when provided")
+
     settings = {
         "config_path": str(Path(args.config).resolve()),
-        "experiment_name": str(experiment_cfg.get("name", "german_trex_reproduce")),
+        "experiment_name": str(experiment_cfg.get("name", "trex_reproduce")),
         "seed": int(experiment_cfg.get("seed", 0)),
         "device": device,
-        "data_name": str(data_item.get("name", "german_reconstructed_61d")),
-        "raw_data_path": _resolve_project_path(
-            str(data_overrides.get("raw_path", "./dataset/german/german.csv"))
-        ),
-        "split_seed": split_seed,
-        "test_split": float(data_overrides.get("test_split", 0.33)),
-        "label_flip": bool(data_overrides.get("label_flip", True)),
-        "numeric_columns": list(data_overrides.get("numeric_columns", NUMERIC_COLUMNS)),
-        "categorical_columns": list(
-            data_overrides.get("categorical_columns", CAT_COLUMNS)
-        ),
+        "data_name": str(data_item.get("name", "trex_dataset")),
+        "train_path": train_path,
+        "test_path": test_path,
+        "target_column": target_column,
         "model": {
             "epochs": int(model_overrides.get("epochs", 50)),
             "learning_rate": learning_rate,
@@ -308,8 +294,8 @@ def _resolve_settings(
             "batch_size": int(method_overrides.get("batch_size", 1)),
             "clamp": method_overrides.get("clamp", True),
             "tau_grid": tau_grid,
-            "tau_l1": None if tau_l1 is None else float(tau_l1),
-            "tau_l2": None if tau_l2 is None else float(tau_l2),
+            "tau_l1": tau_l1,
+            "tau_l2": tau_l2,
         },
         "evaluation": {
             "wi_models": wi_models,
@@ -318,12 +304,10 @@ def _resolve_settings(
             "pilot_factual_limit": pilot_factual_limit,
             "factual_limit": factual_limit,
             "lof_n_neighbors": lof_neighbors,
-            "paper_targets": evaluation_cfg.get("paper_targets", PAPER_TARGETS),
+            "paper_targets": paper_targets,
         },
     }
 
-    if settings["test_split"] <= 0 or settings["test_split"] >= 1:
-        raise ValueError("data.overrides.test_split must satisfy 0 < split < 1")
     if settings["evaluation"]["wi_models"] < 1 or settings["evaluation"]["lo_models"] < 1:
         raise ValueError("WI and LO model counts must be >= 1")
     if settings["evaluation"]["pilot_model_count"] < 1:
@@ -336,8 +320,10 @@ def _resolve_settings(
         raise ValueError("model batch_size must be >= 1")
     if settings["model"]["learning_rate"] <= 0:
         raise ValueError("model learning_rate must be > 0")
-    if not settings["method"]["tau_grid"] and settings["method"]["tau_l1"] is None:
-        raise ValueError("Provide tau_grid or tau_l1 in config/CLI")
+    if not settings["train_path"].exists():
+        raise FileNotFoundError(f"Missing train csv: {settings['train_path']}")
+    if not settings["test_path"].exists():
+        raise FileNotFoundError(f"Missing test csv: {settings['test_path']}")
 
     return settings
 
@@ -357,11 +343,12 @@ def _make_dataset(
     features: pd.DataFrame,
     target: pd.Series,
     *,
+    target_column: str,
     name: str,
     **flags: object,
 ) -> FrameDataset:
-    combined = pd.concat([features, target.rename(TARGET_COLUMN)], axis=1)
-    dataset = FrameDataset(combined, target_column=TARGET_COLUMN, name=name)
+    combined = pd.concat([features, target.rename(target_column)], axis=1)
+    dataset = FrameDataset(combined, target_column=target_column, name=name)
     for flag, value in flags.items():
         dataset.update(flag, value)
     dataset.freeze()
@@ -373,86 +360,53 @@ def _count_values(series: pd.Series) -> dict[int, int]:
     return {int(index): int(value) for index, value in counts.items()}
 
 
-def _build_categorical_frame(
-    df: pd.DataFrame,
-    categorical_columns: list[str],
-) -> pd.DataFrame:
-    frames: list[pd.DataFrame] = []
-    for column in categorical_columns:
-        categories = sorted(pd.Index(df[column].unique()).tolist())
-        cat_series = pd.Categorical(df[column], categories=categories)
-        encoded = pd.get_dummies(cat_series, prefix=column, prefix_sep="_")
-        ordered_columns = [f"{column}_{category}" for category in categories]
-        encoded = encoded.reindex(columns=ordered_columns, fill_value=0)
-        frames.append(encoded.astype(np.float32))
-    return pd.concat(frames, axis=1)
-
-
-def load_german_reproduction_data(
+def load_processed_reproduction_data(
     *,
-    raw_data_path: Path,
-    split_seed: int,
-    test_split: float,
-    label_flip: bool,
-    numeric_columns: list[str],
-    categorical_columns: list[str],
+    train_path: Path,
+    test_path: Path,
+    target_column: str,
+    data_name: str,
 ) -> dict[str, Any]:
-    raw_df = pd.read_csv(raw_data_path)
-    raw_target = raw_df[TARGET_COLUMN].astype(int)
-    target = (1 - raw_target) if label_flip else raw_target
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    if target_column not in train_df.columns or target_column not in test_df.columns:
+        raise KeyError(f"Target column '{target_column}' must exist in both split CSVs")
 
-    numeric = raw_df.loc[:, numeric_columns].astype(np.float32)
-    denom = numeric.max(axis=0) - numeric.min(axis=0)
-    denom = denom.replace(0, 1)
-    numeric = ((numeric - numeric.min(axis=0)) / denom).astype(np.float32)
+    feature_columns = [column for column in train_df.columns if column != target_column]
+    if feature_columns != [column for column in test_df.columns if column != target_column]:
+        raise ValueError("Train/test feature columns must match exactly")
 
-    categorical = _build_categorical_frame(raw_df, categorical_columns)
-    features = pd.concat([numeric, categorical], axis=1).astype(np.float32)
-    feature_order = list(features.columns)
-
-    if features.shape[1] != EXPECTED_INPUT_DIM:
-        raise ValueError(
-            f"Expected {EXPECTED_INPUT_DIM} processed features, "
-            f"found {features.shape[1]}"
-        )
-
-    (
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-    ) = train_test_split(
-        features,
-        target,
-        test_size=test_split,
-        random_state=split_seed,
-        shuffle=True,
-    )
+    X_train = train_df.loc[:, feature_columns].astype(np.float32).reset_index(drop=True)
+    y_train = train_df.loc[:, target_column].astype(int).reset_index(drop=True)
+    X_test = test_df.loc[:, feature_columns].astype(np.float32).reset_index(drop=True)
+    y_test = test_df.loc[:, target_column].astype(int).reset_index(drop=True)
 
     trainset = _make_dataset(
         X_train,
         y_train,
-        name="german_train_reproduction",
+        target_column=target_column,
+        name=f"{data_name}_train_reproduction",
         trainset=True,
     )
     testset = _make_dataset(
         X_test,
         y_test,
-        name="german_test_reproduction",
+        target_column=target_column,
+        name=f"{data_name}_test_reproduction",
         testset=True,
     )
+    full_target = pd.concat([y_train, y_test], ignore_index=True)
 
     return {
-        "raw_df": raw_df,
-        "feature_order": feature_order,
+        "feature_order": feature_columns,
         "trainset": trainset,
         "testset": testset,
         "train_features": X_train.copy(deep=True),
         "test_features": X_test.copy(deep=True),
         "train_target": y_train.copy(deep=True),
         "test_target": y_test.copy(deep=True),
-        "input_dim": int(features.shape[1]),
-        "full_target_counts": _count_values(target),
+        "input_dim": int(len(feature_columns)),
+        "full_target_counts": _count_values(full_target),
         "train_target_counts": _count_values(y_train),
         "test_target_counts": _count_values(y_test),
     }
@@ -544,7 +498,8 @@ def select_rejected_factuals(
     factuals = _make_dataset(
         factual_features,
         factual_target,
-        name="german_rejected_factuals",
+        target_column=testset.target_column,
+        name=f"{testset.name}_rejected_factuals",
         testset=True,
     )
     return factuals
@@ -555,6 +510,8 @@ def build_lo_trainset(
     train_target: pd.Series,
     *,
     sample_seed: int,
+    target_column: str,
+    name: str,
 ) -> FrameDataset:
     sample_count = max(1, int(round(0.01 * len(train_features))))
     rng = np.random.default_rng(sample_seed)
@@ -568,7 +525,8 @@ def build_lo_trainset(
     return _make_dataset(
         lo_features,
         lo_target,
-        name=f"german_lo_train_{sample_seed}",
+        target_column=target_column,
+        name=name,
         trainset=True,
     )
 
@@ -616,6 +574,8 @@ def train_changed_models(
             train_features,
             train_target,
             sample_seed=5001 + offset,
+            target_column=trainset.target_column,
+            name=f"{trainset.name}_lo_{seed}",
         )
         lo_bundles.append(
             train_model_bundle(
@@ -961,7 +921,8 @@ def _pilot_subset(factuals: FrameDataset, limit: int) -> FrameDataset:
     return _make_dataset(
         pilot_features,
         pilot_target,
-        name="german_pilot_factuals",
+        target_column=factuals.target_column,
+        name=f"{factuals.name}_pilot",
         testset=True,
     )
 
@@ -978,13 +939,22 @@ def _subset_factuals(factuals: FrameDataset, limit: int | None, *, name: str) ->
     return _make_dataset(
         subset_features,
         subset_target,
+        target_column=factuals.target_column,
         name=name,
         testset=True,
     )
 
 
-def _report_row(metrics: RunMetrics, paper_target: dict[str, float]) -> dict[str, Any]:
+def _report_row(
+    metrics: RunMetrics,
+    paper_target: dict[str, float] | None,
+) -> dict[str, Any]:
     payload = metrics.to_dict()
+    if paper_target is None:
+        payload["paper_target"] = None
+        payload["gaps"] = None
+        return payload
+
     payload["paper_target"] = dict(paper_target)
     payload["gaps"] = {
         "cost": _metric_gap(metrics.cost, paper_target["cost"]),
@@ -1009,7 +979,7 @@ def _print_summary(
     method_cfg = output["method"]
     evaluation_cfg = output["evaluation"]
 
-    print("TreX German reproduction")
+    print(f"TreX reproduction ({data['data_name']})")
     print(f"config: {output['config_path']}")
     print(f"device: {output['device']}")
     print(
@@ -1027,11 +997,10 @@ def _print_summary(
     )
     print(
         "trex cfg: "
-        f"tau_l1={method_cfg['tau_l1']:.4f} | sigma={method_cfg['sigma']:.4f} | "
-        f"k={method_cfg['k']} | cf_steps={method_cfg['cf_steps']} | "
-        f"cf_step_size={method_cfg['cf_step_size']:.4f} | "
-        f"trex_steps={method_cfg['trex_max_steps']} | "
-        f"trex_step_size={method_cfg['trex_step_size']:.4f}"
+        f"tau_l1={method_cfg['tau_l1']} | tau_l2={method_cfg['tau_l2']} | "
+        f"sigma={method_cfg['sigma']:.4f} | k={method_cfg['k']} | "
+        f"cf_steps={method_cfg['cf_steps']} | cf_step_size={method_cfg['cf_step_size']:.4f} | "
+        f"trex_steps={method_cfg['trex_max_steps']} | trex_step_size={method_cfg['trex_step_size']:.4f}"
     )
     print(
         "eval cfg: "
@@ -1042,7 +1011,7 @@ def _print_summary(
     print("")
 
     rows = []
-    for norm_key in ["l1"]:#, "l2"):
+    for norm_key in [key for key in ["l1", "l2"] if key in output]:
         row = output[norm_key]
         rows.append(
             {
@@ -1058,20 +1027,24 @@ def _print_summary(
     summary_df = pd.DataFrame(rows)
     print(summary_df.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
     print("")
-    for norm_key in ["l1"]:#, "l2"):
+
+    for norm_key in [key for key in ["l1", "l2"] if key in output]:
         row = output[norm_key]
         gaps = row["gaps"]
-        print(
-            f"{norm_key} target gaps | cost: {gaps['cost']:.4f} | lof: {gaps['lof']:.4f} | "
-            f"wi: {gaps['wi_validity_pct']:.4f} | lo: {gaps['lo_validity_pct']:.4f}"
-        )
+        if gaps is None:
+            print(f"{norm_key} target gaps | not available for this dataset")
+        else:
+            print(
+                f"{norm_key} target gaps | cost: {gaps['cost']:.4f} | lof: {gaps['lof']:.4f} | "
+                f"wi: {gaps['wi_validity_pct']:.4f} | lo: {gaps['lo_validity_pct']:.4f}"
+            )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
+    parser.add_argument("--dataset", default=None)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default=None)
-    parser.add_argument("--split-seed", type=int, default=None)
     parser.add_argument("--wi-models", type=int, default=None)
     parser.add_argument("--lo-models", type=int, default=None)
     parser.add_argument("--pilot-model-count", type=int, default=None)
@@ -1106,13 +1079,11 @@ def main() -> None:
 
     with tqdm(total=5, desc="Reproduction stages", unit="stage") as stage_bar:
         stage_bar.set_postfix_str("load data")
-        data = load_german_reproduction_data(
-            raw_data_path=settings["raw_data_path"],
-            split_seed=settings["split_seed"],
-            test_split=settings["test_split"],
-            label_flip=settings["label_flip"],
-            numeric_columns=settings["numeric_columns"],
-            categorical_columns=settings["categorical_columns"],
+        data = load_processed_reproduction_data(
+            train_path=settings["train_path"],
+            test_path=settings["test_path"],
+            target_column=settings["target_column"],
+            data_name=settings["data_name"],
         )
         trainset = data["trainset"]
         testset = data["testset"]
@@ -1141,7 +1112,7 @@ def main() -> None:
         factuals = _subset_factuals(
             factuals,
             settings["evaluation"]["factual_limit"],
-            name="german_rejected_factuals_subset",
+            name=f"{settings['data_name']}_rejected_factuals_subset",
         )
         stage_bar.update(1)
 
@@ -1173,16 +1144,20 @@ def main() -> None:
         norm_results: dict[str, dict[str, Any]] = {}
         manual_taus = {
             "l1": settings["method"]["tau_l1"],
-            #"l2": settings["method"]["tau_l2"],
+            "l2": settings["method"]["tau_l2"],
         }
         for norm_key, norm in tqdm(
-            [("l1", 1)],#, ("l2", 2)],
+            [("l1", 1), ("l2", 2)],
             desc="Final norm evaluations",
             unit="norm",
             leave=False,
         ):
-            paper_target = settings["evaluation"]["paper_targets"][norm_key]
-            if manual_taus[norm_key] is None:
+            paper_target = settings["evaluation"]["paper_targets"].get(norm_key)
+            tau_override = manual_taus[norm_key]
+            if tau_override is not None:
+                tau = float(tau_override)
+                pilot_candidates = []
+            elif paper_target is not None and settings["method"]["tau_grid"]:
                 tau, pilot_candidates = choose_tau(
                     norm=norm,
                     tau_grid=[float(value) for value in settings["method"]["tau_grid"]],
@@ -1196,9 +1171,14 @@ def main() -> None:
                     method_cfg=settings["method"],
                     lof_n_neighbors=settings["evaluation"]["lof_n_neighbors"],
                 )
-            else:
-                tau = float(manual_taus[norm_key])
+            elif settings["method"]["tau_l1"] is not None:
+                tau = float(settings["method"]["tau_l1"])
                 pilot_candidates = []
+            elif settings["method"]["tau_grid"]:
+                tau = float(settings["method"]["tau_grid"][0])
+                pilot_candidates = []
+            else:
+                raise ValueError(f"No tau available for {norm_key}")
 
             metrics = evaluate_run(
                 target_model=baseline_bundle.model,
@@ -1231,7 +1211,8 @@ def main() -> None:
             "layers": [int(value) for value in settings["model"]["layers"]],
         },
         "method": {
-            "tau_l1": float(settings["method"]["tau_l1"]),
+            "tau_l1": settings["method"]["tau_l1"],
+            "tau_l2": settings["method"]["tau_l2"],
             "sigma": float(settings["method"]["sigma"]),
             "k": int(settings["method"]["k"]),
             "cf_steps": int(settings["method"]["cf_steps"]),
@@ -1245,8 +1226,10 @@ def main() -> None:
             "factual_limit": settings["evaluation"]["factual_limit"],
         },
         "data": {
-            "raw_path": str(settings["raw_data_path"]),
             "data_name": settings["data_name"],
+            "train_path": str(settings["train_path"]),
+            "test_path": str(settings["test_path"]),
+            "target_column": settings["target_column"],
             "input_dim": data["input_dim"],
             "train_size": int(len(trainset)),
             "test_size": int(len(testset)),
@@ -1256,16 +1239,10 @@ def main() -> None:
             "num_rejected_factuals": int(len(factuals)),
             "num_pilot_factuals": int(len(pilot_factuals)),
             "factual_limit": settings["evaluation"]["factual_limit"],
-            "split_seed": int(settings["split_seed"]),
-            "test_split": float(settings["test_split"]),
-            "label_transform": (
-                "paper_target = 1 - raw_credit_risk"
-                if settings["label_flip"]
-                else "paper_target = raw_credit_risk"
-            ),
+            "label_transform": "identity",
         },
         "l1": norm_results["l1"],
-        # "l2": norm_results["l2"],
+        "l2": norm_results["l2"],
     }
 
     _print_summary(output=output)

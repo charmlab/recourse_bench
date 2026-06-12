@@ -1,0 +1,94 @@
+name: ctg_trex
+target_column: target
+feature_order:
+- LB
+- AC
+- FM
+- UC
+- DL
+- DS
+- DP
+- ASTV
+- MSTV
+- ALTV
+- MLTV
+- Width
+- Min
+- Max
+- Nmax
+- Nzeros
+- Mode
+- Mean
+- Median
+- Variance
+- Tendency
+- target
+raw_feature_type:
+  LB: numerical
+  AC: numerical
+  FM: numerical
+  UC: numerical
+  DL: numerical
+  DS: numerical
+  DP: numerical
+  ASTV: numerical
+  MSTV: numerical
+  ALTV: numerical
+  MLTV: numerical
+  Width: numerical
+  Min: numerical
+  Max: numerical
+  Nmax: numerical
+  Nzeros: numerical
+  Mode: numerical
+  Mean: numerical
+  Median: numerical
+  Variance: numerical
+  Tendency: numerical
+  target: binary
+raw_feature_mutability:
+  LB: true
+  AC: true
+  FM: true
+  UC: true
+  DL: true
+  DS: true
+  DP: true
+  ASTV: true
+  MSTV: true
+  ALTV: true
+  MLTV: true
+  Width: true
+  Min: true
+  Max: true
+  Nmax: true
+  Nzeros: true
+  Mode: true
+  Mean: true
+  Median: true
+  Variance: true
+  Tendency: true
+  target: false
+raw_feature_actionability:
+  LB: any
+  AC: any
+  FM: any
+  UC: any
+  DL: any
+  DS: any
+  DP: any
+  ASTV: any
+  MSTV: any
+  ALTV: any
+  MLTV: any
+  Width: any
+  Min: any
+  Max: any
+  Nmax: any
+  Nzeros: any
+  Mode: any
+  Mean: any
+  Median: any
+  Variance: any
+  Tendency: any
+  target: none

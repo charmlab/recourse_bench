@@ -1,38 +1,57 @@
 experiment:
-  name: "german_mlp_trex_reproduce"
+  name: "trex_reproduce"
   seed: 0
   device: "auto"
 
 data:
-  - name: "german_reconstructed_61d"
+  - name: "german_trex"
     overrides:
-      raw_path: "./dataset/german/german.csv"
-      split_seed: 27
-      test_split: 0.33
-      label_flip: true
-      numeric_columns:
-        - "duration"
-        - "amount"
-        - "installment_rate"
-        - "present_residence"
-        - "age"
-        - "number_credits"
-        - "people_liable"
-      categorical_columns:
-        - "status"
-        - "credit_history"
-        - "purpose"
-        - "savings"
-        - "employment_duration"
-        - "personal_status_sex"
-        - "other_debtors"
-        - "property"
-        - "other_installment_plans"
-        - "housing"
-        - "job"
-        - "telephone"
-        - "foreign_worker"
-
+      train_path: "./dataset/german_trex/german_trex_train.csv"
+      test_path: "./dataset/german_trex/german_trex_test.csv"
+      target_column: "target"
+      paper_targets:
+        l1:
+          cost: 4.81
+          lof: 0.72
+          wi_validity_pct: 98.0
+          lo_validity_pct: 96.5
+        l2:
+          cost: 1.20
+          lof: 0.75
+          wi_validity_pct: 99.2
+          lo_validity_pct: 98.7
+  - name: "heloc_trex"
+    overrides:
+      train_path: "./dataset/heloc_trex/heloc_trex_train.csv"
+      test_path: "./dataset/heloc_trex/heloc_trex_test.csv"
+      target_column: "target"
+      paper_targets:
+        l1:
+          cost: 1.02
+          lof: 0.38
+          wi_validity_pct: 98.2
+          lo_validity_pct: 98.1
+        l2:
+          cost: 0.29
+          lof: 0.68
+          wi_validity_pct: 98.5
+          lo_validity_pct: 98.2
+  - name: "ctg_trex"
+    overrides:
+      train_path: "./dataset/ctg_trex/ctg_trex_train.csv"
+      test_path: "./dataset/ctg_trex/ctg_trex_test.csv"
+      target_column: "target"
+      paper_targets:
+        l1:
+          cost: 1.11
+          lof: 0.83
+          wi_validity_pct: 100.0
+          lo_validity_pct: 98.8
+        l2:
+          cost: 0.42
+          lof: 0.94
+          wi_validity_pct: 100.0
+          lo_validity_pct: 99.7
 model:
   name: "mlp"
   overrides:
@@ -53,14 +72,14 @@ method:
     cf_steps: 60
     cf_step_size: 0.02
     k: 1000
-    sigma: 0.15
+    sigma: 0.01
     trex_step_size: 0.01
     trex_max_steps: 200
     trex_epsilon: 1.0
     trex_p: 2
     batch_size: 1
     clamp: true
-    tau_grid: []
+    tau_grid: [0.70, 0.75, 0.80, 0.85]
     tau_l1: 0.80
     tau_l2:
 
@@ -72,14 +91,3 @@ evaluation:
     pilot_factual_limit: 64
     factual_limit:
     lof_n_neighbors: 1
-  paper_targets:
-    l1:
-      cost: 4.81
-      lof: 0.72
-      wi_validity_pct: 98.0
-      lo_validity_pct: 96.5
-    l2:
-      cost: 1.20
-      lof: 0.75
-      wi_validity_pct: 99.2
-      lo_validity_pct: 98.7

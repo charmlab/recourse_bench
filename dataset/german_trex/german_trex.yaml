@@ -1,0 +1,254 @@
+name: german_trex
+target_column: target
+feature_order:
+- duration
+- amount
+- installment_rate
+- present_residence
+- age
+- number_credits
+- people_liable
+- status_1
+- status_2
+- status_3
+- status_4
+- credit_history_0
+- credit_history_1
+- credit_history_2
+- credit_history_3
+- credit_history_4
+- purpose_0
+- purpose_1
+- purpose_2
+- purpose_3
+- purpose_4
+- purpose_5
+- purpose_6
+- purpose_7
+- purpose_9
+- purpose_10
+- savings_1
+- savings_2
+- savings_3
+- savings_4
+- savings_5
+- employment_duration_1
+- employment_duration_2
+- employment_duration_3
+- employment_duration_4
+- employment_duration_5
+- personal_status_sex_1
+- personal_status_sex_2
+- personal_status_sex_3
+- personal_status_sex_5
+- other_debtors_1
+- other_debtors_2
+- other_debtors_3
+- property_1
+- property_2
+- property_3
+- property_4
+- other_installment_plans_1
+- other_installment_plans_2
+- other_installment_plans_3
+- housing_1
+- housing_2
+- housing_3
+- job_1
+- job_2
+- job_3
+- job_4
+- telephone_1
+- telephone_2
+- foreign_worker_1
+- foreign_worker_2
+- target
+raw_feature_type:
+  duration: numerical
+  amount: numerical
+  installment_rate: numerical
+  present_residence: numerical
+  age: numerical
+  number_credits: numerical
+  people_liable: numerical
+  status_1: numerical
+  status_2: numerical
+  status_3: numerical
+  status_4: numerical
+  credit_history_0: numerical
+  credit_history_1: numerical
+  credit_history_2: numerical
+  credit_history_3: numerical
+  credit_history_4: numerical
+  purpose_0: numerical
+  purpose_1: numerical
+  purpose_2: numerical
+  purpose_3: numerical
+  purpose_4: numerical
+  purpose_5: numerical
+  purpose_6: numerical
+  purpose_7: numerical
+  purpose_9: numerical
+  purpose_10: numerical
+  savings_1: numerical
+  savings_2: numerical
+  savings_3: numerical
+  savings_4: numerical
+  savings_5: numerical
+  employment_duration_1: numerical
+  employment_duration_2: numerical
+  employment_duration_3: numerical
+  employment_duration_4: numerical
+  employment_duration_5: numerical
+  personal_status_sex_1: numerical
+  personal_status_sex_2: numerical
+  personal_status_sex_3: numerical
+  personal_status_sex_5: numerical
+  other_debtors_1: numerical
+  other_debtors_2: numerical
+  other_debtors_3: numerical
+  property_1: numerical
+  property_2: numerical
+  property_3: numerical
+  property_4: numerical
+  other_installment_plans_1: numerical
+  other_installment_plans_2: numerical
+  other_installment_plans_3: numerical
+  housing_1: numerical
+  housing_2: numerical
+  housing_3: numerical
+  job_1: numerical
+  job_2: numerical
+  job_3: numerical
+  job_4: numerical
+  telephone_1: numerical
+  telephone_2: numerical
+  foreign_worker_1: numerical
+  foreign_worker_2: numerical
+  target: binary
+raw_feature_mutability:
+  duration: true
+  amount: true
+  installment_rate: true
+  present_residence: true
+  age: true
+  number_credits: true
+  people_liable: true
+  status_1: true
+  status_2: true
+  status_3: true
+  status_4: true
+  credit_history_0: true
+  credit_history_1: true
+  credit_history_2: true
+  credit_history_3: true
+  credit_history_4: true
+  purpose_0: true
+  purpose_1: true
+  purpose_2: true
+  purpose_3: true
+  purpose_4: true
+  purpose_5: true
+  purpose_6: true
+  purpose_7: true
+  purpose_9: true
+  purpose_10: true
+  savings_1: true
+  savings_2: true
+  savings_3: true
+  savings_4: true
+  savings_5: true
+  employment_duration_1: true
+  employment_duration_2: true
+  employment_duration_3: true
+  employment_duration_4: true
+  employment_duration_5: true
+  personal_status_sex_1: true
+  personal_status_sex_2: true
+  personal_status_sex_3: true
+  personal_status_sex_5: true
+  other_debtors_1: true
+  other_debtors_2: true
+  other_debtors_3: true
+  property_1: true
+  property_2: true
+  property_3: true
+  property_4: true
+  other_installment_plans_1: true
+  other_installment_plans_2: true
+  other_installment_plans_3: true
+  housing_1: true
+  housing_2: true
+  housing_3: true
+  job_1: true
+  job_2: true
+  job_3: true
+  job_4: true
+  telephone_1: true
+  telephone_2: true
+  foreign_worker_1: true
+  foreign_worker_2: true
+  target: false
+raw_feature_actionability:
+  duration: any
+  amount: any
+  installment_rate: any
+  present_residence: any
+  age: any
+  number_credits: any
+  people_liable: any
+  status_1: any
+  status_2: any
+  status_3: any
+  status_4: any
+  credit_history_0: any
+  credit_history_1: any
+  credit_history_2: any
+  credit_history_3: any
+  credit_history_4: any
+  purpose_0: any
+  purpose_1: any
+  purpose_2: any
+  purpose_3: any
+  purpose_4: any
+  purpose_5: any
+  purpose_6: any
+  purpose_7: any
+  purpose_9: any
+  purpose_10: any
+  savings_1: any
+  savings_2: any
+  savings_3: any
+  savings_4: any
+  savings_5: any
+  employment_duration_1: any
+  employment_duration_2: any
+  employment_duration_3: any
+  employment_duration_4: any
+  employment_duration_5: any
+  personal_status_sex_1: any
+  personal_status_sex_2: any
+  personal_status_sex_3: any
+  personal_status_sex_5: any
+  other_debtors_1: any
+  other_debtors_2: any
+  other_debtors_3: any
+  property_1: any
+  property_2: any
+  property_3: any
+  property_4: any
+  other_installment_plans_1: any
+  other_installment_plans_2: any
+  other_installment_plans_3: any
+  housing_1: any
+  housing_2: any
+  housing_3: any
+  job_1: any
+  job_2: any
+  job_3: any
+  job_4: any
+  telephone_1: any
+  telephone_2: any
+  foreign_worker_1: any
+  foreign_worker_2: any
+  target: none
