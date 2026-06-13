@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-11 12:51:00 | INFO | mace_smoke | Experiment config:
+2026-06-13 19:21:01 | INFO | mace_smoke | Experiment config:
 name: mace_smoke
 logger:
   level: INFO
@@ -36,21 +36,21 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-11 12:51:00 | INFO | mace_smoke | Starting preprocess: MaceEncodePreProcess
-2026-06-11 12:51:00 | INFO | mace_smoke | Completed preprocess: MaceEncodePreProcess
-2026-06-11 12:51:00 | INFO | mace_smoke | Starting preprocess: SplitPreProcess
-2026-06-11 12:51:00 | INFO | mace_smoke | Completed preprocess: SplitPreProcess
-2026-06-11 12:51:00 | INFO | mace_smoke | Starting preprocess: FinalizePreProcess
-2026-06-11 12:51:00 | INFO | mace_smoke | Completed preprocess: FinalizePreProcess
-2026-06-11 12:51:00 | INFO | mace_smoke | Training target model: RandomForestModel
-2026-06-11 12:51:00 | INFO | mace_smoke | Completed target model training
-2026-06-11 12:51:00 | INFO | mace_smoke | Training recourse method: MaceMethod
-2026-06-11 12:51:00 | INFO | mace_smoke | Completed recourse method training
-2026-06-11 12:51:00 | INFO | mace_smoke | Generating counterfactuals
-2026-06-11 12:51:24 | INFO | mace_smoke | Completed counterfactual generation
-2026-06-11 12:51:24 | INFO | mace_smoke | Starting evaluation: ValidityEvaluation
-2026-06-11 12:51:24 | INFO | mace_smoke | Completed evaluation: ValidityEvaluation
-2026-06-11 12:51:24 | INFO | mace_smoke | Starting evaluation: DistanceEvaluation
-2026-06-11 12:51:24 | INFO | mace_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 19:21:01 | INFO | mace_smoke | Starting preprocess: MaceEncodePreProcess
+2026-06-13 19:21:01 | INFO | mace_smoke | Completed preprocess: MaceEncodePreProcess
+2026-06-13 19:21:01 | INFO | mace_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 19:21:01 | INFO | mace_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 19:21:01 | INFO | mace_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 19:21:01 | INFO | mace_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 19:21:01 | INFO | mace_smoke | Training target model: RandomForestModel
+2026-06-13 19:21:01 | INFO | mace_smoke | Completed target model training
+2026-06-13 19:21:01 | INFO | mace_smoke | Training recourse method: MaceMethod
+2026-06-13 19:21:01 | INFO | mace_smoke | Completed recourse method training
+2026-06-13 19:21:01 | INFO | mace_smoke | Generating counterfactuals
+2026-06-13 19:21:21 | INFO | mace_smoke | Completed counterfactual generation
+2026-06-13 19:21:21 | INFO | mace_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 19:21:21 | INFO | mace_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 19:21:21 | INFO | mace_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 19:21:21 | INFO | mace_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
       1.0          1.0         17.0         17.0           17.0

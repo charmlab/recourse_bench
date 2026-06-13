@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-11 12:43:52 | INFO | face_smoke | Experiment config:
+2026-06-13 19:13:46 | INFO | face_smoke | Experiment config:
 name: face_smoke
 logger:
   level: INFO
@@ -46,23 +46,23 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-11 12:43:52 | INFO | face_smoke | Starting preprocess: ScalePreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Completed preprocess: ScalePreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Starting preprocess: EncodePreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Completed preprocess: EncodePreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Starting preprocess: SplitPreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Completed preprocess: SplitPreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Starting preprocess: FinalizePreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Completed preprocess: FinalizePreProcess
-2026-06-11 12:43:52 | INFO | face_smoke | Training target model: MlpModel
-2026-06-11 12:43:52 | INFO | face_smoke | Completed target model training
-2026-06-11 12:43:52 | INFO | face_smoke | Training recourse method: FaceMethod
-2026-06-11 12:43:54 | INFO | face_smoke | Completed recourse method training
-2026-06-11 12:43:54 | INFO | face_smoke | Generating counterfactuals
-2026-06-11 12:43:57 | INFO | face_smoke | Completed counterfactual generation
-2026-06-11 12:43:57 | INFO | face_smoke | Starting evaluation: ValidityEvaluation
-2026-06-11 12:43:57 | INFO | face_smoke | Completed evaluation: ValidityEvaluation
-2026-06-11 12:43:57 | INFO | face_smoke | Starting evaluation: DistanceEvaluation
-2026-06-11 12:43:57 | INFO | face_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 19:13:46 | INFO | face_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 19:13:46 | INFO | face_smoke | Training target model: MlpModel
+2026-06-13 19:13:47 | INFO | face_smoke | Completed target model training
+2026-06-13 19:13:47 | INFO | face_smoke | Training recourse method: FaceMethod
+2026-06-13 19:13:48 | INFO | face_smoke | Completed recourse method training
+2026-06-13 19:13:48 | INFO | face_smoke | Generating counterfactuals
+2026-06-13 19:13:52 | INFO | face_smoke | Completed counterfactual generation
+2026-06-13 19:13:52 | INFO | face_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 19:13:52 | INFO | face_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 19:13:52 | INFO | face_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 19:13:52 | INFO | face_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
     0.915      2.73224     0.588861      0.42497       0.379072

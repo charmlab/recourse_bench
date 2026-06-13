@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-11 12:51:43 | INFO | probe_smoke | Experiment config:
+2026-06-13 19:21:33 | INFO | probe_smoke | Experiment config:
 name: probe_smoke
 logger:
   level: INFO
@@ -57,30 +57,26 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-11 12:51:43 | INFO | probe_smoke | Starting preprocess: ScalePreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Completed preprocess: ScalePreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Starting preprocess: EncodePreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Completed preprocess: EncodePreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Starting preprocess: SplitPreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Completed preprocess: SplitPreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Starting preprocess: FinalizePreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Completed preprocess: FinalizePreProcess
-2026-06-11 12:51:43 | INFO | probe_smoke | Training target model: MlpModel
-2026-06-11 12:51:44 | INFO | probe_smoke | Completed target model training
-2026-06-11 12:51:44 | INFO | probe_smoke | Training recourse method: ProbeMethod
-2026-06-11 12:51:44 | INFO | probe_smoke | Completed recourse method training
-2026-06-11 12:51:44 | INFO | probe_smoke | Generating counterfactuals
-2026-06-11 12:51:50 | INFO | method.probe.utils | PROBE optimization timed out before convergence
-2026-06-11 12:51:50 | INFO | method.probe.utils | No PROBE counterfactual found at the requested invalidation target
-2026-06-11 12:51:54 | INFO | method.probe.utils | PROBE optimization timed out before convergence
-2026-06-11 12:51:54 | INFO | method.probe.utils | No PROBE counterfactual found at the requested invalidation target
-2026-06-11 12:51:58 | INFO | method.probe.utils | PROBE optimization timed out before convergence
-2026-06-11 12:51:58 | INFO | method.probe.utils | No PROBE counterfactual found at the requested invalidation target
-2026-06-11 12:51:58 | INFO | method.probe.probe | average invalidation rate of generated counterfactuals: 0.6535
-2026-06-11 12:51:58 | INFO | probe_smoke | Completed counterfactual generation
-2026-06-11 12:51:58 | INFO | probe_smoke | Starting evaluation: ValidityEvaluation
-2026-06-11 12:51:58 | INFO | probe_smoke | Completed evaluation: ValidityEvaluation
-2026-06-11 12:51:58 | INFO | probe_smoke | Starting evaluation: DistanceEvaluation
-2026-06-11 12:51:58 | INFO | probe_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 19:21:33 | INFO | probe_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 19:21:33 | INFO | probe_smoke | Training target model: MlpModel
+2026-06-13 19:21:33 | INFO | probe_smoke | Completed target model training
+2026-06-13 19:21:33 | INFO | probe_smoke | Training recourse method: ProbeMethod
+2026-06-13 19:21:34 | INFO | probe_smoke | Completed recourse method training
+2026-06-13 19:21:34 | INFO | probe_smoke | Generating counterfactuals
+2026-06-13 19:21:37 | INFO | method.probe.utils | PROBE optimization timed out before convergence
+2026-06-13 19:21:37 | INFO | method.probe.utils | No PROBE counterfactual found at the requested invalidation target
+2026-06-13 19:21:38 | INFO | method.probe.probe | average invalidation rate of generated counterfactuals: 0.3952
+2026-06-13 19:21:38 | INFO | probe_smoke | Completed counterfactual generation
+2026-06-13 19:21:38 | INFO | probe_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 19:21:38 | INFO | probe_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 19:21:38 | INFO | probe_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 19:21:38 | INFO | probe_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
-     0.25          7.0     0.206002      0.07787       0.030045
+     0.75          7.0     0.503063     0.190996       0.078858

@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-11 12:48:17 | INFO | larr_smoke | Experiment config:
+2026-06-13 19:18:18 | INFO | larr_smoke | Experiment config:
 name: larr_smoke
 logger:
   level: INFO
@@ -45,30 +45,30 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-11 12:48:17 | INFO | larr_smoke | Starting preprocess: ScalePreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Completed preprocess: ScalePreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Starting preprocess: EncodePreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Completed preprocess: EncodePreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Starting preprocess: SplitPreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Completed preprocess: SplitPreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Starting preprocess: FinalizePreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Completed preprocess: FinalizePreProcess
-2026-06-11 12:48:17 | INFO | larr_smoke | Training target model: MlpModel
-2026-06-11 12:48:18 | INFO | larr_smoke | Completed target model training
-2026-06-11 12:48:18 | INFO | larr_smoke | Training recourse method: LarrMethod
-2026-06-11 12:48:18 | INFO | method.larr.larr | LarrMethod selecting lambda during fit(): train_rows=800 recourse_rows=800 features=7 target_model=Sequential lime_enabled=True
-2026-06-11 12:49:07 | INFO | method.larr.larr | LarrMethod lambda sweep: lambda=0.1 validity=0.0750 rows=800 elapsed=48.358s
-2026-06-11 12:49:49 | INFO | method.larr.larr | LarrMethod lambda sweep: lambda=0.2 validity=0.0750 rows=800 elapsed=42.646s
-2026-06-11 12:50:34 | INFO | method.larr.larr | LarrMethod lambda sweep: lambda=0.3 validity=0.0050 rows=800 elapsed=44.262s
-2026-06-11 12:50:34 | INFO | method.larr.larr | LarrMethod lambda sweep stopping at lambda 0.3 after validity dropped below 0.0750; keeping lambda 0.2
-2026-06-11 12:50:34 | INFO | method.larr.larr | LarrMethod selected lambda 0.2 with best validity 0.0750
-2026-06-11 12:50:34 | INFO | method.larr.larr | LarrMethod finished lambda selection during fit() in 135.271s with lambda 0.2
-2026-06-11 12:50:34 | INFO | larr_smoke | Completed recourse method training
-2026-06-11 12:50:34 | INFO | larr_smoke | Generating counterfactuals
-2026-06-11 12:50:50 | INFO | larr_smoke | Completed counterfactual generation
-2026-06-11 12:50:50 | INFO | larr_smoke | Starting evaluation: ValidityEvaluation
-2026-06-11 12:50:50 | INFO | larr_smoke | Completed evaluation: ValidityEvaluation
-2026-06-11 12:50:50 | INFO | larr_smoke | Starting evaluation: DistanceEvaluation
-2026-06-11 12:50:50 | INFO | larr_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 19:18:18 | INFO | larr_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 19:18:18 | INFO | larr_smoke | Training target model: MlpModel
+2026-06-13 19:18:19 | INFO | larr_smoke | Completed target model training
+2026-06-13 19:18:19 | INFO | larr_smoke | Training recourse method: LarrMethod
+2026-06-13 19:18:19 | INFO | method.larr.larr | LarrMethod selecting lambda during fit(): train_rows=800 recourse_rows=800 features=7 target_model=Sequential lime_enabled=True
+2026-06-13 19:19:02 | INFO | method.larr.larr | LarrMethod lambda sweep: lambda=0.1 validity=0.0750 rows=800 elapsed=43.582s
+2026-06-13 19:19:50 | INFO | method.larr.larr | LarrMethod lambda sweep: lambda=0.2 validity=0.0750 rows=800 elapsed=47.116s
+2026-06-13 19:20:29 | INFO | method.larr.larr | LarrMethod lambda sweep: lambda=0.3 validity=0.0050 rows=800 elapsed=39.666s
+2026-06-13 19:20:29 | INFO | method.larr.larr | LarrMethod lambda sweep stopping at lambda 0.3 after validity dropped below 0.0750; keeping lambda 0.2
+2026-06-13 19:20:29 | INFO | method.larr.larr | LarrMethod selected lambda 0.2 with best validity 0.0750
+2026-06-13 19:20:29 | INFO | method.larr.larr | LarrMethod finished lambda selection during fit() in 130.378s with lambda 0.2
+2026-06-13 19:20:29 | INFO | larr_smoke | Completed recourse method training
+2026-06-13 19:20:29 | INFO | larr_smoke | Generating counterfactuals
+2026-06-13 19:20:46 | INFO | larr_smoke | Completed counterfactual generation
+2026-06-13 19:20:46 | INFO | larr_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 19:20:47 | INFO | larr_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 19:20:47 | INFO | larr_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 19:20:47 | INFO | larr_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
      0.53     4.132075     1.234013     0.912604       0.846317

@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-11 12:57:02 | INFO | sns_smoke | Experiment config:
+2026-06-13 19:26:30 | INFO | sns_smoke | Experiment config:
 name: sns_smoke
 logger:
   level: INFO
@@ -51,28 +51,28 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-11 12:57:02 | INFO | sns_smoke | Starting preprocess: ScalePreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Completed preprocess: ScalePreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Starting preprocess: EncodePreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Completed preprocess: EncodePreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Starting preprocess: SplitPreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Completed preprocess: SplitPreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Starting preprocess: FinalizePreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Completed preprocess: FinalizePreProcess
-2026-06-11 12:57:02 | INFO | sns_smoke | Training target model: MlpModel
-2026-06-11 12:57:02 | INFO | sns_smoke | Completed target model training
-2026-06-11 12:57:02 | INFO | sns_smoke | Training recourse method: SnsMethod
-2026-06-11 12:57:02 | INFO | art.estimators.classification.pytorch | Inferred 5 hidden layers on PyTorch classifier.
-2026-06-11 12:57:02 | INFO | sns_smoke | Completed recourse method training
-2026-06-11 12:57:02 | INFO | sns_smoke | Generating counterfactuals
-2026-06-11 12:57:03 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
-2026-06-11 12:57:04 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
-2026-06-11 12:57:05 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
-2026-06-11 12:57:06 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
-2026-06-11 12:57:06 | INFO | sns_smoke | Completed counterfactual generation
-2026-06-11 12:57:06 | INFO | sns_smoke | Starting evaluation: ValidityEvaluation
-2026-06-11 12:57:06 | INFO | sns_smoke | Completed evaluation: ValidityEvaluation
-2026-06-11 12:57:06 | INFO | sns_smoke | Starting evaluation: DistanceEvaluation
-2026-06-11 12:57:06 | INFO | sns_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 19:26:30 | INFO | sns_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 19:26:30 | INFO | sns_smoke | Training target model: MlpModel
+2026-06-13 19:26:31 | INFO | sns_smoke | Completed target model training
+2026-06-13 19:26:31 | INFO | sns_smoke | Training recourse method: SnsMethod
+2026-06-13 19:26:31 | INFO | art.estimators.classification.pytorch | Inferred 5 hidden layers on PyTorch classifier.
+2026-06-13 19:26:31 | INFO | sns_smoke | Completed recourse method training
+2026-06-13 19:26:31 | INFO | sns_smoke | Generating counterfactuals
+2026-06-13 19:26:32 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 19:26:33 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 19:26:34 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 19:26:35 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 19:26:35 | INFO | sns_smoke | Completed counterfactual generation
+2026-06-13 19:26:35 | INFO | sns_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 19:26:35 | INFO | sns_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 19:26:35 | INFO | sns_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 19:26:35 | INFO | sns_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
       1.0          5.0     0.154418     0.095521       0.077623

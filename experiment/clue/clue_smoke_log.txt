@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-11 12:10:11 | INFO | clue_smoke | Experiment config:
+2026-06-13 18:45:36 | INFO | clue_smoke | Experiment config:
 name: clue_smoke
 logger:
   level: INFO
@@ -63,286 +63,286 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-11 12:10:11 | INFO | clue_smoke | Starting preprocess: ScalePreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Completed preprocess: ScalePreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Starting preprocess: EncodePreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Completed preprocess: EncodePreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Starting preprocess: SplitPreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Completed preprocess: SplitPreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Starting preprocess: FinalizePreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Completed preprocess: FinalizePreProcess
-2026-06-11 12:10:11 | INFO | clue_smoke | Training target model: MlpBayesianModel
-2026-06-11 12:10:22 | INFO | clue_smoke | Completed target model training
-2026-06-11 12:10:22 | INFO | clue_smoke | Training recourse method: ClueMethod
-2026-06-11 12:10:22 | INFO | method.clue.library.clue_ml.src.utils | 
+2026-06-13 18:45:36 | INFO | clue_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 18:45:36 | INFO | clue_smoke | Training target model: MlpBayesianModel
+2026-06-13 18:45:48 | INFO | clue_smoke | Completed target model training
+2026-06-13 18:45:48 | INFO | clue_smoke | Training recourse method: ClueMethod
+2026-06-13 18:45:48 | INFO | method.clue.library.clue_ml.src.utils | 
 Net:
-2026-06-11 12:10:22 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | VAE_gauss_net
-2026-06-11 12:10:24 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | Total params: 0.04M
-2026-06-11 12:10:24 | INFO | method.clue.library.clue_ml.AE_models.AE.train | 
+2026-06-13 18:45:48 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | VAE_gauss_net
+2026-06-13 18:45:50 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | Total params: 0.04M
+2026-06-13 18:45:50 | INFO | method.clue.library.clue_ml.AE_models.AE.train | 
 Network:
-2026-06-11 12:10:24 | INFO | method.clue.library.clue_ml.AE_models.AE.train | 
+2026-06-13 18:45:50 | INFO | method.clue.library.clue_ml.AE_models.AE.train | 
 Train:
-2026-06-11 12:10:24 | INFO | method.clue.library.clue_ml.AE_models.AE.train | init cost variables:
-2026-06-11 12:10:26 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 0/200, vlb -8.715935, 
-2026-06-11 12:10:26 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 1.310975 seconds
+2026-06-13 18:45:50 | INFO | method.clue.library.clue_ml.AE_models.AE.train | init cost variables:
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 0/200, vlb -8.715935, 
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 1.051392 seconds
 
-2026-06-11 12:10:26 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -6.682060 (-inf)
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -6.682060 (-inf)
 
-2026-06-11 12:10:26 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 1/200, vlb -6.634451, 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.660552 seconds
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 1/200, vlb -6.634451, 
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.518161 seconds
 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -5.926854 (-6.682060)
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -5.926854 (-6.682060)
 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:51 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 2/200, vlb -5.735593, 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.523801 seconds
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 2/200, vlb -5.735593, 
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.433898 seconds
 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -5.126994 (-5.926854)
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -5.126994 (-5.926854)
 
-2026-06-11 12:10:27 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 3/200, vlb -5.254183, 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.514498 seconds
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 3/200, vlb -5.254183, 
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.438548 seconds
 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -4.541432 (-5.126994)
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -4.541432 (-5.126994)
 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:52 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 4/200, vlb -4.951764, 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.539277 seconds
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 4/200, vlb -4.951764, 
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.435161 seconds
 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -4.118946 (-4.541432)
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -4.118946 (-4.541432)
 
-2026-06-11 12:10:28 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 5/200, vlb -4.703277, 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.471594 seconds
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 5/200, vlb -4.703277, 
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.438344 seconds
 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.838036 (-4.118946)
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.838036 (-4.118946)
 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:53 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 6/200, vlb -4.540454, 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.482233 seconds
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 6/200, vlb -4.540454, 
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.427893 seconds
 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.708323 (-3.838036)
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.708323 (-3.838036)
 
-2026-06-11 12:10:29 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 7/200, vlb -4.441982, 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.497685 seconds
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 7/200, vlb -4.441982, 
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.454122 seconds
 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.630054 (-3.708323)
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.630054 (-3.708323)
 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:54 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 8/200, vlb -4.330200, 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.454131 seconds
+2026-06-13 18:45:55 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 8/200, vlb -4.330200, 
+2026-06-13 18:45:55 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.443121 seconds
 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.512784 (-3.630054)
+2026-06-13 18:45:55 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.512784 (-3.630054)
 
-2026-06-11 12:10:30 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:55 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:31 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 9/200, vlb -4.279101, 
-2026-06-11 12:10:31 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.461598 seconds
+2026-06-13 18:45:55 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 9/200, vlb -4.279101, 
+2026-06-13 18:45:55 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.421553 seconds
 
-2026-06-11 12:10:31 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.521242 (-3.512784)
+2026-06-13 18:45:55 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.521242 (-3.512784)
 
-2026-06-11 12:10:31 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 10/200, vlb -4.181164, 
-2026-06-11 12:10:31 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.498214 seconds
+2026-06-13 18:45:56 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 10/200, vlb -4.181164, 
+2026-06-13 18:45:56 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.409653 seconds
 
-2026-06-11 12:10:31 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.446239 (-3.512784)
+2026-06-13 18:45:56 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.446239 (-3.512784)
 
-2026-06-11 12:10:31 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:56 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:32 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 11/200, vlb -4.151957, 
-2026-06-11 12:10:32 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.534057 seconds
+2026-06-13 18:45:56 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 11/200, vlb -4.151957, 
+2026-06-13 18:45:56 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.414467 seconds
 
-2026-06-11 12:10:32 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.449242 (-3.446239)
+2026-06-13 18:45:56 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.449242 (-3.446239)
 
-2026-06-11 12:10:33 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 12/200, vlb -4.154810, 
-2026-06-11 12:10:33 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.477648 seconds
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 12/200, vlb -4.154810, 
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.420236 seconds
 
-2026-06-11 12:10:33 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.461988 (-3.446239)
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.461988 (-3.446239)
 
-2026-06-11 12:10:33 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 13/200, vlb -4.071865, 
-2026-06-11 12:10:33 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.513365 seconds
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 13/200, vlb -4.071865, 
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.385374 seconds
 
-2026-06-11 12:10:33 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.457200 (-3.446239)
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.457200 (-3.446239)
 
-2026-06-11 12:10:34 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 14/200, vlb -4.081832, 
-2026-06-11 12:10:34 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.485203 seconds
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 14/200, vlb -4.081832, 
+2026-06-13 18:45:57 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.384244 seconds
 
-2026-06-11 12:10:34 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.460761 (-3.446239)
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.460761 (-3.446239)
 
-2026-06-11 12:10:34 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 15/200, vlb -4.066828, 
-2026-06-11 12:10:34 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.459550 seconds
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 15/200, vlb -4.066828, 
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.412891 seconds
 
-2026-06-11 12:10:34 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.461684 (-3.446239)
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.461684 (-3.446239)
 
-2026-06-11 12:10:35 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 16/200, vlb -4.015127, 
-2026-06-11 12:10:35 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.467577 seconds
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 16/200, vlb -4.015127, 
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.392095 seconds
 
-2026-06-11 12:10:35 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.429186 (-3.446239)
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.429186 (-3.446239)
 
-2026-06-11 12:10:35 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:45:58 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:35 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 17/200, vlb -4.026920, 
-2026-06-11 12:10:35 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.469379 seconds
+2026-06-13 18:45:59 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 17/200, vlb -4.026920, 
+2026-06-13 18:45:59 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.414038 seconds
 
-2026-06-11 12:10:35 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.448432 (-3.429186)
+2026-06-13 18:45:59 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.448432 (-3.429186)
 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 18/200, vlb -4.002745, 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.457464 seconds
+2026-06-13 18:45:59 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 18/200, vlb -4.002745, 
+2026-06-13 18:45:59 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.433519 seconds
 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.477767 (-3.429186)
+2026-06-13 18:45:59 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.477767 (-3.429186)
 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 19/200, vlb -3.993027, 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.467764 seconds
+2026-06-13 18:46:00 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 19/200, vlb -3.993027, 
+2026-06-13 18:46:00 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.413705 seconds
 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.476613 (-3.429186)
+2026-06-13 18:46:00 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.476613 (-3.429186)
 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 20/200, vlb -4.002795, 
-2026-06-11 12:10:36 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.464586 seconds
+2026-06-13 18:46:00 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 20/200, vlb -4.002795, 
+2026-06-13 18:46:00 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.412396 seconds
 
-2026-06-11 12:10:37 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.515541 (-3.429186)
+2026-06-13 18:46:00 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.515541 (-3.429186)
 
-2026-06-11 12:10:37 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 21/200, vlb -3.962192, 
-2026-06-11 12:10:37 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.467361 seconds
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 21/200, vlb -3.962192, 
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.382949 seconds
 
-2026-06-11 12:10:37 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.510450 (-3.429186)
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.510450 (-3.429186)
 
-2026-06-11 12:10:37 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 22/200, vlb -3.936501, 
-2026-06-11 12:10:37 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.485153 seconds
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 22/200, vlb -3.936501, 
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.397579 seconds
 
-2026-06-11 12:10:38 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.501844 (-3.429186)
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.501844 (-3.429186)
 
-2026-06-11 12:10:38 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 23/200, vlb -3.956606, 
-2026-06-11 12:10:38 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.532983 seconds
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 23/200, vlb -3.956606, 
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.385990 seconds
 
-2026-06-11 12:10:38 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.495312 (-3.429186)
+2026-06-13 18:46:01 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.495312 (-3.429186)
 
-2026-06-11 12:10:39 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 24/200, vlb -3.975896, 
-2026-06-11 12:10:39 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.531819 seconds
+2026-06-13 18:46:02 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 24/200, vlb -3.975896, 
+2026-06-13 18:46:02 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.391135 seconds
 
-2026-06-11 12:10:39 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.504980 (-3.429186)
+2026-06-13 18:46:02 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.504980 (-3.429186)
 
-2026-06-11 12:10:39 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 25/200, vlb -4.001830, 
-2026-06-11 12:10:39 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.434926 seconds
+2026-06-13 18:46:02 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 25/200, vlb -4.001830, 
+2026-06-13 18:46:02 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.389255 seconds
 
-2026-06-11 12:10:39 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.559761 (-3.429186)
+2026-06-13 18:46:02 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.559761 (-3.429186)
 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 26/200, vlb -3.967441, 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.446677 seconds
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 26/200, vlb -3.967441, 
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.384180 seconds
 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.564524 (-3.429186)
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.564524 (-3.429186)
 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 27/200, vlb -3.955647, 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.437985 seconds
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 27/200, vlb -3.955647, 
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.363396 seconds
 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.537299 (-3.429186)
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.537299 (-3.429186)
 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 28/200, vlb -3.945615, 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.430218 seconds
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 28/200, vlb -3.945615, 
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.399917 seconds
 
-2026-06-11 12:10:40 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.539962 (-3.429186)
+2026-06-13 18:46:03 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.539962 (-3.429186)
 
-2026-06-11 12:10:41 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 29/200, vlb -3.953556, 
-2026-06-11 12:10:41 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.404633 seconds
+2026-06-13 18:46:04 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 29/200, vlb -3.953556, 
+2026-06-13 18:46:04 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.395072 seconds
 
-2026-06-11 12:10:41 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.552181 (-3.429186)
+2026-06-13 18:46:04 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.552181 (-3.429186)
 
-2026-06-11 12:10:41 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 30/200, vlb -3.926249, 
-2026-06-11 12:10:41 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.425430 seconds
+2026-06-13 18:46:04 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 30/200, vlb -3.926249, 
+2026-06-13 18:46:04 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.383167 seconds
 
-2026-06-11 12:10:41 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.543381 (-3.429186)
+2026-06-13 18:46:04 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.543381 (-3.429186)
 
-2026-06-11 12:10:42 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 31/200, vlb -3.948018, 
-2026-06-11 12:10:42 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.429854 seconds
+2026-06-13 18:46:05 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 31/200, vlb -3.948018, 
+2026-06-13 18:46:05 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.396009 seconds
 
-2026-06-11 12:10:42 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.547756 (-3.429186)
+2026-06-13 18:46:05 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.547756 (-3.429186)
 
-2026-06-11 12:10:42 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 32/200, vlb -3.930035, 
-2026-06-11 12:10:42 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.385162 seconds
+2026-06-13 18:46:05 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 32/200, vlb -3.930035, 
+2026-06-13 18:46:05 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.430897 seconds
 
-2026-06-11 12:10:42 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.550498 (-3.429186)
+2026-06-13 18:46:05 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.550498 (-3.429186)
 
-2026-06-11 12:10:43 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 33/200, vlb -3.966119, 
-2026-06-11 12:10:43 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.427744 seconds
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 33/200, vlb -3.966119, 
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.458972 seconds
 
-2026-06-11 12:10:43 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.569771 (-3.429186)
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.569771 (-3.429186)
 
-2026-06-11 12:10:43 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 34/200, vlb -3.954481, 
-2026-06-11 12:10:43 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.460332 seconds
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 34/200, vlb -3.954481, 
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.438494 seconds
 
-2026-06-11 12:10:43 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.561645 (-3.429186)
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.561645 (-3.429186)
 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 35/200, vlb -3.948134, 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.427105 seconds
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 35/200, vlb -3.948134, 
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.442189 seconds
 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.560353 (-3.429186)
+2026-06-13 18:46:06 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.560353 (-3.429186)
 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 36/200, vlb -3.937631, 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.429714 seconds
+2026-06-13 18:46:07 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 36/200, vlb -3.937631, 
+2026-06-13 18:46:07 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.407832 seconds
 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.567362 (-3.429186)
+2026-06-13 18:46:07 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.567362 (-3.429186)
 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 37/200, vlb -3.946228, 
-2026-06-11 12:10:44 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.464615 seconds
+2026-06-13 18:46:07 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 37/200, vlb -3.946228, 
+2026-06-13 18:46:07 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.401081 seconds
 
-2026-06-11 12:10:45 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.562113 (-3.429186)
+2026-06-13 18:46:07 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.562113 (-3.429186)
 
-2026-06-11 12:10:45 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 38/200, vlb -3.971091, 
-2026-06-11 12:10:45 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.450194 seconds
+2026-06-13 18:46:08 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 38/200, vlb -3.971091, 
+2026-06-13 18:46:08 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.397989 seconds
 
-2026-06-11 12:10:45 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.576279 (-3.429186)
+2026-06-13 18:46:08 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.576279 (-3.429186)
 
-2026-06-11 12:10:45 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 39/200, vlb -3.927812, 
-2026-06-11 12:10:45 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.432689 seconds
+2026-06-13 18:46:08 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 39/200, vlb -3.927812, 
+2026-06-13 18:46:08 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.425735 seconds
 
-2026-06-11 12:10:45 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.544653 (-3.429186)
+2026-06-13 18:46:08 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.544653 (-3.429186)
 
-2026-06-11 12:10:46 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 40/200, vlb -3.945986, 
-2026-06-11 12:10:46 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.489744 seconds
+2026-06-13 18:46:09 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 40/200, vlb -3.945986, 
+2026-06-13 18:46:09 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.420162 seconds
 
-2026-06-11 12:10:46 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.536837 (-3.429186)
+2026-06-13 18:46:09 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.536837 (-3.429186)
 
-2026-06-11 12:10:46 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 41/200, vlb -3.948942, 
-2026-06-11 12:10:46 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.480067 seconds
+2026-06-13 18:46:09 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 41/200, vlb -3.948942, 
+2026-06-13 18:46:09 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.425648 seconds
 
-2026-06-11 12:10:46 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.576288 (-3.429186)
+2026-06-13 18:46:09 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.576288 (-3.429186)
 
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 42/200, vlb -3.947750, 
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.443565 seconds
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | it 42/200, vlb -3.947750, 
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | time: 0.417861 seconds
 
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.616443 (-3.429186)
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | vlb -3.616443 (-3.429186)
 
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_last.dat
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.src.utils | Writting cache/models/compas_clue_clue_vae/theta_last.dat
 
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | average time: 0.112462 seconds
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | average time: 0.099311 seconds
 
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | 
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | 
 RESULTS:
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | best_vlb_dev: -3.429186
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | best_vlb_train: -3.926249
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.train | nb_parameters: 41761 (40.78KB)
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | best_vlb_dev: -3.429186
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | best_vlb_train: -3.926249
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.train | nb_parameters: 41761 (40.78KB)
 
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.src.utils | 
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.src.utils | 
 Net:
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | VAE_gauss_net
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | Total params: 0.04M
-2026-06-11 12:10:47 | INFO | method.clue.library.clue_ml.src.utils | Reading cache/models/compas_clue_clue_vae/theta_best.dat
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | VAE_gauss_net
+2026-06-13 18:46:10 | INFO | method.clue.library.clue_ml.AE_models.AE.fc_gauss_cat | Total params: 0.04M
+2026-06-13 18:46:11 | INFO | method.clue.library.clue_ml.src.utils | Reading cache/models/compas_clue_clue_vae/theta_best.dat
 
-2026-06-11 12:10:48 | INFO | method.clue.library.clue_ml.src.utils | restoring epoch: 17, lr: 0.001000
-2026-06-11 12:10:48 | INFO | clue_smoke | Completed recourse method training
-2026-06-11 12:10:48 | INFO | clue_smoke | Generating counterfactuals
-2026-06-11 12:11:04 | INFO | clue_smoke | Completed counterfactual generation
-2026-06-11 12:11:04 | INFO | clue_smoke | Starting evaluation: ValidityEvaluation
-2026-06-11 12:11:04 | INFO | clue_smoke | Completed evaluation: ValidityEvaluation
-2026-06-11 12:11:04 | INFO | clue_smoke | Starting evaluation: DistanceEvaluation
-2026-06-11 12:11:04 | INFO | clue_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 18:46:11 | INFO | method.clue.library.clue_ml.src.utils | restoring epoch: 17, lr: 0.001000
+2026-06-13 18:46:11 | INFO | clue_smoke | Completed recourse method training
+2026-06-13 18:46:11 | INFO | clue_smoke | Generating counterfactuals
+2026-06-13 18:46:25 | INFO | clue_smoke | Completed counterfactual generation
+2026-06-13 18:46:25 | INFO | clue_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 18:46:25 | INFO | clue_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 18:46:25 | INFO | clue_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 18:46:25 | INFO | clue_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
  0.591093     3.263014     1.397614     0.800517       0.507777
