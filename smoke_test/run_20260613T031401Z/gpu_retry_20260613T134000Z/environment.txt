@@ -1,0 +1,15 @@
+UTC time: 2026-06-13T13:38:35Z
+Hostname: watgpu108
+Slurm job id: 1451959
+Slurm partition: JIMMY
+Slurm GPUs: 1
+CUDA_VISIBLE_DEVICES: 0
+Requested device: cuda, matching checked-in reference logs
+Python executable: /u501/hoyarhos/recourse_bench/.venv/bin/python
+Python version: Python 3.12.4
+torch: 2.10.0+cu126
+torch cuda available: True
+torch cuda device count: 1
+torch cuda device name: NVIDIA RTX 6000 Ada Generation
+tensor([1.], device='cuda:0')
+NVIDIA RTX 6000 Ada Generation, 590.48.01, 46068 MiB

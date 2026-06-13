@@ -1,0 +1,10 @@
+METHOD=gs
+TEST=experiment/gs/smoke.py
+REFERENCE=experiment/gs/gs_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/gs/smoke.py
+START_UTC=2026-06-13T03:23:22Z
+END_UTC=2026-06-13T03:23:45Z
+DURATION_SECONDS=23
+EXIT_CODE=0
+RESULT=PASS

@@ -1,0 +1,10 @@
+METHOD=cols
+TEST=experiment/cols/smoke.py
+REFERENCE=experiment/cols/cols_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/cols/smoke.py
+START_UTC=2026-06-13T03:18:53Z
+END_UTC=2026-06-13T03:20:42Z
+DURATION_SECONDS=109
+EXIT_CODE=0
+RESULT=PASS

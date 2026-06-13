@@ -1,0 +1,10 @@
+METHOD=cvas_proj
+TEST=experiment/cvas_proj/smoke.py
+REFERENCE=experiment/cvas_proj/cvas_proj_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/cvas_proj/smoke.py
+START_UTC=2026-06-13T03:20:44Z
+END_UTC=2026-06-13T03:20:52Z
+DURATION_SECONDS=8
+EXIT_CODE=0
+RESULT=PASS

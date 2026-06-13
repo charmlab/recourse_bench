@@ -1,0 +1,10 @@
+METHOD=diverse_dist
+TEST=experiment/diverse_dist/smoke.py
+REFERENCE=experiment/diverse_dist/diverse_dist_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/diverse_dist/smoke.py
+START_UTC=2026-06-13T03:22:43Z
+END_UTC=2026-06-13T03:22:50Z
+DURATION_SECONDS=7
+EXIT_CODE=0
+RESULT=PASS

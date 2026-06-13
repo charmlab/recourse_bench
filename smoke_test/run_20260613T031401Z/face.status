@@ -1,0 +1,10 @@
+METHOD=face
+TEST=experiment/face/smoke.py
+REFERENCE=experiment/face/face_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/face/smoke.py
+START_UTC=2026-06-13T03:22:50Z
+END_UTC=2026-06-13T03:22:59Z
+DURATION_SECONDS=9
+EXIT_CODE=0
+RESULT=PASS

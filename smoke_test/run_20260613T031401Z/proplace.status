@@ -1,0 +1,10 @@
+METHOD=proplace
+TEST=experiment/proplace/smoke.py
+REFERENCE=experiment/proplace/proplace_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/proplace/smoke.py
+START_UTC=2026-06-13T03:25:05Z
+END_UTC=2026-06-13T03:25:12Z
+DURATION_SECONDS=7
+EXIT_CODE=0
+RESULT=PASS

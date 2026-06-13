@@ -1,0 +1,63 @@
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Experiment config:
+name: credit_randomforest_feature_tweak_smoke
+logger:
+  level: INFO
+  path: ./logs/credit_randomforest_feature_tweak_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit
+preprocess:
+- name: balance
+  seed: 54321
+  strategy: downsample
+  round_to: 250
+  shuffle: true
+  range: true
+- name: encode
+  seed: 54321
+  encoding: onehot
+  override:
+    AgeGroup: thermometer
+- name: split
+  seed: 54321
+  split: 0.3
+  sample: 16
+- name: finalize
+model:
+  name: randomforest
+  seed: 54321
+  device: cpu
+  n_estimators: 5
+  max_depth: null
+  min_samples_split: 2
+method:
+  name: feature_tweak
+  seed: 54321
+  device: cpu
+  desired_class: 1
+  eps: 0.1
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Starting preprocess: BalancePreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Completed preprocess: BalancePreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Training target model: RandomForestModel
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Completed target model training
+2026-06-13 03:23:03 | INFO | credit_randomforest_feature_tweak_smoke | Training recourse method: FeatureTweakMethod
+2026-06-13 03:23:04 | INFO | credit_randomforest_feature_tweak_smoke | Completed recourse method training
+2026-06-13 03:23:04 | INFO | credit_randomforest_feature_tweak_smoke | Generating counterfactuals
+2026-06-13 03:23:20 | INFO | credit_randomforest_feature_tweak_smoke | Completed counterfactual generation
+2026-06-13 03:23:20 | INFO | credit_randomforest_feature_tweak_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:23:20 | INFO | credit_randomforest_feature_tweak_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:23:20 | INFO | credit_randomforest_feature_tweak_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:23:20 | INFO | credit_randomforest_feature_tweak_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0     4.428571        135.0   124.897949      123.85714

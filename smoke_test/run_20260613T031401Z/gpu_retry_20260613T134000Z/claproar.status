@@ -1,0 +1,9 @@
+METHOD=claproar
+TEST=experiment/claproar/smoke.py
+DEVICE=cuda
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/claproar/smoke.py
+START_UTC=2026-06-13T13:38:40Z
+END_UTC=2026-06-13T13:39:26Z
+DURATION_SECONDS=46
+EXIT_CODE=0
+RESULT=PASS

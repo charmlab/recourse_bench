@@ -1,0 +1,10 @@
+METHOD=clue
+TEST=experiment/clue/smoke.py
+REFERENCE=experiment/clue/clue_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/clue/smoke.py
+START_UTC=2026-06-13T03:15:55Z
+END_UTC=2026-06-13T03:18:40Z
+DURATION_SECONDS=165
+EXIT_CODE=0
+RESULT=PASS

@@ -1,0 +1,9 @@
+METHOD=revise
+TEST=experiment/revise/smoke.py
+DEVICE=cuda
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/revise/smoke.py
+START_UTC=2026-06-13T13:41:36Z
+END_UTC=2026-06-13T13:43:18Z
+DURATION_SECONDS=102
+EXIT_CODE=0
+RESULT=PASS

@@ -1,0 +1,10 @@
+METHOD=dice
+TEST=experiment/dice/smoke.py
+REFERENCE=experiment/dice/dice_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/dice/smoke.py
+START_UTC=2026-06-13T03:20:52Z
+END_UTC=2026-06-13T03:22:43Z
+DURATION_SECONDS=111
+EXIT_CODE=0
+RESULT=PASS

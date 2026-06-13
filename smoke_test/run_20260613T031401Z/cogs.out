@@ -1,0 +1,71 @@
+2026-06-13 03:18:46 | INFO | cogs_smoke | Experiment config:
+name: cogs_smoke
+logger:
+  level: INFO
+  path: ./logs/cogs_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: cogs
+  seed: 0
+  device: cpu
+  population_size: 50
+  n_generations: 10
+  mutation_probability: inv_mutable_genotype_length
+  num_features_mutation_strength: 0.25
+  init_temperature: 0.8
+  selection_name: tournament_2
+  noisy_evaluations: false
+  verbose: false
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:18:46 | INFO | cogs_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:18:46 | INFO | cogs_smoke | Training target model: MlpModel
+2026-06-13 03:18:47 | INFO | cogs_smoke | Completed target model training
+2026-06-13 03:18:47 | INFO | cogs_smoke | Training recourse method: CogsMethod
+2026-06-13 03:18:47 | INFO | cogs_smoke | Completed recourse method training
+2026-06-13 03:18:47 | INFO | cogs_smoke | Generating counterfactuals
+2026-06-13 03:18:53 | INFO | cogs_smoke | Completed counterfactual generation
+2026-06-13 03:18:53 | INFO | cogs_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:18:53 | INFO | cogs_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:18:53 | INFO | cogs_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:18:53 | INFO | cogs_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0         1.31     0.526809     0.494481       0.485037

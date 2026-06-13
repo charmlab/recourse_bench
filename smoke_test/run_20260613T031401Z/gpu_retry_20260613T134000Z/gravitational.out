@@ -1,0 +1,63 @@
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Experiment config:
+name: credit_linear_gravitational_smoke
+logger:
+  level: INFO
+  path: ./logs/credit_linear_gravitational_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: credit
+preprocess:
+- name: balance
+  seed: 7
+  strategy: downsample
+  round_to: 250
+  shuffle: true
+  range: true
+- name: encode
+  seed: 7
+  encoding: onehot
+- name: scale
+  seed: 7
+  scaling: normalize
+  range: true
+- name: split
+  seed: 7
+  split: 0.3
+  sample: 256
+- name: finalize
+model:
+  name: linear
+  seed: 7
+  device: cuda
+method:
+  name: gravitational
+  seed: 7
+  device: cuda
+  desired_class: 1
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Starting preprocess: BalancePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Completed preprocess: BalancePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 13:40:55 | INFO | credit_linear_gravitational_smoke | Training target model: LinearModel
+2026-06-13 13:41:34 | INFO | credit_linear_gravitational_smoke | Completed target model training
+2026-06-13 13:41:34 | INFO | credit_linear_gravitational_smoke | Training recourse method: GravitationalMethod
+2026-06-13 13:41:34 | INFO | credit_linear_gravitational_smoke | Completed recourse method training
+2026-06-13 13:41:34 | INFO | credit_linear_gravitational_smoke | Generating counterfactuals
+2026-06-13 13:41:36 | INFO | credit_linear_gravitational_smoke | Completed counterfactual generation
+2026-06-13 13:41:36 | INFO | credit_linear_gravitational_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 13:41:36 | INFO | credit_linear_gravitational_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 13:41:36 | INFO | credit_linear_gravitational_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 13:41:36 | INFO | credit_linear_gravitational_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0    11.284404     3.809591     1.667346       0.995041

@@ -1,0 +1,10 @@
+METHOD=feature_tweak
+TEST=experiment/feature_tweak/smoke.py
+REFERENCE=experiment/feature_tweak/feature_tweak_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/feature_tweak/smoke.py
+START_UTC=2026-06-13T03:22:59Z
+END_UTC=2026-06-13T03:23:20Z
+DURATION_SECONDS=21
+EXIT_CODE=0
+RESULT=PASS

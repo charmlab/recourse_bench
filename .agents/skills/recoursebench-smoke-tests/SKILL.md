@@ -1,74 +1,46 @@
 ---
 name: recoursebench-smoke-tests
-description: Run RecourseBench method smoke tests, save complete per-method results, and write a consolidated Markdown report. Use when Codex needs to check smoke-test health across all or selected experiment methods, preserve stdout/stderr/status evidence, summarize failures, or report branch readiness without claiming paper-level reproduction.
+description: Run RecourseBench method smoke tests, capture per-method evidence, and summarize branch readiness. Use when Codex needs to check smoke-test health across all or selected experiment methods without claiming paper-level reproduction.
 metadata:
-  version: v0.4.0
+  version: v0.5.0
 ---
 
 # RecourseBench Smoke Tests
 
 ## Overview
 
-Use this skill to run the repository's method smoke tests, save auditable
-results, and create a single report that states exactly what passed, failed,
-or was skipped. Prefer tests discovered from the current checkout over a
-hard-coded method list.
+Use this skill to run RecourseBench smoke tests from the current checkout and
+produce an auditable result directory. Smoke tests are functionality checks;
+do not describe them as full paper reproduction.
 
-Treat smoke tests as functionality checks only. Never describe a passing smoke
-test as a full reproduction or as evidence that paper results were reproduced.
+Prefer the repository's checked-in smoke scripts and reference logs over ad hoc
+commands. Do not modify method code just to make a smoke test pass unless the
+user explicitly asks for fixes.
 
-## Installation
-
-Own RecourseBench environment installation in this skill. From the repository
-root, use the installation documented in `README.md`:
-
-```bash
-conda create -n recoursebench python=3.12
-conda activate recoursebench
-python -m pip install -r requirements.txt
-```
-
-Do not reinstall an environment that already satisfies the smoke tests. Do not
-install method-specific optional dependencies unless a selected smoke test
-requires them. In particular, do not add `alibi==0.9.6` to the base environment;
-the repository uses a built-in KD-tree fallback for `diverse_dist`.
-
-After installation, prefer an executable repo-local `.venv/bin/python` when it
-exists. Otherwise, require the activated `recoursebench` Conda environment:
-
-```bash
-if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
-  PYTHON="$REPO_ROOT/.venv/bin/python"
-elif [[ "${CONDA_DEFAULT_ENV:-}" == "recoursebench" ]]; then
-  PYTHON="$(command -v python)"
-else
-  echo "Activate/install the recoursebench environment first." >&2
-  exit 1
-fi
-```
+For CPU versus GPU execution, use the device recorded in the method's matching
+reference log, `experiment/<method>/<method>_smoke_log.txt` (`device: cpu` or
+`device: cuda`). If the matching log is absent or does not identify a device,
+use CPU by default. Record the selected device and any unavailable-device
+blocker in the report.
 
 ## Workflow
 
-1. Resolve and enter the repository root from the current checkout:
+1. Confirm the checkout and environment:
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
-```
-
-2. Follow Installation to resolve `PYTHON`. Check the branch, dirty state, and
-Python environment before running tests:
-
-```bash
 git status --short --branch
+PYTHON="${PYTHON:-.venv/bin/python}"
+[ -x "$PYTHON" ] || PYTHON="$(command -v python)"
 "$PYTHON" --version
 ```
 
-Use `"$PYTHON"` for every smoke test. Do not silently use system Python.
-Install or activate the environment when it is missing. If installation is
-blocked, stop and report the environment blocker.
+If the Python environment is missing or incomplete, follow the installation
+steps in `README.md`. Do not install optional method dependencies unless the
+selected smoke test needs them.
 
-3. Create one timestamped result directory:
+2. Create one timestamped output directory:
 
 ```bash
 OUTPUT_BASE="${OUTPUT_BASE:-smoke_test}"
@@ -76,155 +48,98 @@ RUN_ROOT="$OUTPUT_BASE/run_$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$RUN_ROOT"
 ```
 
-Do not overwrite a previous run. Store all evidence and the final report under
-this directory. Respect a user-supplied `OUTPUT_BASE`; do not assume a
-machine-specific output location.
+Never overwrite a previous run. Store all logs, manifests, context files, and
+the final report under `RUN_ROOT`.
 
-4. Discover smoke tests from the checkout instead of relying on a stale list:
+3. Discover and select tests from the checkout:
 
 ```bash
 find experiment -mindepth 2 -maxdepth 2 -type f -name smoke.py | sort \
   > "$RUN_ROOT/discovered_tests.txt"
+cp "$RUN_ROOT/discovered_tests.txt" "$RUN_ROOT/selected_tests.txt"
 ```
 
-For a full smoke pass, run every discovered file, including `experiment/toy`
-when present. If the user requests selected methods, record the requested
-scope and save the selected test list as `$RUN_ROOT/selected_tests.txt`.
+For a scoped run, write only the requested methods to `selected_tests.txt` and
+record the requested scope in the report.
 
-5. Save run context before executing tests:
+4. Capture run context before execution:
 
-- `$RUN_ROOT/git_status.txt`: `git status --short --branch`
-- `$RUN_ROOT/git_head.txt`: `git rev-parse HEAD`
-- `$RUN_ROOT/environment.txt`: UTC start time, hostname, Python executable and
-  version, plus NumPy and Torch versions when importable
-- `$RUN_ROOT/discovered_tests.txt`: all smoke tests found
-- `$RUN_ROOT/selected_tests.txt`: tests actually selected
+- `git_status.txt`: `git status --short --branch`
+- `git_head.txt`: `git rev-parse HEAD`
+- `environment.txt`: UTC time, hostname, Python executable/version, and
+  importable NumPy/Torch versions, plus whether CPU or GPU execution was used
+- `discovered_tests.txt` and `selected_tests.txt`
 
-6. Run tests sequentially unless the user explicitly requests parallel or
-Slurm execution. Continue after failures so the report covers the full scope.
+5. Run selected smoke tests sequentially unless the user asks for parallel or
+Slurm execution. Continue after failures.
+
+Before running each method, inspect its matching reference log and configure
+the smoke test for the same CPU or GPU device. Different methods in one run may
+therefore use different devices.
 
 For each `experiment/<method>/smoke.py`, save:
 
 - `<method>.out`: stdout
 - `<method>.err`: stderr
-- `<method>.status`: command, timestamps, duration, and exit code
+- `<method>.status`: command, start/end time, duration, and exit code
 
-Use this pattern or an equivalent wrapper:
+Do not use `set -e` around the loop; one failing method must not hide later
+results.
 
-```bash
-while IFS= read -r TEST; do
-  METHOD="$(basename "$(dirname "$TEST")")"
-  CMD="$PYTHON $TEST"
-  OUT="$RUN_ROOT/${METHOD}.out"
-  ERR="$RUN_ROOT/${METHOD}.err"
-  STATUS="$RUN_ROOT/${METHOD}.status"
-  START_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  START_SECONDS="$(date +%s)"
-
-  {
-    echo "METHOD=$METHOD"
-    echo "TEST=$TEST"
-    echo "COMMAND=$CMD"
-    echo "START_UTC=$START_UTC"
-  } > "$STATUS"
-
-  "$PYTHON" "$TEST" > "$OUT" 2> "$ERR"
-  EXIT_CODE=$?
-
-  END_SECONDS="$(date +%s)"
-  {
-    echo "END_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "DURATION_SECONDS=$((END_SECONDS - START_SECONDS))"
-    echo "EXIT_CODE=$EXIT_CODE"
-  } >> "$STATUS"
-done < "$RUN_ROOT/selected_tests.txt"
-```
-
-Do not use `set -e` around the test loop. A single failure must not prevent
-remaining smoke tests from running.
-
-7. Inspect every status file and the relevant tail of stdout/stderr. Classify:
+6. Classify each selected test:
 
 - `PASS`: exit code `0`
-- `FAIL`: nonzero exit code caused by test or code behavior
-- `BLOCKED`: test could not run because of missing dependency, artifact,
-  license, unavailable hardware, or environment setup
-- `SKIPPED`: deliberately excluded from the requested scope
+- `FAIL`: test ran and exited nonzero
+- `BLOCKED`: missing dependency, artifact, hardware, license, or environment
+- `SKIPPED`: deliberately outside the requested scope
 
-Do not convert a nonzero exit into `PASS` because some output was produced.
-Do not hide import errors, tracebacks, warnings relevant to correctness, or
-environment blockers.
+Do not convert a nonzero exit into `PASS` because partial output exists.
 
-8. Compare each method's result with its checked-in reference log:
+7. Compare each result with its checked-in reference log when present:
 
 ```text
-$REPO_ROOT/experiment/<method>/<method>_smoke_log.txt
+experiment/<method>/<method>_smoke_log.txt
 ```
 
-Review the new stdout, stderr, exit status, final metrics, and any traceback or
-error against the reference log. Ignore expected volatile differences such as
-timestamps, durations, temporary paths, and harmless formatting changes. If
-the new run has the same completion/failure outcome and materially the same
-metrics or diagnostic result as the reference log, record the comparison as
-`OK`. A reference log that records a failure only makes the comparison `OK`;
-it does not change the current run's status from `FAIL` or `BLOCKED` to
-`PASS`.
+Record `OK` when the outcome and material diagnostics match the reference log,
+`DIFFERENT` when they do not, and `NO REFERENCE` when the file is absent. A
+reference log that records a failure can make the comparison `OK`, but it does
+not make the current run pass.
 
-Record `DIFFERENT` when the outcome, actionable error, or material result
-differs. Record `NO REFERENCE` when the expected reference log is absent. Do
-not claim that a result is `OK` without checking the method's reference log.
+8. Write `REPORT.md` in `RUN_ROOT`.
 
-9. Write `$RUN_ROOT/REPORT.md` after all selected tests finish.
+## Report Format
 
-## Report Requirements
+Start with:
 
-Start the report with:
-
-- run directory
-- UTC start and end time
-- Git branch and commit
-- whether the worktree was dirty
-- Python executable and version
-- requested scope and number of discovered/selected tests
+- run directory, UTC start/end time, branch, commit, and dirty-worktree status
+- Python executable/version
+- requested scope and discovered/selected test counts
 - totals for `PASS`, `FAIL`, `BLOCKED`, and `SKIPPED`
 - overall result: `PASS` only when every selected test passed; otherwise
   `ISSUES FOUND`
 
-Include a result table:
+Include this table:
 
 ```text
-| Method | Status | Reference comparison | Exit code | Duration (s) | Evidence | Notes |
+| Method | Status | Reference | Exit | Duration (s) | Evidence | Notes |
 | --- | --- | --- | ---: | ---: | --- | --- |
 ```
 
-For `Evidence`, link to the relative `.out`, `.err`, and `.status` files.
-For `Reference comparison`, report `OK`, `DIFFERENT`, or `NO REFERENCE` and
-link to `../<method>/<method>_smoke_log.txt` when it exists. When the
-comparison is `OK`, explicitly say that the new result is the same as the
-reference-log result.
-For failures and blockers, summarize the first actionable root cause, not only
-the final traceback line.
+Link evidence to the relative `.out`, `.err`, and `.status` files. For failures
+and blockers, summarize the first actionable cause, not only the last traceback
+line.
 
-Add these sections after the table:
+Then add concise sections:
 
-1. `Failures and Blockers`: diagnosis for every non-passing selected test.
-2. `Reference Comparisons`: explain every `DIFFERENT` or `NO REFERENCE`
-   result and state that matching results are `OK`.
-3. `Warnings and Caveats`: dirty-worktree effects, optional dependency
-   warnings, hardware limitations, or scoped execution.
-4. `Artifacts`: list the discovered/selected manifests, environment capture,
-   per-method logs, statuses, and report.
-
-If every selected test passes, explicitly state that no smoke-test failures
-were observed. Still retain all result files.
+- `Failures and Blockers`
+- `Reference Comparisons`
+- `Warnings and Caveats`
+- `Artifacts`
 
 ## Completion Rules
 
-- Do not stop after launching jobs; wait for all selected tests to reach a
-  terminal state.
-- Do not delete or replace prior smoke-run directories.
-- Do not modify method code merely to make a test pass unless the user also
-  requested fixes.
+- Wait for all selected tests to reach a terminal state.
+- Preserve prior smoke-run directories.
 - Report the exact result directory in the final response.
-- Mention failed or blocked methods in the final response, even when the full
-  details are already in `REPORT.md`.
+- Mention failed or blocked methods in the final response.

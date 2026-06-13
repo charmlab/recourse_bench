@@ -1,0 +1,10 @@
+METHOD=claproar
+TEST=experiment/claproar/smoke.py
+REFERENCE=experiment/claproar/claproar_smoke_log.txt
+DEVICE=cuda
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/claproar/smoke.py
+START_UTC=2026-06-13T03:15:53Z
+END_UTC=2026-06-13T03:15:55Z
+DURATION_SECONDS=2
+EXIT_CODE=125
+RESULT=BLOCKED
