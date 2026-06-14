@@ -12,6 +12,7 @@ def training(
     x_test,
     input_dim_vec,
     path,
+    cuda=None,
     width=10,
     depth=2,
     latent_dim=6,
@@ -38,8 +39,10 @@ def training(
     trainset = Datafeed(x_train, x_train, transform=None)
     valset = Datafeed(x_test, x_test, transform=None)
 
-    # check whether GPU access
-    cuda = torch.cuda.is_available()
+    # Honor the caller's requested device. Fall back to availability checks only
+    # when older callers do not pass an explicit value.
+    if cuda is None:
+        cuda = torch.cuda.is_available()
 
     # load model architecture
     net = VAE_gauss_cat_net(

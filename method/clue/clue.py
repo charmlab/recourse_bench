@@ -114,7 +114,7 @@ class ClueMethod(MethodObject):
         if checkpoint_path is not None:
             return checkpoint_path
 
-        save_stem = self._save_name or f"{dataset_name}_clue_vae"
+        save_stem = self._save_name or f"{dataset_name}_clue_vae_{self._device}"
         model_dir = Path(get_cache_dir("models")) / save_stem
         model_dir.mkdir(parents=True, exist_ok=True)
         return model_dir / "theta_best.dat"
@@ -141,6 +141,7 @@ class ClueMethod(MethodObject):
                 val_features,
                 self._input_dim_vec,
                 model_dir.as_posix(),
+                cuda=self._device == "cuda",
                 width=self._width,
                 depth=self._depth,
                 latent_dim=self._latent_dim,

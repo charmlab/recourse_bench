@@ -145,7 +145,8 @@ class VAE_gauss_cat_net(BaseNet):
         )
         if self.cuda:
             self.model = self.model.cuda()
-            cudnn.benchmark = True
+            cudnn.deterministic = True
+            cudnn.benchmark = False
         log.info("Total params: %.2fM" % (self.get_nb_parameters() / 1000000.0))
 
     def create_opt(self):
