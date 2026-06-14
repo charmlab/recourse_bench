@@ -1,0 +1,10 @@
+METHOD=sns
+TEST=experiment/sns/smoke.py
+REFERENCE=experiment/sns/sns_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/sns/smoke.py
+START_UTC=2026-06-13T03:25:43Z
+END_UTC=2026-06-13T03:25:52Z
+DURATION_SECONDS=9
+EXIT_CODE=0
+RESULT=PASS

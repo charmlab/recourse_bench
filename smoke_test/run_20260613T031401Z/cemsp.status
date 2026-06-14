@@ -1,0 +1,10 @@
+METHOD=cemsp
+TEST=experiment/cemsp/smoke.py
+REFERENCE=experiment/cemsp/cemsp_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/cemsp/smoke.py
+START_UTC=2026-06-13T03:15:02Z
+END_UTC=2026-06-13T03:15:09Z
+DURATION_SECONDS=7
+EXIT_CODE=0
+RESULT=PASS

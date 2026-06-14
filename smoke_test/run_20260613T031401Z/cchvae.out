@@ -1,0 +1,69 @@
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Experiment config:
+name: cchvae_smoke
+logger:
+  level: INFO
+  path: ./logs/cchvae_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: cchvae
+  seed: 0
+  device: cpu
+  epochs: 40
+  batch_size: 64
+  search_samples: 200
+  max_step: 200
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:14:55 | INFO | cchvae_smoke | Training target model: MlpModel
+2026-06-13 03:14:56 | INFO | cchvae_smoke | Completed target model training
+2026-06-13 03:14:56 | INFO | cchvae_smoke | Training recourse method: CchvaeMethod
+2026-06-13 03:14:56 | INFO | method.cchvae.cchvae | Starting author-style C-CHVAE training on 768 usable rows
+2026-06-13 03:15:00 | INFO | method.cchvae.cchvae | Finished C-CHVAE training
+2026-06-13 03:15:00 | INFO | cchvae_smoke | Completed recourse method training
+2026-06-13 03:15:00 | INFO | cchvae_smoke | Generating counterfactuals
+2026-06-13 03:15:01 | INFO | cchvae_smoke | Completed counterfactual generation
+2026-06-13 03:15:01 | INFO | cchvae_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:15:01 | INFO | cchvae_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:15:01 | INFO | cchvae_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:15:01 | INFO | cchvae_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0        3.175     0.488476     0.365083       0.333313

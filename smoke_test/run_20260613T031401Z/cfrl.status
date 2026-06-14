@@ -1,0 +1,10 @@
+METHOD=cfrl
+TEST=experiment/cfrl/smoke.py
+REFERENCE=experiment/cfrl/cfrl_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/cfrl/smoke.py
+START_UTC=2026-06-13T03:15:09Z
+END_UTC=2026-06-13T03:15:25Z
+DURATION_SECONDS=16
+EXIT_CODE=0
+RESULT=PASS

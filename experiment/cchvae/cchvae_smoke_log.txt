@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-08 18:00:31 | INFO | cchvae_smoke | Experiment config:
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Experiment config:
 name: cchvae_smoke
 logger:
   level: INFO
@@ -46,25 +46,25 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-08 18:00:31 | INFO | cchvae_smoke | Starting preprocess: ScalePreProcess
-2026-06-08 18:00:31 | INFO | cchvae_smoke | Completed preprocess: ScalePreProcess
-2026-06-08 18:00:31 | INFO | cchvae_smoke | Starting preprocess: EncodePreProcess
-2026-06-08 18:00:31 | INFO | cchvae_smoke | Completed preprocess: EncodePreProcess
-2026-06-08 18:00:31 | INFO | cchvae_smoke | Starting preprocess: SplitPreProcess
-2026-06-08 18:00:32 | INFO | cchvae_smoke | Completed preprocess: SplitPreProcess
-2026-06-08 18:00:32 | INFO | cchvae_smoke | Starting preprocess: FinalizePreProcess
-2026-06-08 18:00:32 | INFO | cchvae_smoke | Completed preprocess: FinalizePreProcess
-2026-06-08 18:00:32 | INFO | cchvae_smoke | Training target model: MlpModel
-2026-06-08 18:00:33 | INFO | cchvae_smoke | Completed target model training
-2026-06-08 18:00:33 | INFO | cchvae_smoke | Training recourse method: CchvaeMethod
-2026-06-08 18:00:33 | INFO | method.cchvae.cchvae | Starting author-style C-CHVAE training on 768 usable rows
-2026-06-08 18:00:36 | INFO | method.cchvae.cchvae | Finished C-CHVAE training
-2026-06-08 18:00:36 | INFO | cchvae_smoke | Completed recourse method training
-2026-06-08 18:00:36 | INFO | cchvae_smoke | Generating counterfactuals
-2026-06-08 18:00:45 | INFO | cchvae_smoke | Completed counterfactual generation
-2026-06-08 18:00:45 | INFO | cchvae_smoke | Starting evaluation: ValidityEvaluation
-2026-06-08 18:00:45 | INFO | cchvae_smoke | Completed evaluation: ValidityEvaluation
-2026-06-08 18:00:45 | INFO | cchvae_smoke | Starting evaluation: DistanceEvaluation
-2026-06-08 18:00:45 | INFO | cchvae_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 18:41:48 | INFO | cchvae_smoke | Training target model: MlpModel
+2026-06-13 18:41:49 | INFO | cchvae_smoke | Completed target model training
+2026-06-13 18:41:49 | INFO | cchvae_smoke | Training recourse method: CchvaeMethod
+2026-06-13 18:41:49 | INFO | method.cchvae.cchvae | Starting author-style C-CHVAE training on 768 usable rows
+2026-06-13 18:41:52 | INFO | method.cchvae.cchvae | Finished C-CHVAE training
+2026-06-13 18:41:52 | INFO | cchvae_smoke | Completed recourse method training
+2026-06-13 18:41:52 | INFO | cchvae_smoke | Generating counterfactuals
+2026-06-13 18:42:03 | INFO | cchvae_smoke | Completed counterfactual generation
+2026-06-13 18:42:03 | INFO | cchvae_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 18:42:03 | INFO | cchvae_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 18:42:03 | INFO | cchvae_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 18:42:03 | INFO | cchvae_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
       1.0        3.175     0.488476     0.365083       0.333313

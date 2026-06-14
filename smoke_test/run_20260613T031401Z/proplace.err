@@ -1,0 +1,15 @@
+mlp-fit:   0%|          | 0/10 [00:00<?, ?it/s]mlp-fit:  70%|███████   | 7/10 [00:00<00:00, 66.47it/s]                                                       proplace-generate:   0%|          | 0/4 [00:00<?, ?it/s]
+proplace-certify-target-0:   0%|          | 0/76 [00:00<?, ?it/s][A
+proplace-certify-target-0:   1%|▏         | 1/76 [00:00<00:19,  3.84it/s][A
+                                                                         [Aproplace-generate:  25%|██▌       | 1/4 [00:00<00:01,  2.63it/s]
+proplace-certify-target-1:   0%|          | 0/724 [00:00<?, ?it/s][A
+proplace-certify-target-1:  11%|█         | 78/724 [00:00<00:00, 774.93it/s][A
+proplace-certify-target-1:  22%|██▏       | 156/724 [00:00<00:00, 724.83it/s][A
+proplace-certify-target-1:  32%|███▏      | 232/724 [00:00<00:00, 736.38it/s][A
+proplace-certify-target-1:  43%|████▎     | 310/724 [00:00<00:00, 751.90it/s][A
+proplace-certify-target-1:  53%|█████▎    | 387/724 [00:00<00:00, 755.78it/s][A
+proplace-certify-target-1:  64%|██████▍   | 465/724 [00:00<00:00, 762.90it/s][A
+proplace-certify-target-1:  75%|███████▌  | 544/724 [00:00<00:00, 769.30it/s][A
+proplace-certify-target-1:  86%|████████▌ | 622/724 [00:00<00:00, 772.61it/s][A
+proplace-certify-target-1:  97%|█████████▋| 702/724 [00:00<00:00, 778.34it/s][A
+                                                                             [Aproplace-generate:  75%|███████▌  | 3/4 [00:01<00:00,  2.17it/s]                                                                

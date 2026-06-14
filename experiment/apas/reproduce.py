@@ -4,7 +4,9 @@ import argparse
 import copy
 import sys
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -19,6 +21,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.neural_network import MLPClassifier
 
+from dataset.dataset_object import DatasetObject
 from dataset.diabetes.diabetes import DiabetesDataset
 from method.apas.apas import ApasMethod
 from method.apas.support import (
@@ -28,12 +31,76 @@ from method.apas.support import (
 )
 from model.mlp.mlp import MlpModel
 
+
 warnings.filterwarnings("ignore")
+
+REFERENCE_EXP_DIR = PROJECT_ROOT / "experiment" / "apas" / "dataset"
+
+
+@dataclass(frozen=True)
+class SklearnSpec:
+    hidden_layer_sizes: int | tuple[int, ...]
+    learning_rate_init: float
+    batch_size: int
+    max_iter: int
+    random_state: int = 0
+    learning_rate: str = "adaptive"
+    activation: str = "relu"
+    solver: str = "adam"
+
+
+@dataclass(frozen=True)
+class DatasetSpec:
+    name: str
+    target_column: str
+    feature_columns: tuple[str, ...]
+    continuous_features: tuple[str, ...]
+    sklearn: SklearnSpec
+    gap: float
+    num_test_instances: int
+    num_sound_instances: int
+    split_seed: int
+    d1_size: int | None
+    d1_train_test_seed: int
+    d1_train_test_split: float
+    loader: Callable[[], dict[str, object]]
+    targets: dict[str, dict[str, float]]
+
+
+class NotebookDataset(DatasetObject):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        target_column: str,
+        continuous_features: list[str],
+        name: str = "notebook",
+        **kwargs,
+    ):
+        self._rawdf = df.copy(deep=True)
+        self._freeze = False
+        self.name = name
+        self.target_column = target_column
+        self.feature_order = list(self._rawdf.columns)
+        self.raw_feature_type = {
+            column: "binary" if column == target_column else "numerical"
+            for column in self._rawdf.columns
+        }
+        self.raw_feature_mutability = {
+            column: column != target_column for column in self._rawdf.columns
+        }
+        self.raw_feature_actionability = {
+            column: "none" if column == target_column else "any"
+            for column in self._rawdf.columns
+        }
+        self.continuous_features = list(continuous_features)
+
+    def _read_df(self, path: str) -> pd.DataFrame:
+        raise NotImplementedError("NotebookDataset is constructed from a DataFrame")
 
 
 def _load_config(config_path: Path) -> dict:
     with config_path.open("r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+        return yaml.safe_load(file) or {}
 
 
 def _resolve_device(device: str) -> str:
@@ -48,76 +115,312 @@ def _resolve_device(device: str) -> str:
 
 
 def _resolve_runtime_device(config: dict) -> str:
-    model_device = _resolve_device(config["model"]["device"])
-    method_device = _resolve_device(config["method"].get("device", config["model"]["device"]))
+    model_device = _resolve_device(config["model"].get("device", "cpu"))
+    method_device = _resolve_device(config["method"].get("device", model_device))
     if model_device != method_device:
         raise ValueError("model.device must match method.device")
     return model_device
 
 
-def _make_frozen_dataset(
-    template: DiabetesDataset,
+def _min_max_scale(
     df: pd.DataFrame,
-    marker: str,
-) -> DiabetesDataset:
-    dataset = template.clone()
-    dataset.update(marker, True, df=df.copy(deep=True))
+    feature_columns: list[str],
+    continuous_features: list[str],
+    min_source: pd.DataFrame | None = None,
+    max_source: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    scaled_df = df.copy(deep=True)
+    min_df = df if min_source is None else min_source
+    max_df = df if max_source is None else max_source
+    min_vals = min_df.loc[:, continuous_features].min(axis=0)
+    max_vals = max_df.loc[:, continuous_features].max(axis=0)
+    denominators = (max_vals - min_vals).replace(0, 1.0)
+    scaled_df.loc[:, continuous_features] = (
+        scaled_df.loc[:, continuous_features].astype("float64") - min_vals
+    ) / denominators
+    scaled_df.loc[:, feature_columns] = scaled_df.loc[:, feature_columns].astype("float64")
+    return scaled_df.reset_index(drop=True)
+
+
+def _make_frozen_dataset(
+    df: pd.DataFrame,
+    target_column: str,
+    continuous_features: list[str],
+    name: str,
+) -> NotebookDataset:
+    dataset = NotebookDataset(
+        df=df,
+        target_column=target_column,
+        continuous_features=continuous_features,
+        name=name,
+    )
     dataset.freeze()
     return dataset
 
 
-def _load_scaled_diabetes(config: dict) -> tuple[DiabetesDataset, pd.DataFrame, list[str], str]:
-    dataset_cfg = config["dataset"]
-    dataset = DiabetesDataset(path=dataset_cfg["path"])
+def _load_diabetes_reference() -> dict[str, object]:
+    dataset = DiabetesDataset(path="./dataset/diabetes/")
     df = dataset.snapshot().dropna().reset_index(drop=True)
     target_column = dataset.target_column
     feature_columns = [column for column in df.columns if column != target_column]
-
-    min_vals = df[feature_columns].min(axis=0)
-    max_vals = df[feature_columns].max(axis=0)
-    scaled_df = df.astype({column: "float64" for column in feature_columns}).copy(
-        deep=True
+    scaled_df = _min_max_scale(
+        df=df,
+        feature_columns=feature_columns,
+        continuous_features=feature_columns,
     )
-    scaled_df.loc[:, feature_columns] = (
-        scaled_df.loc[:, feature_columns] - min_vals
-    ) / (max_vals - min_vals)
 
-    dataset.update("scaled", True, df=scaled_df)
-    return dataset, scaled_df, feature_columns, target_column
-
-
-def _split_reference_d1_d2(
-    scaled_df: pd.DataFrame,
-    seed_numpy: int,
-    d1_size: int,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    np.random.seed(seed_numpy)
-    d1_indices = np.sort(np.random.choice(range(len(scaled_df)), d1_size))
+    np.random.seed(1)
+    d1_indices = np.sort(np.random.choice(range(len(scaled_df)), 384))
     d2_indices = np.array(
         [index for index in range(len(scaled_df)) if index not in d1_indices]
     )
-
     d1_df = pd.DataFrame(scaled_df.values[d1_indices], columns=scaled_df.columns)
     d2_df = pd.DataFrame(scaled_df.values[d2_indices], columns=scaled_df.columns)
-    return d1_df, d2_df
+    return {
+        "scaled_df": scaled_df,
+        "d1_df": d1_df,
+        "d2_df": d2_df,
+        "feature_columns": feature_columns,
+        "target_column": target_column,
+        "continuous_features": feature_columns,
+    }
 
 
-def _build_reference_classifier(config: dict) -> MLPClassifier:
-    model_cfg = config["model"]
-    sklearn_cfg = config["reproduction"]["sklearn"]
+def _load_no2_reference() -> dict[str, object]:
+    df = pd.read_csv(REFERENCE_EXP_DIR / "no2.csv")
+    df = df.dropna().replace(to_replace={"N": 0, "P": 1}).reset_index(drop=True)
+    target_column = "binaryClass"
+    feature_columns = [column for column in df.columns if column != target_column]
+    scaled_df = _min_max_scale(
+        df=df,
+        feature_columns=feature_columns,
+        continuous_features=feature_columns,
+    )
 
-    layers = model_cfg["layers"]
-    hidden_layer_sizes = int(layers[0]) if len(layers) == 1 else tuple(int(v) for v in layers)
+    np.random.seed(4)
+    d1_indices = np.sort(np.random.choice(range(500), 250))
+    d2_indices = np.array([index for index in range(500) if index not in d1_indices])
+    d1_df = pd.DataFrame(scaled_df.values[d1_indices], columns=scaled_df.columns)
+    d2_df = pd.DataFrame(scaled_df.values[d2_indices], columns=scaled_df.columns)
+    return {
+        "scaled_df": scaled_df,
+        "d1_df": d1_df,
+        "d2_df": d2_df,
+        "feature_columns": feature_columns,
+        "target_column": target_column,
+        "continuous_features": feature_columns,
+    }
 
+
+def _load_sba_reference() -> dict[str, object]:
+    df = pd.read_csv(REFERENCE_EXP_DIR / "SBAcase.11.13.17.csv")
+    df = df.dropna(axis=1)
+    df = df.drop(
+        columns=[
+            "ApprovalDate",
+            "LoanNr_ChkDgt",
+            "Name",
+            "Zip",
+            "City",
+            "State",
+            "NAICS",
+            "FranchiseCode",
+            "BalanceGross",
+            "MIS_Status",
+            "Selected",
+            "UrbanRural",
+            "Recession",
+            "New",
+            "RealEstate",
+            "Portion",
+        ]
+    )
+    continuous_features = [
+        "Term",
+        "NoEmp",
+        "CreateJob",
+        "RetainedJob",
+        "DisbursementGross",
+        "ChgOffPrinGr",
+        "GrAppv",
+        "SBA_Appv",
+        "daysterm",
+    ]
+    target_column = "Default"
+    d1_raw = df[df["ApprovalFY"] < 2006].drop(columns="ApprovalFY").reset_index(drop=True)
+    d2_raw = df[df["ApprovalFY"] >= 2006].drop(columns="ApprovalFY").reset_index(drop=True)
+    scale_source = df.drop(columns="ApprovalFY").reset_index(drop=True)
+    feature_columns = [column for column in d1_raw.columns if column != target_column]
+
+    d1_df = _min_max_scale(
+        df=d1_raw,
+        feature_columns=feature_columns,
+        continuous_features=continuous_features,
+        min_source=scale_source,
+        max_source=scale_source,
+    )
+    d2_df = _min_max_scale(
+        df=d2_raw,
+        feature_columns=feature_columns,
+        continuous_features=continuous_features,
+        min_source=scale_source,
+        max_source=scale_source,
+    )
+    d1_df.loc[:, target_column] = 1 - d1_df[target_column].astype(int)
+    d2_df.loc[:, target_column] = 1 - d2_df[target_column].astype(int)
+    scaled_df = pd.concat([d1_df, d2_df], ignore_index=True)
+    return {
+        "scaled_df": scaled_df,
+        "d1_df": d1_df,
+        "d2_df": d2_df,
+        "feature_columns": feature_columns,
+        "target_column": target_column,
+        "continuous_features": continuous_features,
+    }
+
+
+DATASET_SPECS: dict[str, DatasetSpec] = {
+    "diabetes": DatasetSpec(
+        name="diabetes",
+        target_column="Outcome",
+        feature_columns=(),
+        continuous_features=(),
+        sklearn=SklearnSpec(
+            hidden_layer_sizes=8,
+            learning_rate_init=0.01,
+            batch_size=8,
+            max_iter=7000,
+        ),
+        gap=0.25,
+        num_test_instances=500,
+        num_sound_instances=50,
+        split_seed=1,
+        d1_size=384,
+        d1_train_test_seed=0,
+        d1_train_test_split=0.2,
+        loader=_load_diabetes_reference,
+        targets={
+            "notebook": {
+                "sound_fraction": 0.27380952380952384,
+                "sound_count": 69,
+                "delta_max": 0.3457906217784634,
+                "delta_min": 0.1058395646526038,
+                "delta_e": 0.27983832,
+                "found": 1.0,
+                "vm1": 1.0,
+                "vm2": 1.0,
+                "delta_validity": 0.0,
+                "l1": 0.07657846284575133,
+                "l0": 0.3075,
+                "lof": 1.0,
+            },
+            "paper": {
+                "delta": 0.11,
+                "delta_e": 0.27,
+                "vm1": 1.0,
+                "vm2": 1.0,
+                "l1": 0.077,
+                "lof": 1.0,
+            },
+            "full_results": {
+                "full_results_milp_mean": 0.108742,
+                "full_results_wilks_mean": 0.27409900000000004,
+            },
+        },
+    ),
+    "no2": DatasetSpec(
+        name="no2",
+        target_column="binaryClass",
+        feature_columns=(),
+        continuous_features=(),
+        sklearn=SklearnSpec(
+            hidden_layer_sizes=16,
+            learning_rate_init=0.005,
+            batch_size=8,
+            max_iter=2000,
+        ),
+        gap=0.15,
+        num_test_instances=200,
+        num_sound_instances=50,
+        split_seed=4,
+        d1_size=250,
+        d1_train_test_seed=0,
+        d1_train_test_split=0.2,
+        loader=_load_no2_reference,
+        targets={
+            "notebook": {
+                "sound_fraction": 0.4424778761061947,
+                "sound_count": 50,
+                "delta_max": 0.11449453866860582,
+                "delta_min": 0.020924421229148754,
+                "delta_e": 0.07160799,
+                "found": 1.0,
+                "vm1": 1.0,
+                "vm2": 1.0,
+                "delta_validity": 0.0,
+                "l1": 0.04218988369320217,
+                "l0": 0.2116399999999999,
+                "lof": 1.0,
+            },
+            "full_results": {
+                "full_results_milp_mean": 0.022574999999999998,
+                "full_results_wilks_mean": 0.076827,
+            },
+        },
+    ),
+    "sba": DatasetSpec(
+        name="sba",
+        target_column="Default",
+        feature_columns=(),
+        continuous_features=(),
+        sklearn=SklearnSpec(
+            hidden_layer_sizes=18,
+            learning_rate_init=0.005,
+            batch_size=8,
+            max_iter=9000,
+        ),
+        gap=0.25,
+        num_test_instances=200,
+        num_sound_instances=50,
+        split_seed=0,
+        d1_size=None,
+        d1_train_test_seed=5,
+        d1_train_test_split=0.2,
+        loader=_load_sba_reference,
+        targets={
+            "notebook": {
+                "sound_fraction": 0.6348314606741573,
+                "sound_count": 113,
+                "delta_max": 0.30498064647513345,
+                "delta_min": 0.10821238236127151,
+                "delta_e": 0.24813461,
+                "found": 1.0,
+                "vm1": 1.0,
+                "vm2": 1.0,
+                "delta_validity": 0.0,
+                "l1": 0.008920690895365926,
+                "l0": 0.1642800000000001,
+                "lof": 0.4,
+            },
+            "full_results": {
+                "full_results_milp_mean": 0.10966000000000001,
+                "full_results_wilks_mean": 0.317258,
+            },
+        },
+    ),
+}
+
+
+def _build_reference_classifier(spec: SklearnSpec) -> MLPClassifier:
     return MLPClassifier(
-        learning_rate=str(sklearn_cfg["learning_rate"]),
-        hidden_layer_sizes=hidden_layer_sizes,
-        learning_rate_init=float(sklearn_cfg["learning_rate_init"]),
-        batch_size=int(sklearn_cfg["batch_size"]),
-        max_iter=int(sklearn_cfg["max_iter"]),
-        random_state=int(config["reproduction"]["seed_model"]),
-        activation=str(sklearn_cfg["activation"]),
-        solver=str(sklearn_cfg["solver"]),
+        learning_rate=spec.learning_rate,
+        hidden_layer_sizes=spec.hidden_layer_sizes,
+        learning_rate_init=float(spec.learning_rate_init),
+        batch_size=int(spec.batch_size),
+        max_iter=int(spec.max_iter),
+        random_state=int(spec.random_state),
+        activation=spec.activation,
+        solver=spec.solver,
     )
 
 
@@ -177,19 +480,22 @@ def _compute_delta_max_reference(
     clf: MLPClassifier,
     X2: pd.DataFrame,
     y2: pd.Series,
-) -> float:
+) -> tuple[float, MLPClassifier]:
     reference = _flatten_weights_and_biases(clf)
     delta_max = -1.0
+    max_model: MLPClassifier | None = None
     subset_size = int(0.99 * len(X2))
     for seed in range(5):
         np.random.seed(seed)
         indices = np.random.choice(range(len(X2)), subset_size)
         shifted = _partial_fit_clone(clf, X2.iloc[indices], y2.iloc[indices])
-        delta_max = max(
-            delta_max,
-            _inf_norm(reference, _flatten_weights_and_biases(shifted)),
-        )
-    return float(delta_max)
+        shifted_delta = _inf_norm(reference, _flatten_weights_and_biases(shifted))
+        if shifted_delta >= delta_max:
+            delta_max = shifted_delta
+            max_model = shifted
+    if max_model is None:
+        raise RuntimeError("Could not compute reference delta_max model")
+    return float(delta_max), max_model
 
 
 def _compute_delta_e_notebook_style(
@@ -205,20 +511,20 @@ def _compute_delta_e_notebook_style(
 
 def _sklearn_to_benchmark_mlp(
     clf: MLPClassifier,
-    model_cfg: dict,
+    layers: list[int],
     device: str,
 ) -> MlpModel:
     model = MlpModel(
-        seed=int(model_cfg["seed"]),
+        seed=int(getattr(clf, "random_state", 0) or 0),
         device=device,
-        epochs=int(model_cfg["epochs"]),
-        learning_rate=float(model_cfg["learning_rate"]),
-        batch_size=int(model_cfg["batch_size"]),
-        layers=[int(value) for value in model_cfg["layers"]],
-        optimizer=str(model_cfg["optimizer"]),
-        criterion=str(model_cfg["criterion"]),
-        output_activation=str(model_cfg["output_activation"]),
-        save_name=model_cfg.get("save_name"),
+        epochs=1,
+        learning_rate=float(getattr(clf, "learning_rate_init", 0.01)),
+        batch_size=int(getattr(clf, "batch_size", 8)),
+        layers=layers,
+        optimizer="adam",
+        criterion="bce",
+        output_activation="sigmoid",
+        save_name=None,
     )
 
     model._class_to_index = {
@@ -274,7 +580,6 @@ def _compute_interval_lower_bound(
     bias_delta = float(delta) if use_biases else 0.0
     try:
         model = create_silent_gurobi_model("apas_interval_lower", seed=seed)
-
         previous_layer: list[float | object] = [float(value) for value in point.reshape(-1)]
 
         for layer_index, (weights, bias) in enumerate(
@@ -365,10 +670,9 @@ def _select_reference_test_instances(
     base_model: MlpModel,
     X1: pd.DataFrame,
     desired_class: int,
-    seed_numpy: int,
     num_test_instances: int,
 ) -> pd.DataFrame:
-    np.random.seed(seed_numpy)
+    np.random.seed(1)
     predictions = _predict_label_indices(base_model, X1)
     candidate_indices = np.where(predictions == (1 - desired_class))[0]
     sampled_indices = np.random.choice(
@@ -488,32 +792,45 @@ def _evaluate_counterfactuals(
     }
 
 
-def _compute_reference_datasets(config: dict) -> dict[str, object]:
-    reproduction_cfg = config["reproduction"]
-    dataset_template, scaled_df, feature_columns, target_column = _load_scaled_diabetes(config)
-    d1_df, d2_df = _split_reference_d1_d2(
-        scaled_df=scaled_df,
-        seed_numpy=int(reproduction_cfg["seed_numpy"]),
-        d1_size=int(reproduction_cfg["d1_size"]),
-    )
+def _resolve_layers(hidden_layer_sizes: int | tuple[int, ...]) -> list[int]:
+    if isinstance(hidden_layer_sizes, tuple):
+        return [int(value) for value in hidden_layer_sizes]
+    return [int(hidden_layer_sizes)]
+
+
+def _prepare_datasets(spec: DatasetSpec) -> dict[str, object]:
+    loaded = spec.loader()
+    feature_columns = list(loaded["feature_columns"])
+    target_column = str(loaded["target_column"])
+    d1_df = loaded["d1_df"].copy(deep=True).reset_index(drop=True)
+    d2_df = loaded["d2_df"].copy(deep=True).reset_index(drop=True)
+    scaled_df = loaded["scaled_df"].copy(deep=True).reset_index(drop=True)
+    continuous_features = list(loaded["continuous_features"])
 
     X1 = d1_df.loc[:, feature_columns].copy(deep=True)
-    y1 = d1_df.loc[:, target_column].copy(deep=True)
+    y1 = d1_df.loc[:, target_column].astype(int).copy(deep=True)
     X2 = d2_df.loc[:, feature_columns].copy(deep=True)
-    y2 = d2_df.loc[:, target_column].copy(deep=True)
+    y2 = d2_df.loc[:, target_column].astype(int).copy(deep=True)
 
-    X1_train, X1_test, y1_train, y1_test = train_test_split(
+    X1_train, _, y1_train, _ = train_test_split(
         X1,
         y1,
         stratify=y1,
-        test_size=float(reproduction_cfg["d1_train_test_split"]),
+        test_size=float(spec.d1_train_test_split),
         shuffle=True,
-        random_state=int(reproduction_cfg["seed_model"]),
+        random_state=int(spec.d1_train_test_seed),
     )
 
-    full_dataset = _make_frozen_dataset(dataset_template, scaled_df, "fullset")
+    full_dataset = _make_frozen_dataset(
+        df=scaled_df,
+        target_column=target_column,
+        continuous_features=continuous_features,
+        name=spec.name,
+    )
     return {
         "full_dataset": full_dataset,
+        "feature_columns": feature_columns,
+        "target_column": target_column,
         "X1": X1.reset_index(drop=True),
         "y1": y1.reset_index(drop=True),
         "X2": X2.reset_index(drop=True),
@@ -537,11 +854,29 @@ def _compare_against_targets(
     return rows
 
 
-def run_reproduction(config: dict) -> dict[str, object]:
-    device = _resolve_runtime_device(config)
-    datasets = _compute_reference_datasets(config)
+def _method_config(config: dict, device: str, delta_min: float) -> dict[str, object]:
+    method_cfg = copy.deepcopy(config.get("method", {}))
+    method_cfg.pop("name", None)
+    method_cfg["device"] = device
+    method_cfg["desired_class"] = int(method_cfg.get("desired_class", 1))
 
-    sklearn_base = _build_reference_classifier(config)
+    delta_source = str(config.get("reproduction", {}).get("delta_source", "delta_min")).lower()
+    if delta_source == "delta_min":
+        method_cfg["delta"] = float(delta_min)
+    elif method_cfg.get("delta") is None:
+        raise ValueError("method.delta must be set when reproduction.delta_source is not 'delta_min'")
+    return method_cfg
+
+
+def run_dataset_reproduction(
+    spec: DatasetSpec,
+    config: dict,
+    limit_sound: int | None = None,
+) -> dict[str, object]:
+    device = _resolve_runtime_device(config)
+    datasets = _prepare_datasets(spec)
+
+    sklearn_base = _build_reference_classifier(spec.sklearn)
     sklearn_base.fit(
         datasets["X1_train"].to_numpy(dtype=np.float64),
         datasets["y1_train"].to_numpy(dtype=np.int64),
@@ -551,9 +886,9 @@ def run_reproduction(config: dict) -> dict[str, object]:
         clf=sklearn_base,
         X2=datasets["X2"],
         y2=datasets["y2"],
-        gap=float(config["reproduction"]["gap"]),
+        gap=float(spec.gap),
     )
-    delta_max_reference = _compute_delta_max_reference(
+    delta_max_reference, max_shifted_sklearn = _compute_delta_max_reference(
         clf=sklearn_base,
         X2=datasets["X2"],
         y2=datasets["y2"],
@@ -565,50 +900,42 @@ def run_reproduction(config: dict) -> dict[str, object]:
     )
     delta_e = _compute_delta_e_notebook_style(sklearn_base, sklearn_retrained)
 
+    layers = _resolve_layers(spec.sklearn.hidden_layer_sizes)
     base_model = _sklearn_to_benchmark_mlp(
         clf=sklearn_base,
-        model_cfg=config["model"],
+        layers=layers,
         device=device,
     )
     retrained_model = _sklearn_to_benchmark_mlp(
         clf=sklearn_retrained,
-        model_cfg=config["model"],
+        layers=layers,
         device=device,
     )
 
-    method_cfg = copy.deepcopy(config["method"])
+    method_cfg = _method_config(config=config, device=device, delta_min=delta_min)
     desired_class = int(method_cfg["desired_class"])
     candidate_factuals = _select_reference_test_instances(
         base_model=base_model,
         X1=datasets["X1"],
         desired_class=desired_class,
-        seed_numpy=int(config["reproduction"]["seed_numpy"]),
-        num_test_instances=int(config["reproduction"]["num_test_instances"]),
+        num_test_instances=int(spec.num_test_instances),
     )
     sound_fraction, sound_positions = _verify_soundness(
         base_model=base_model,
         candidate_factuals=candidate_factuals,
         delta_min=delta_min,
-        big_m=float(method_cfg["big_m"]),
-        use_biases=bool(method_cfg["use_biases"]),
+        big_m=float(method_cfg.get("big_m", 10000.0)),
+        use_biases=bool(method_cfg.get("use_biases", True)),
     )
 
-    final_count = int(config["reproduction"]["num_sound_instances"])
+    final_count = int(spec.num_sound_instances if limit_sound is None else limit_sound)
     final_positions = sound_positions[:final_count]
     if len(final_positions) < final_count:
         raise ValueError(
-            f"Expected at least {final_count} sound factuals, found {len(final_positions)}"
+            f"{spec.name}: expected at least {final_count} sound factuals, "
+            f"found {len(final_positions)}"
         )
     factuals = candidate_factuals.iloc[final_positions].reset_index(drop=True)
-
-    delta_source = str(config["reproduction"]["delta_source"]).lower()
-    if delta_source == "delta_min":
-        method_cfg["delta"] = float(delta_min)
-    elif method_cfg.get("delta") is None:
-        raise ValueError("method.delta must be set when reproduction.delta_source is not 'delta_min'")
-
-    method_cfg.pop("name", None)
-    method_cfg["device"] = device
 
     apas_method = ApasMethod(target_model=base_model, **method_cfg)
     apas_method.fit(datasets["full_dataset"])
@@ -624,13 +951,14 @@ def run_reproduction(config: dict) -> dict[str, object]:
         retrained_model=retrained_model,
         delta_min=delta_min,
         desired_class=desired_class,
-        big_m=float(config["method"]["big_m"]),
-        use_biases=bool(config["method"]["use_biases"]),
+        big_m=float(method_cfg.get("big_m", 10000.0)),
+        use_biases=bool(method_cfg.get("use_biases", True)),
         lof_model=lof_model,
     )
 
-    targets = config["reproduction"]["targets"]
+    full_results_targets = spec.targets.get("full_results", {})
     results = {
+        "dataset": spec.name,
         "device": device,
         "d1_size": int(datasets["X1"].shape[0]),
         "d2_size": int(datasets["X2"].shape[0]),
@@ -642,20 +970,34 @@ def run_reproduction(config: dict) -> dict[str, object]:
         "delta_min": float(delta_min),
         "delta_max": float(delta_max_reference),
         "delta_e": float(delta_e),
+        "max_shifted_model_delta_check": _inf_norm(
+            _flatten_weights_and_biases(sklearn_base),
+            _flatten_weights_and_biases(max_shifted_sklearn),
+        ),
+        **full_results_targets,
         **metric_results,
     }
 
     return {
         "results": results,
-        "notebook_comparison": _compare_against_targets(results, targets["notebook"]),
-        "paper_comparison": _compare_against_targets(results, targets["paper"]),
+        "notebook_comparison": _compare_against_targets(
+            results, spec.targets.get("notebook", {})
+        ),
+        "paper_comparison": _compare_against_targets(
+            results, spec.targets.get("paper", {})
+        ),
+        "full_results_comparison": _compare_against_targets(
+            results, spec.targets.get("full_results", {})
+        ),
     }
 
 
-def _format_value(value: float | int) -> str:
+def _format_value(value: object) -> str:
     if isinstance(value, int):
         return str(value)
     if isinstance(value, float):
+        if np.isnan(value):
+            return "nan"
         return f"{value:.12f}".rstrip("0").rstrip(".")
     return str(value)
 
@@ -668,10 +1010,10 @@ def _print_comparison_table(
         return
 
     print(title)
-    print(f"{'Metric':<18} {'Target':>16} {'Reproduced':>16} {'Abs Diff':>16}")
+    print(f"{'Metric':<28} {'Target':>16} {'Reproduced':>16} {'Abs Diff':>16}")
     for metric, target, reproduced, difference in rows:
         print(
-            f"{metric:<18} "
+            f"{metric:<28} "
             f"{_format_value(target):>16} "
             f"{_format_value(reproduced):>16} "
             f"{_format_value(difference):>16}"
@@ -679,11 +1021,11 @@ def _print_comparison_table(
     print()
 
 
-def _print_report(config: dict, output: dict[str, object]) -> None:
+def _print_report(output: dict[str, object]) -> None:
     results = output["results"]
 
-    print(f"Experiment: {config['name']}")
-    print("Execution Path: notebook-faithful APAS diabetes reproduction")
+    print("=" * 88)
+    print(f"Experiment: notebook-faithful APAS reproduction ({results['dataset']})")
     print(f"Device: {results['device']}")
     print(f"D1 size: {results['d1_size']}")
     print(f"D2 size: {results['d2_size']}")
@@ -708,12 +1050,22 @@ def _print_report(config: dict, output: dict[str, object]) -> None:
         ("L1", "l1"),
         ("L0", "l0"),
         ("LOF", "lof"),
+        ("full_results_milp_mean", "full_results_milp_mean"),
+        ("full_results_wilks_mean", "full_results_wilks_mean"),
     ]:
-        print(f"  {label:<16} {_format_value(results[key])}")
+        if key in results:
+            print(f"  {label:<24} {_format_value(results[key])}")
     print()
 
     _print_comparison_table("Notebook Comparison", output["notebook_comparison"])
     _print_comparison_table("Paper Comparison", output["paper_comparison"])
+    _print_comparison_table("Full Results Summary", output["full_results_comparison"])
+
+
+def _selected_specs(selection: str) -> list[DatasetSpec]:
+    if selection == "all":
+        return [DATASET_SPECS["diabetes"], DATASET_SPECS["no2"], DATASET_SPECS["sba"]]
+    return [DATASET_SPECS[selection]]
 
 
 def main() -> None:
@@ -721,13 +1073,34 @@ def main() -> None:
     parser.add_argument(
         "--config",
         default="./experiment/apas/config.yaml",
+        help="Shared framework/APAS config path.",
+    )
+    parser.add_argument(
+        "--dataset",
+        choices=["diabetes", "no2", "sba", "all"],
+        default="all",
+        help="Notebook dataset to reproduce.",
+    )
+    parser.add_argument(
+        "--limit-sound",
+        type=int,
+        default=None,
+        help="Optional smoke-test cap for sound factuals; defaults to notebook-faithful 50.",
     )
     args = parser.parse_args()
 
+    if args.limit_sound is not None and args.limit_sound < 1:
+        raise ValueError("--limit-sound must be >= 1 when provided")
+
     config_path = (PROJECT_ROOT / args.config).resolve()
     config = _load_config(config_path)
-    output = run_reproduction(config)
-    _print_report(config, output)
+    for spec in _selected_specs(args.dataset):
+        output = run_dataset_reproduction(
+            spec=spec,
+            config=config,
+            limit_sound=args.limit_sound,
+        )
+        _print_report(output)
 
 
 if __name__ == "__main__":

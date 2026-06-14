@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Experiment config:
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Experiment config:
 name: cvas_proj_smoke
 logger:
   level: INFO
@@ -45,23 +45,23 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Starting preprocess: ScalePreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Completed preprocess: ScalePreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Starting preprocess: EncodePreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Completed preprocess: EncodePreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Starting preprocess: SplitPreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Completed preprocess: SplitPreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Starting preprocess: FinalizePreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Completed preprocess: FinalizePreProcess
-2026-06-08 18:17:42 | INFO | cvas_proj_smoke | Training target model: MlpModel
-2026-06-08 18:17:43 | INFO | cvas_proj_smoke | Completed target model training
-2026-06-08 18:17:43 | INFO | cvas_proj_smoke | Training recourse method: CvasProjMethod
-2026-06-08 18:17:43 | INFO | cvas_proj_smoke | Completed recourse method training
-2026-06-08 18:17:43 | INFO | cvas_proj_smoke | Generating counterfactuals
-2026-06-08 18:17:51 | INFO | cvas_proj_smoke | Completed counterfactual generation
-2026-06-08 18:17:51 | INFO | cvas_proj_smoke | Starting evaluation: ValidityEvaluation
-2026-06-08 18:17:52 | INFO | cvas_proj_smoke | Completed evaluation: ValidityEvaluation
-2026-06-08 18:17:52 | INFO | cvas_proj_smoke | Starting evaluation: DistanceEvaluation
-2026-06-08 18:17:52 | INFO | cvas_proj_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Training target model: MlpModel
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Completed target model training
+2026-06-13 18:57:29 | INFO | cvas_proj_smoke | Training recourse method: CvasProjMethod
+2026-06-13 18:57:30 | INFO | cvas_proj_smoke | Completed recourse method training
+2026-06-13 18:57:30 | INFO | cvas_proj_smoke | Generating counterfactuals
+2026-06-13 18:57:36 | INFO | cvas_proj_smoke | Completed counterfactual generation
+2026-06-13 18:57:36 | INFO | cvas_proj_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 18:57:36 | INFO | cvas_proj_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 18:57:36 | INFO | cvas_proj_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 18:57:36 | INFO | cvas_proj_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
  0.947368          1.0     0.216355     0.216355       0.216355

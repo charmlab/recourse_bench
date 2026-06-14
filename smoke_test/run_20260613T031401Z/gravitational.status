@@ -1,0 +1,10 @@
+METHOD=gravitational
+TEST=experiment/gravitational/smoke.py
+REFERENCE=experiment/gravitational/gravitational_smoke_log.txt
+DEVICE=cuda
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/gravitational/smoke.py
+START_UTC=2026-06-13T03:23:20Z
+END_UTC=2026-06-13T03:23:22Z
+DURATION_SECONDS=2
+EXIT_CODE=125
+RESULT=BLOCKED

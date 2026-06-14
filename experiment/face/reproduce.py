@@ -15,7 +15,7 @@ import torch
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
-from experiment import Experiment
+from experiments import Experiment
 
 SEED = 482
 DESIRED_CLASS = 1

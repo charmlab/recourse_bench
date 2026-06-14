@@ -1,0 +1,10 @@
+METHOD=cogs
+TEST=experiment/cogs/smoke.py
+REFERENCE=experiment/cogs/cogs_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/cogs/smoke.py
+START_UTC=2026-06-13T03:18:40Z
+END_UTC=2026-06-13T03:18:53Z
+DURATION_SECONDS=13
+EXIT_CODE=0
+RESULT=PASS

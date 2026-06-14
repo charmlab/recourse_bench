@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Experiment config:
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Experiment config:
 name: credit_linear_claproar_smoke
 logger:
   level: INFO
@@ -39,25 +39,25 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Starting preprocess: BalancePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Completed preprocess: BalancePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Starting preprocess: ScalePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Completed preprocess: ScalePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Starting preprocess: EncodePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Completed preprocess: EncodePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Starting preprocess: SplitPreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Completed preprocess: SplitPreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Starting preprocess: FinalizePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Completed preprocess: FinalizePreProcess
-2026-06-08 18:03:10 | INFO | credit_linear_claproar_smoke | Training target model: LinearModel
-2026-06-08 18:04:23 | INFO | credit_linear_claproar_smoke | Completed target model training
-2026-06-08 18:04:23 | INFO | credit_linear_claproar_smoke | Training recourse method: ClaproarMethod
-2026-06-08 18:04:23 | INFO | credit_linear_claproar_smoke | Completed recourse method training
-2026-06-08 18:04:23 | INFO | credit_linear_claproar_smoke | Generating counterfactuals
-2026-06-08 18:04:30 | INFO | credit_linear_claproar_smoke | Completed counterfactual generation
-2026-06-08 18:04:30 | INFO | credit_linear_claproar_smoke | Starting evaluation: ValidityEvaluation
-2026-06-08 18:04:30 | INFO | credit_linear_claproar_smoke | Completed evaluation: ValidityEvaluation
-2026-06-08 18:04:30 | INFO | credit_linear_claproar_smoke | Starting evaluation: DistanceEvaluation
-2026-06-08 18:04:30 | INFO | credit_linear_claproar_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Starting preprocess: BalancePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Completed preprocess: BalancePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 18:44:09 | INFO | credit_linear_claproar_smoke | Training target model: LinearModel
+2026-06-13 18:45:19 | INFO | credit_linear_claproar_smoke | Completed target model training
+2026-06-13 18:45:19 | INFO | credit_linear_claproar_smoke | Training recourse method: ClaproarMethod
+2026-06-13 18:45:19 | INFO | credit_linear_claproar_smoke | Completed recourse method training
+2026-06-13 18:45:19 | INFO | credit_linear_claproar_smoke | Generating counterfactuals
+2026-06-13 18:45:23 | INFO | credit_linear_claproar_smoke | Completed counterfactual generation
+2026-06-13 18:45:23 | INFO | credit_linear_claproar_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 18:45:23 | INFO | credit_linear_claproar_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 18:45:23 | INFO | credit_linear_claproar_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 18:45:23 | INFO | credit_linear_claproar_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
       1.0         20.0     0.769135     0.294551       0.171991

@@ -1,0 +1,81 @@
+2026-06-13 03:24:59 | INFO | probe_smoke | Experiment config:
+name: probe_smoke
+logger:
+  level: INFO
+  path: ./logs/probe_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+  sample: 4
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: probe
+  seed: 0
+  device: cpu
+  lr: 0.001
+  lambda_: 0.01
+  n_iter: 30
+  max_minutes: 0.05
+  norm: 1
+  clamp: true
+  loss_type: BCE
+  y_target:
+  - 0.45
+  - 0.55
+  binary_cat_features: true
+  noise_variance: 0.01
+  invalidation_target: 0.35
+  inval_target_eps: 0.01
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:24:59 | INFO | probe_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:24:59 | INFO | probe_smoke | Training target model: MlpModel
+2026-06-13 03:25:01 | INFO | probe_smoke | Completed target model training
+2026-06-13 03:25:01 | INFO | probe_smoke | Training recourse method: ProbeMethod
+2026-06-13 03:25:01 | INFO | probe_smoke | Completed recourse method training
+2026-06-13 03:25:01 | INFO | probe_smoke | Generating counterfactuals
+2026-06-13 03:25:04 | INFO | method.probe.utils | PROBE optimization timed out before convergence
+2026-06-13 03:25:04 | INFO | method.probe.utils | No PROBE counterfactual found at the requested invalidation target
+2026-06-13 03:25:05 | INFO | method.probe.probe | average invalidation rate of generated counterfactuals: 0.3957
+2026-06-13 03:25:05 | INFO | probe_smoke | Completed counterfactual generation
+2026-06-13 03:25:05 | INFO | probe_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:25:05 | INFO | probe_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:25:05 | INFO | probe_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:25:05 | INFO | probe_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+     0.75          7.0     0.503063     0.190996       0.078858

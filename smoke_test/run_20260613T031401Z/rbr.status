@@ -1,0 +1,10 @@
+METHOD=rbr
+TEST=experiment/rbr/smoke.py
+REFERENCE=experiment/rbr/rbr_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/rbr/smoke.py
+START_UTC=2026-06-13T03:25:12Z
+END_UTC=2026-06-13T03:25:26Z
+DURATION_SECONDS=14
+EXIT_CODE=0
+RESULT=PASS

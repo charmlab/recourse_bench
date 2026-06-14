@@ -1,0 +1,10 @@
+METHOD=wachter
+TEST=experiment/wachter/smoke.py
+REFERENCE=experiment/wachter/wachter_smoke_log.txt
+DEVICE=cuda
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/wachter/smoke.py
+START_UTC=2026-06-13T03:26:07Z
+END_UTC=2026-06-13T03:26:09Z
+DURATION_SECONDS=2
+EXIT_CODE=125
+RESULT=BLOCKED

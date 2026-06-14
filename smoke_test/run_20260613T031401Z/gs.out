@@ -1,0 +1,66 @@
+2026-06-13 03:23:26 | INFO | gs_smoke | Experiment config:
+name: gs_smoke
+logger:
+  level: INFO
+  path: ./logs/gs_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: gs
+  seed: 0
+  device: cpu
+  n_search_samples: 1000
+  p_norm: 2
+  max_iter: 500
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:23:26 | INFO | gs_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:23:26 | INFO | gs_smoke | Training target model: MlpModel
+2026-06-13 03:23:27 | INFO | gs_smoke | Completed target model training
+2026-06-13 03:23:27 | INFO | gs_smoke | Training recourse method: GsMethod
+2026-06-13 03:23:27 | INFO | gs_smoke | Completed recourse method training
+2026-06-13 03:23:27 | INFO | gs_smoke | Generating counterfactuals
+2026-06-13 03:23:45 | INFO | gs_smoke | Completed counterfactual generation
+2026-06-13 03:23:45 | INFO | gs_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:23:45 | INFO | gs_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:23:45 | INFO | gs_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:23:45 | INFO | gs_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0        2.655     1.363295     1.110882       0.991892

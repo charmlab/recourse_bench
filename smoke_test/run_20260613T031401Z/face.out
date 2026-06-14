@@ -1,0 +1,67 @@
+2026-06-13 03:22:54 | INFO | face_smoke | Experiment config:
+name: face_smoke
+logger:
+  level: INFO
+  path: ./logs/face_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: face
+  seed: 0
+  device: cpu
+  mode: kde
+  epsilon: 0.5
+  k_neighbors: 5
+  weight_function: negative_log
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:22:54 | INFO | face_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:22:54 | INFO | face_smoke | Training target model: MlpModel
+2026-06-13 03:22:56 | INFO | face_smoke | Completed target model training
+2026-06-13 03:22:56 | INFO | face_smoke | Training recourse method: FaceMethod
+2026-06-13 03:22:57 | INFO | face_smoke | Completed recourse method training
+2026-06-13 03:22:57 | INFO | face_smoke | Generating counterfactuals
+2026-06-13 03:22:58 | INFO | face_smoke | Completed counterfactual generation
+2026-06-13 03:22:58 | INFO | face_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:22:58 | INFO | face_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:22:58 | INFO | face_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:22:58 | INFO | face_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+    0.915      2.73224     0.588861      0.42497       0.379072

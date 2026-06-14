@@ -1,0 +1,10 @@
+UTC_START=2026-06-13T03:14:01Z
+HOSTNAME=watgpu108
+PYTHON=/u501/hoyarhos/recourse_bench/.venv/bin/python
+Python 3.12.4
+NUMPY=2.4.2
+TORCH=2.10.0+cu126
+CUDA_AVAILABLE=False
+CUDA_DEVICE_COUNT=0
+INSTALL_EXIT=0
+DEVICE_POLICY=matching reference log; CPU fallback when unspecified

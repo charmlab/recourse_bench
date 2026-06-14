@@ -1,0 +1,10 @@
+METHOD=revise
+TEST=experiment/revise/smoke.py
+REFERENCE=experiment/revise/revise_smoke_log.txt
+DEVICE=cuda
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/revise/smoke.py
+START_UTC=2026-06-13T03:25:26Z
+END_UTC=2026-06-13T03:25:28Z
+DURATION_SECONDS=2
+EXIT_CODE=125
+RESULT=BLOCKED

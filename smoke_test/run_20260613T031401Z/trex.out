@@ -1,0 +1,93 @@
+2026-06-13 03:26:02 | INFO | trex_smoke | Experiment config:
+name: trex_smoke
+logger:
+  level: INFO
+  path: ./logs/trex_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+  sample: 8
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: trex
+  seed: 0
+  device: cpu
+  norm: 2
+  cf_confidence: 0.5
+  cf_steps: 20
+  cf_step_size: 0.02
+  tau: 0.75
+  k: 100
+  sigma: 0.1
+  trex_step_size: 0.01
+  trex_max_steps: 30
+  trex_epsilon: 1.0
+  trex_p: 2
+  batch_size: 1
+  clamp: true
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:26:02 | INFO | trex_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:26:02 | INFO | trex_smoke | Training target model: MlpModel
+2026-06-13 03:26:03 | INFO | trex_smoke | Completed target model training
+2026-06-13 03:26:03 | INFO | trex_smoke | Training recourse method: TrexMethod
+2026-06-13 03:26:03 | INFO | trex_smoke | Completed recourse method training
+2026-06-13 03:26:03 | INFO | trex_smoke | Generating counterfactuals
+2026-06-13 03:26:03 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:04 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:04 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:04 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:04 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:04 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:05 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:05 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:05 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:05 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:05 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:06 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:06 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:06 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:06 | INFO | art.estimators.classification.pytorch | Inferred 1 hidden layers on PyTorch classifier.
+2026-06-13 03:26:07 | INFO | art.attacks.evasion.elastic_net | Success rate of EAD attack: 100.00%
+2026-06-13 03:26:07 | INFO | trex_smoke | Completed counterfactual generation
+2026-06-13 03:26:07 | INFO | trex_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:26:07 | INFO | trex_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:26:07 | INFO | trex_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:26:07 | INFO | trex_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0         4.75     0.555101     0.352001       0.317561

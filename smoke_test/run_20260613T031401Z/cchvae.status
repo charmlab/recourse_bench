@@ -1,0 +1,10 @@
+METHOD=cchvae
+TEST=experiment/cchvae/smoke.py
+REFERENCE=experiment/cchvae/cchvae_smoke_log.txt
+DEVICE=cpu
+COMMAND=/u501/hoyarhos/recourse_bench/.venv/bin/python experiment/cchvae/smoke.py
+START_UTC=2026-06-13T03:14:50Z
+END_UTC=2026-06-13T03:15:02Z
+DURATION_SECONDS=12
+EXIT_CODE=0
+RESULT=PASS

@@ -18,6 +18,7 @@ preprocess:
 - name: split
   seed: 0
   split: 0.2
+  sample: 8
 model:
   name: mlp
   seed: 0
@@ -35,13 +36,13 @@ method:
   device: cpu
   norm: 2
   cf_confidence: 0.5
-  cf_steps: 40
+  cf_steps: 20
   cf_step_size: 0.02
   tau: 0.75
-  k: 500
+  k: 100
   sigma: 0.1
   trex_step_size: 0.01
-  trex_max_steps: 80
+  trex_max_steps: 30
   trex_epsilon: 1.0
   trex_p: 2
   batch_size: 1

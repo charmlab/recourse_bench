@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-08 19:32:49 | INFO | proplace_smoke | Experiment config:
+2026-06-13 19:21:50 | INFO | proplace_smoke | Experiment config:
 name: proplace_smoke
 logger:
   level: INFO
@@ -20,17 +20,17 @@ preprocess:
 - name: split
   seed: 0
   split: 0.2
+  sample: 4
 - name: finalize
 model:
   name: mlp
   seed: 0
   device: cpu
-  epochs: 50
+  epochs: 10
   learning_rate: 0.01
   batch_size: 32
   layers:
-  - 64
-  - 32
+  - 8
   optimizer: adam
   criterion: cross_entropy
   output_activation: softmax
@@ -39,40 +39,40 @@ method:
   seed: 0
   device: cpu
   delta: 0.03
-  k: 20
+  k: 5
   epsilon: 0.01
   solver_output: false
-  solver_time_limit: 30
+  solver_time_limit: 5
   convex_hull_prune: true
 evaluation:
 - name: validity
 - name: distance
 
-2026-06-08 19:32:49 | INFO | proplace_smoke | Starting preprocess: ScalePreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Completed preprocess: ScalePreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Starting preprocess: EncodePreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Completed preprocess: EncodePreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Starting preprocess: SplitPreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Completed preprocess: SplitPreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Starting preprocess: FinalizePreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Completed preprocess: FinalizePreProcess
-2026-06-08 19:32:49 | INFO | proplace_smoke | Training target model: MlpModel
-2026-06-08 19:32:50 | INFO | proplace_smoke | Completed target model training
-2026-06-08 19:32:50 | INFO | proplace_smoke | Training recourse method: ProplaceMethod
-2026-06-08 19:32:50 | INFO | proplace_smoke | Completed recourse method training
-2026-06-08 19:32:50 | INFO | proplace_smoke | Generating counterfactuals
+2026-06-13 19:21:50 | INFO | proplace_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 19:21:50 | INFO | proplace_smoke | Training target model: MlpModel
+2026-06-13 19:21:50 | INFO | proplace_smoke | Completed target model training
+2026-06-13 19:21:50 | INFO | proplace_smoke | Training recourse method: ProplaceMethod
+2026-06-13 19:21:51 | INFO | proplace_smoke | Completed recourse method training
+2026-06-13 19:21:51 | INFO | proplace_smoke | Generating counterfactuals
 Set parameter WLSAccessID
-2026-06-08 19:32:50 | INFO | gurobipy | Set parameter WLSAccessID
+2026-06-13 19:21:51 | INFO | gurobipy | Set parameter WLSAccessID
 Set parameter WLSSecret
-2026-06-08 19:32:50 | INFO | gurobipy | Set parameter WLSSecret
+2026-06-13 19:21:51 | INFO | gurobipy | Set parameter WLSSecret
 Set parameter LicenseID to value 2800454
-2026-06-08 19:32:50 | INFO | gurobipy | Set parameter LicenseID to value 2800454
+2026-06-13 19:21:51 | INFO | gurobipy | Set parameter LicenseID to value 2800454
 Academic license 2800454 - for non-commercial use only - registered to h2___@uwaterloo.ca
-2026-06-08 19:32:51 | INFO | gurobipy | Academic license 2800454 - for non-commercial use only - registered to h2___@uwaterloo.ca
-2026-06-08 19:41:24 | INFO | proplace_smoke | Completed counterfactual generation
-2026-06-08 19:41:24 | INFO | proplace_smoke | Starting evaluation: ValidityEvaluation
-2026-06-08 19:41:24 | INFO | proplace_smoke | Completed evaluation: ValidityEvaluation
-2026-06-08 19:41:24 | INFO | proplace_smoke | Starting evaluation: DistanceEvaluation
-2026-06-08 19:41:24 | INFO | proplace_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 19:21:51 | INFO | gurobipy | Academic license 2800454 - for non-commercial use only - registered to h2___@uwaterloo.ca
+2026-06-13 19:21:52 | INFO | proplace_smoke | Completed counterfactual generation
+2026-06-13 19:21:52 | INFO | proplace_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 19:21:52 | INFO | proplace_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 19:21:52 | INFO | proplace_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 19:21:53 | INFO | proplace_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
-      1.0         2.65     0.657781     0.483958       0.433041
+      1.0          2.5     0.752136     0.538193       0.444565

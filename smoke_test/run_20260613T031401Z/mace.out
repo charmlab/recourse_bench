@@ -1,0 +1,55 @@
+2026-06-13 03:24:29 | INFO | mace_smoke | Experiment config:
+name: mace_smoke
+logger:
+  level: INFO
+  path: ./logs/mace_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+  path: ./dataset/compas/
+preprocess:
+- name: mace_encode
+  seed: 0
+- name: split
+  seed: 0
+  split: 0.2
+  sample: 2
+- name: finalize
+model:
+  name: randomforest
+  seed: 0
+  device: cpu
+  n_estimators: 20
+  max_depth: null
+  min_samples_split: 2
+  n_jobs: -1
+  max_features: sqrt
+method:
+  name: mace
+  seed: 0
+  device: cpu
+  norm_type: zero_norm
+  epsilon: 0.001
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-13 03:24:29 | INFO | mace_smoke | Starting preprocess: MaceEncodePreProcess
+2026-06-13 03:24:29 | INFO | mace_smoke | Completed preprocess: MaceEncodePreProcess
+2026-06-13 03:24:29 | INFO | mace_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 03:24:29 | INFO | mace_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 03:24:29 | INFO | mace_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 03:24:29 | INFO | mace_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 03:24:29 | INFO | mace_smoke | Training target model: RandomForestModel
+2026-06-13 03:24:29 | INFO | mace_smoke | Completed target model training
+2026-06-13 03:24:29 | INFO | mace_smoke | Training recourse method: MaceMethod
+2026-06-13 03:24:29 | INFO | mace_smoke | Completed recourse method training
+2026-06-13 03:24:29 | INFO | mace_smoke | Generating counterfactuals
+2026-06-13 03:24:54 | INFO | mace_smoke | Completed counterfactual generation
+2026-06-13 03:24:54 | INFO | mace_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 03:24:54 | INFO | mace_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 03:24:54 | INFO | mace_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 03:24:54 | INFO | mace_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+      1.0          1.0         17.0         17.0           17.0

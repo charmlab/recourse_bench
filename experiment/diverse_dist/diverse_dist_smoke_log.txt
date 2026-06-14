@@ -1,5 +1,5 @@
 --- STDOUT ---
-2026-06-08 18:41:47 | INFO | diverse_dist_smoke | Experiment config:
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Experiment config:
 name: diverse_dist_smoke
 logger:
   level: INFO
@@ -46,23 +46,23 @@ evaluation:
 - name: validity
 - name: distance
 
-2026-06-08 18:41:47 | INFO | diverse_dist_smoke | Starting preprocess: ScalePreProcess
-2026-06-08 18:41:47 | INFO | diverse_dist_smoke | Completed preprocess: ScalePreProcess
-2026-06-08 18:41:47 | INFO | diverse_dist_smoke | Starting preprocess: EncodePreProcess
-2026-06-08 18:41:48 | INFO | diverse_dist_smoke | Completed preprocess: EncodePreProcess
-2026-06-08 18:41:48 | INFO | diverse_dist_smoke | Starting preprocess: SplitPreProcess
-2026-06-08 18:41:48 | INFO | diverse_dist_smoke | Completed preprocess: SplitPreProcess
-2026-06-08 18:41:48 | INFO | diverse_dist_smoke | Starting preprocess: FinalizePreProcess
-2026-06-08 18:41:48 | INFO | diverse_dist_smoke | Completed preprocess: FinalizePreProcess
-2026-06-08 18:41:48 | INFO | diverse_dist_smoke | Training target model: MlpModel
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Completed target model training
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Training recourse method: DiverseDistMethod
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Completed recourse method training
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Generating counterfactuals
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Completed counterfactual generation
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Starting evaluation: ValidityEvaluation
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Completed evaluation: ValidityEvaluation
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Starting evaluation: DistanceEvaluation
-2026-06-08 18:41:49 | INFO | diverse_dist_smoke | Completed evaluation: DistanceEvaluation
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Starting preprocess: ScalePreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Completed preprocess: ScalePreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Starting preprocess: EncodePreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Completed preprocess: EncodePreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Starting preprocess: SplitPreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Completed preprocess: SplitPreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Starting preprocess: FinalizePreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Completed preprocess: FinalizePreProcess
+2026-06-13 19:13:34 | INFO | diverse_dist_smoke | Training target model: MlpModel
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Completed target model training
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Training recourse method: DiverseDistMethod
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Completed recourse method training
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Generating counterfactuals
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Completed counterfactual generation
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Starting evaluation: ValidityEvaluation
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Completed evaluation: ValidityEvaluation
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Starting evaluation: DistanceEvaluation
+2026-06-13 19:13:35 | INFO | diverse_dist_smoke | Completed evaluation: DistanceEvaluation
  validity  distance_l0  distance_l1  distance_l2  distance_linf
       1.0        2.685     0.295095     0.204219       0.173318

@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from evaluation.evaluation_object import EvaluationObject
 from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiment import Experiment
+from experiments import Experiment
 from model.model_object import ModelObject, process_nan
 from model.model_utils import resolve_device
 from utils.registry import register
