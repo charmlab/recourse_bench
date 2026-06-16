@@ -256,38 +256,40 @@ Or you can arrange components like LEGO blocks.
 
 Method-specific scripts live in `experiment/<method>/`. Smoke scripts are short functionality checks; reproduction scripts usually follow paper-specific protocols and may run for much longer.
 
-Some reproduction scripts implement additional paper logic and should be invoked directly.
+Some reproduction scripts implement additional paper logic and should be invoked directly. When assigning a reproduction percentage, we only count experiments that report numerical metrics. We do not attempt to recreate visual-only figures or graphs. We also only count experiments that directly evaluate the recourse method proposed in the paper, excluding side studies and experiments centered on other baselines. If a paper does not provide reproducible numerical results for its main method, we instead defer to relevant experiments exposed by the linked codebase, when one is available.
 
-| Method | Entry point | Notes |
-| --- | --- | --- |
-| `apas` | `python experiment/apas/reproduce.py` | Uses `--config`, default `experiment/apas/config.yaml`. |
-| `arg_ensembling` | `python experiment/arg_ensembling/reproduce.py` | Uses `--config`, default `experiment/arg_ensembling/config.yaml`. |
-| `cchvae` | `python experiment/cchvae/reproduce.py` | Uses `-p/--path`, default credit CCHVAE YAML. |
-| `cemsp` | `python experiment/cemsp/reproduce.py` | Optional `--max-factuals`. |
-| `cfrl` | `python experiment/cfrl/reproduce.py` | Builds its reproduction config in the script. |
-| `cfvae` | `python experiment/cfvae/reproduce.py --weights-dir <dir>` | Requires CFVAE reproduction weights. |
-| `claproar` | `python experiment/claproar/smoke.py` | Uses `-p/--path`. |
-| `clue` | `python experiment/clue/reproduce.py --bnn-art-path <pth> --vae-art-path <pth> --vaeac-art-path <pth> --vaeac-gt-path <pth> --under-vaeac-gt-path <pth>` | Requires pretrained CLUE artifacts. |
-| `cogs` | `python experiment/cogs/reproduce.py` | Optional `--max-factuals`. |
-| `cols` | `python experiment/cols/reproduce.py` | Optional `--max-runs`, `--max-factuals`, and method/profile overrides. |
-| `cruds` | `python experiment/cruds/smoke.py` | Uses `-p/--path`. |
-| `cvas_proj` | `python experiment/cvas_proj/reproduce.py` | Uses current/future configs; `--smoke` is available. |
-| `dice` | `python experiment/dice/reproduce.py` | Optional `--assert-paper`, `--autorepro`, `--num-factuals`. |
-| `diverse_dist` | `python experiment/diverse_dist/reproduce.py` | Uses `--config`, default `experiment/diverse_dist/config.yaml`. |
-| `face` | `python experiment/face/reproduce.py` | Runs built-in FACE synthetic-data reproduction variants. |
-| `feature_tweak` | `python experiment/feature_tweak/smoke.py` | Uses `-p/--path`. |
-| `gravitational` | `python experiment/gravitational/smoke.py` | Uses `-p/--path`. |
-| `gs` | `python experiment/gs/reproduce.py` | Supports `--mode smoke` and `--factual-limit`. |
-| `larr` | `python experiment/larr/reproduce.py` | Runs built-in LARR reproduction. |
-| `mace` | `python experiment/mace/reproduce.py` | Supports `--dataset`, `--norm`, `--num-factuals`, and `--strict`. |
-| `probe` | `python experiment/probe/reproduce.py` | Uses `-p/--path`. |
-| `proplace` | `python experiment/proplace/reproduce.py` | Optional `--max-factuals` and `--row-limit`. |
-| `rbr` | `python experiment/rbr/reproduce.py` | Uses current/future German configs. |
-| `revise` | `python experiment/revise/smoke.py` | Uses `-p/--path`. |
-| `roar` | `python experiment/roar/reproduce.py` | Uses current/future German configs. |
-| `sns` | `python experiment/sns/reproduce.py` | Optional `--max-factuals`, `--max-related-models`. |
-| `trex` | `python experiment/trex/reproduce.py` | Supports device, split, tau, and factual/model-count overrides. |
-| `wachter` | `python experiment/wachter/smoke.py` | Uses `-p/--path`. |
+Each method experiment folder also includes reproduction notes such as implementation details, tradeoffs, failed attempts, and reasons for any remaining gaps. Those notes live under `experiment/<method>/`, in files such as `reproduce_logs.txt` or related log documents.
+
+| Method | Entry point | Reproduction Coverage | Notes |
+| --- | --- | --- | --- |
+| `apas` | `python experiment/apas/reproduce.py` |  <progress value="75" max="100"></progress> 75% | Uses `--config`, default `experiment/apas/config.yaml`. |
+| `arg_ensembling` | `python experiment/arg_ensembling/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Uses `--config`, default `experiment/arg_ensembling/config.yaml`. |
+| `cchvae` | `python experiment/cchvae/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Uses `-p/--path`, default credit CCHVAE YAML. |
+| `cemsp` | `python experiment/cemsp/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Optional `--max-factuals`. |
+| `cfrl` | `python experiment/cfrl/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Builds its reproduction config in the script. |
+| `cfvae` | `python experiment/cfvae/reproduce.py --weights-dir <dir>` |  <progress value="0" max="100"></progress> 0% | Requires CFVAE reproduction weights. |
+| `claproar` | `python experiment/claproar/smoke.py` |  <progress value="0" max="100"></progress> 0% | Uses `-p/--path`. |
+| `clue` | `python experiment/clue/reproduce.py --bnn-art-path <pth> --vae-art-path <pth> --vaeac-art-path <pth> --vaeac-gt-path <pth> --under-vaeac-gt-path <pth>` |  <progress value="0" max="100"></progress> 0% | Requires pretrained CLUE artifacts. |
+| `cogs` | `python experiment/cogs/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Optional `--max-factuals`. |
+| `cols` | `python experiment/cols/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Optional `--max-runs`, `--max-factuals`, and method/profile overrides. |
+| `cruds` | `python experiment/cruds/smoke.py` |  <progress value="0" max="100"></progress> 0% | Uses `-p/--path`. |
+| `cvas_proj` | `python experiment/cvas_proj/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Uses current/future configs; `--smoke` is available. |
+| `dice` | `python experiment/dice/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Optional `--assert-paper`, `--autorepro`, `--num-factuals`. |
+| `diverse_dist` | `python experiment/diverse_dist/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Uses `--config`, default `experiment/diverse_dist/config.yaml`. |
+| `face` | `python experiment/face/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Runs built-in FACE synthetic-data reproduction variants. |
+| `feature_tweak` | `python experiment/feature_tweak/smoke.py` |  <progress value="0" max="100"></progress> 0% | Uses `-p/--path`. |
+| `gravitational` | `python experiment/gravitational/smoke.py` |  <progress value="0" max="100"></progress> 0% | Uses `-p/--path`. |
+| `gs` | `python experiment/gs/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Supports `--mode smoke` and `--factual-limit`. |
+| `larr` | `python experiment/larr/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Runs built-in LARR reproduction. |
+| `mace` | `python experiment/mace/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Supports `--dataset`, `--norm`, `--num-factuals`, and `--strict`. |
+| `probe` | `python experiment/probe/reproduce.py` |  <progress value="100" max="100"></progress> 100% | Uses `-p/--path`. |
+| `proplace` | `python experiment/proplace/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Optional `--max-factuals` and `--row-limit`. |
+| `rbr` | `python experiment/rbr/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Uses current/future German configs. |
+| `revise` | `python experiment/revise/smoke.py` |  <progress value="0" max="100"></progress> 0% | Uses `-p/--path`. |
+| `roar` | `python experiment/roar/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Uses current/future German configs. |
+| `sns` | `python experiment/sns/reproduce.py` |  <progress value="0" max="100"></progress> 0% | Optional `--max-factuals`, `--max-related-models`. |
+| `trex` | `python experiment/trex/reproduce.py` |  <progress value="100" max="100"></progress> 100% | Supports device, split, tau, and factual/model-count overrides. |
+| `wachter` | `python experiment/wachter/smoke.py` |  <progress value="0" max="100"></progress> 0% | Uses `-p/--path`. |
 
 Long reproduction jobs write logs under `logs/` and cache intermediate artifacts under `cache/`, according to their configs.
 
