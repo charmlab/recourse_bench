@@ -55,6 +55,7 @@ Notes / Caveats
 No value available.
 
 Next Steps
+- Address reason for hyperparameter shift in sigma (paper report usage of sigma=0.01, however we needed sigma=0.15 in order to reproduce results for german)
 - Align the reproduction with the exact reference German processed arrays or reconstruct the preprocessing pipeline so the resulting `X_train`, `X_test`, `y_train`, and `y_test` match the reference code exactly.
 - Recheck split seed, label convention, and one-hot category ordering before changing TreX hyperparameters.
 - After data parity is established, rerun the same German L1 setting and reassess whether the cost gap closes while WI / LO validity remains stable.

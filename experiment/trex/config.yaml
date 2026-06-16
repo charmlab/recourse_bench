@@ -79,8 +79,8 @@ method:
     trex_p: 2
     batch_size: 1
     clamp: true
-    tau_grid: [0.70, 0.75, 0.80, 0.85]
-    tau_l1: 0.80
+    tau_grid: [0.80, 0.85, 0.90, 0.95]
+    tau_l1:
     tau_l2:
 
 evaluation:
