@@ -74,6 +74,13 @@ class NotebookDataset(DatasetObject):
         target_column: str,
         continuous_features: list[str],
         name: str = "notebook",
+        raw_feature_type: dict[str, str] | None = None,
+        raw_feature_mutability: dict[str, bool] | None = None,
+        raw_feature_actionability: dict[str, str] | None = None,
+        encoding: dict[str, list[str]] | None = None,
+        encoded_feature_type: dict[str, str] | None = None,
+        encoded_feature_mutability: dict[str, bool] | None = None,
+        encoded_feature_actionability: dict[str, str] | None = None,
         **kwargs,
     ):
         self._rawdf = df.copy(deep=True)
@@ -81,17 +88,25 @@ class NotebookDataset(DatasetObject):
         self.name = name
         self.target_column = target_column
         self.feature_order = list(self._rawdf.columns)
-        self.raw_feature_type = {
+        self.raw_feature_type = raw_feature_type or {
             column: "binary" if column == target_column else "numerical"
             for column in self._rawdf.columns
         }
-        self.raw_feature_mutability = {
-            column: column != target_column for column in self._rawdf.columns
+        self.raw_feature_mutability = raw_feature_mutability or {
+            column: column != target_column for column in self.raw_feature_type
         }
-        self.raw_feature_actionability = {
+        self.raw_feature_actionability = raw_feature_actionability or {
             column: "none" if column == target_column else "any"
-            for column in self._rawdf.columns
+            for column in self.raw_feature_type
         }
+        if encoding is not None:
+            self.encoding = encoding
+        if encoded_feature_type is not None:
+            self.encoded_feature_type = encoded_feature_type
+        if encoded_feature_mutability is not None:
+            self.encoded_feature_mutability = encoded_feature_mutability
+        if encoded_feature_actionability is not None:
+            self.encoded_feature_actionability = encoded_feature_actionability
         self.continuous_features = list(continuous_features)
 
     def _read_df(self, path: str) -> pd.DataFrame:
@@ -128,6 +143,7 @@ def _min_max_scale(
     continuous_features: list[str],
     min_source: pd.DataFrame | None = None,
     max_source: pd.DataFrame | None = None,
+    reset_index: bool = True,
 ) -> pd.DataFrame:
     scaled_df = df.copy(deep=True)
     min_df = df if min_source is None else min_source
@@ -135,11 +151,15 @@ def _min_max_scale(
     min_vals = min_df.loc[:, continuous_features].min(axis=0)
     max_vals = max_df.loc[:, continuous_features].max(axis=0)
     denominators = (max_vals - min_vals).replace(0, 1.0)
-    scaled_df.loc[:, continuous_features] = (
-        scaled_df.loc[:, continuous_features].astype("float64") - min_vals
-    ) / denominators
-    scaled_df.loc[:, feature_columns] = scaled_df.loc[:, feature_columns].astype("float64")
-    return scaled_df.reset_index(drop=True)
+    for column in continuous_features:
+        scaled_df[column] = (
+            scaled_df[column].astype("float64") - float(min_vals[column])
+        ) / float(denominators[column])
+    for column in feature_columns:
+        scaled_df[column] = scaled_df[column].astype("float64")
+    if reset_index:
+        return scaled_df.reset_index(drop=True)
+    return scaled_df
 
 
 def _make_frozen_dataset(
@@ -147,15 +167,213 @@ def _make_frozen_dataset(
     target_column: str,
     continuous_features: list[str],
     name: str,
+    metadata: dict[str, object] | None = None,
 ) -> NotebookDataset:
+    metadata = metadata or {}
     dataset = NotebookDataset(
         df=df,
         target_column=target_column,
         continuous_features=continuous_features,
         name=name,
+        raw_feature_type=metadata.get("raw_feature_type"),
+        raw_feature_mutability=metadata.get("raw_feature_mutability"),
+        raw_feature_actionability=metadata.get("raw_feature_actionability"),
+        encoding=metadata.get("encoding"),
+        encoded_feature_type=metadata.get("encoded_feature_type"),
+        encoded_feature_mutability=metadata.get("encoded_feature_mutability"),
+        encoded_feature_actionability=metadata.get("encoded_feature_actionability"),
     )
     dataset.freeze()
     return dataset
+
+
+CREDIT_COLUMNS = [
+    "checking-status",
+    "duration",
+    "credit-history",
+    "purpose",
+    "amount",
+    "savings",
+    "employment",
+    "rate",
+    "sex-status",
+    "guarantors",
+    "residence",
+    "property",
+    "age",
+    "installment",
+    "housing",
+    "num-credits",
+    "job",
+    "liable",
+    "phone",
+    "foreign",
+    "good-credit",
+]
+CREDIT_ORDINAL_FEATURES = {
+    "checking-status": 4,
+    "savings": 5,
+    "employment": 5,
+    "rate": 4,
+    "guarantors": 3,
+    "residence": 4,
+    "property": 4,
+    "housing": 3,
+    "num-credits": 4,
+    "job": 4,
+    "liable": 2,
+}
+CREDIT_DISCRETE_FEATURES = {
+    "credit-history": 5,
+    "purpose": 11,
+    "sex-status": 4,
+    "installment": 3,
+    "phone": 2,
+    "foreign": 2,
+}
+CREDIT_CONTINUOUS_FEATURES = ["duration", "amount", "age"]
+CREDIT_FEATURE_ENCODINGS_OLD = {
+    "checking-status": {"A14": 0, "A11": 1, "A12": 2, "A13": 3},
+    "credit-history": {"A30": 2, "A31": 4, "A32": 3, "A33": 0, "A34": 1},
+    "purpose": {
+        "A410": 0,
+        "A40": 1,
+        "A41": 2,
+        "A42": 3,
+        "A43": 4,
+        "A44": 5,
+        "A45": 6,
+        "A46": 7,
+        "A47": 8,
+        "A48": 9,
+        "A49": 10,
+    },
+    "savings": {"A65": 0, "A61": 1, "A62": 2, "A63": 3, "A64": 4},
+    "employment": {"A71": 0, "A72": 1, "A73": 2, "A74": 3, "A75": 4},
+    "sex-status": {"A91": 0, "A92": 1, "A93": 1, "A94": 2, "A95": 3},
+    "guarantors": {"A101": 0, "A102": 1, "A103": 2},
+    "property": {"A121": 3, "A122": 2, "A123": 1, "A124": 0},
+    "installment": {"A141": 0, "A142": 1, "A143": 2},
+    "housing": {"A151": 1, "A152": 2, "A153": 0},
+    "job": {"A171": 0, "A172": 1, "A173": 2, "A174": 3},
+    "phone": {"A191": 0, "A192": 1},
+    "foreign": {"A201": 0, "A202": 1},
+    "good-credit": {1: 1, 2: 0},
+}
+CREDIT_TO_SUBTRACT1_OLD = ["rate", "residence", "num-credits", "liable"]
+CREDIT_TO_SUBTRACT1_NEW = [
+    "checking-status",
+    "savings",
+    "employment",
+    "rate",
+    "sex-status",
+    "guarantors",
+    "residence",
+    "property",
+    "installment",
+    "housing",
+    "num-credits",
+    "job",
+    "liable",
+    "phone",
+    "foreign",
+]
+
+
+def _encode_credit_df(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[int, list[int]], dict[str, list[str]]]:
+    encoded_df = copy.copy(df)
+    encoded_columns_order = list(CREDIT_COLUMNS)
+    feature_var_map: dict[int, list[int]] = {}
+    encoding: dict[str, list[str]] = {}
+
+    for feature_index, column in enumerate(CREDIT_COLUMNS):
+        if column in CREDIT_ORDINAL_FEATURES:
+            encoded_columns = [
+                f"{column}_therm_{index}"
+                for index in range(CREDIT_ORDINAL_FEATURES[column])
+            ]
+            values = df[column].to_numpy(dtype=float)
+            encoded_values = np.zeros((len(values), len(encoded_columns)), dtype=float)
+            for row_index, value in enumerate(values):
+                encoded_values[row_index, : int(value + 1)] = 1.0
+            insert_at = encoded_df.columns.get_loc(column)
+            start = insert_at
+            front = encoded_df.loc[:, encoded_columns_order[:insert_at]]
+            back = encoded_df.loc[:, encoded_columns_order[insert_at + 1 :]]
+            encoded_df = pd.concat(
+                [front, pd.DataFrame(encoded_values, columns=encoded_columns), back],
+                axis=1,
+            )
+            feature_var_map[feature_index] = list(range(start, start + len(encoded_columns)))
+            encoding[column] = encoded_columns
+            encoded_columns_order = list(encoded_df.columns)
+        elif column in CREDIT_DISCRETE_FEATURES:
+            encoded_columns = [
+                f"{column}_cat_{index}"
+                for index in range(CREDIT_DISCRETE_FEATURES[column])
+            ]
+            values = df[column].to_numpy(dtype=int)
+            encoded_values = np.zeros((len(values), len(encoded_columns)), dtype=float)
+            for row_index, value in enumerate(values):
+                encoded_values[row_index, int(value)] = 1.0
+            insert_at = encoded_df.columns.get_loc(column)
+            start = insert_at
+            front = encoded_df.loc[:, encoded_columns_order[:insert_at]]
+            back = encoded_df.loc[:, encoded_columns_order[insert_at + 1 :]]
+            encoded_df = pd.concat(
+                [front, pd.DataFrame(encoded_values, columns=encoded_columns), back],
+                axis=1,
+            )
+            feature_var_map[feature_index] = list(range(start, start + len(encoded_columns)))
+            encoding[column] = encoded_columns
+            encoded_columns_order = list(encoded_df.columns)
+        else:
+            feature_var_map[feature_index] = [encoded_df.columns.get_loc(column)]
+            if column != "good-credit":
+                encoding[column] = [column]
+
+    return encoded_df, feature_var_map, encoding
+
+
+def _credit_metadata(
+    feature_columns: list[str],
+    encoding: dict[str, list[str]],
+) -> dict[str, object]:
+    raw_feature_type = {}
+    for column in CREDIT_COLUMNS:
+        if column == "good-credit":
+            raw_feature_type[column] = "binary"
+        elif column in CREDIT_CONTINUOUS_FEATURES:
+            raw_feature_type[column] = "numerical"
+        else:
+            raw_feature_type[column] = "categorical"
+
+    raw_feature_mutability = {
+        column: column != "good-credit" for column in CREDIT_COLUMNS
+    }
+    raw_feature_actionability = {
+        column: "none" if column == "good-credit" else "any"
+        for column in CREDIT_COLUMNS
+    }
+    encoded_feature_type = {
+        column: "numerical"
+        if column in CREDIT_CONTINUOUS_FEATURES
+        else "binary"
+        for column in feature_columns
+    }
+    encoded_feature_mutability = {column: True for column in feature_columns}
+    encoded_feature_actionability = {column: "any" for column in feature_columns}
+    return {
+        "raw_feature_type": raw_feature_type,
+        "raw_feature_mutability": raw_feature_mutability,
+        "raw_feature_actionability": raw_feature_actionability,
+        "encoding": encoding,
+        "encoded_feature_type": encoded_feature_type,
+        "encoded_feature_mutability": encoded_feature_mutability,
+        "encoded_feature_actionability": encoded_feature_actionability,
+    }
 
 
 def _load_diabetes_reference() -> dict[str, object]:
@@ -170,6 +388,7 @@ def _load_diabetes_reference() -> dict[str, object]:
     )
 
     np.random.seed(1)
+    
     d1_indices = np.sort(np.random.choice(range(len(scaled_df)), 384))
     d2_indices = np.array(
         [index for index in range(len(scaled_df)) if index not in d1_indices]
@@ -276,6 +495,56 @@ def _load_sba_reference() -> dict[str, object]:
         "feature_columns": feature_columns,
         "target_column": target_column,
         "continuous_features": continuous_features,
+    }
+
+
+def _load_credit_reference() -> dict[str, object]:
+    old_path = REFERENCE_EXP_DIR / "credit" / "old" / "german.data"
+    new_path = REFERENCE_EXP_DIR / "credit" / "new" / "train.csv"
+
+    old_df = pd.read_csv(old_path, header=None, delimiter=",").dropna()
+    old_df.columns = CREDIT_COLUMNS
+    old_df = old_df.replace(to_replace=CREDIT_FEATURE_ENCODINGS_OLD)
+    for column in CREDIT_TO_SUBTRACT1_OLD:
+        old_df[column] = old_df[column] - 1
+    old_scaled_df = _min_max_scale(
+        df=old_df,
+        feature_columns=[column for column in CREDIT_COLUMNS if column != "good-credit"],
+        continuous_features=CREDIT_CONTINUOUS_FEATURES,
+        reset_index=False,
+    )
+    old_encoded_df, feature_var_map, encoding = _encode_credit_df(old_scaled_df)
+
+    new_df = pd.read_csv(new_path, header=None).dropna()
+    new_df = new_df.drop(columns=[0])
+    new_df = new_df.drop(labels=0)
+    new_df.columns = CREDIT_COLUMNS
+    for column in new_df.columns:
+        new_df[column] = new_df[column].astype(int)
+    for column in CREDIT_TO_SUBTRACT1_NEW:
+        new_df[column] = new_df[column] - 1
+    new_scaled_df = _min_max_scale(
+        df=new_df,
+        feature_columns=[column for column in CREDIT_COLUMNS if column != "good-credit"],
+        continuous_features=CREDIT_CONTINUOUS_FEATURES,
+        reset_index=False,
+    )
+    new_encoded_df, _, _ = _encode_credit_df(new_scaled_df)
+    new_encoded_df = new_encoded_df.dropna().reset_index(drop=True)
+
+    target_column = "good-credit"
+    feature_columns = [column for column in old_encoded_df.columns if column != target_column]
+    metadata = _credit_metadata(feature_columns=feature_columns, encoding=encoding)
+    scaled_df = pd.concat([old_encoded_df, new_encoded_df], ignore_index=True)
+    return {
+        "scaled_df": scaled_df,
+        "d1_df": old_encoded_df,
+        "d2_df": new_encoded_df,
+        "feature_columns": feature_columns,
+        "target_column": target_column,
+        "continuous_features": feature_columns,
+        "metadata": metadata,
+        "feature_var_map": feature_var_map,
     }
 
 
@@ -405,6 +674,54 @@ DATASET_SPECS: dict[str, DatasetSpec] = {
             "full_results": {
                 "full_results_milp_mean": 0.10966000000000001,
                 "full_results_wilks_mean": 0.317258,
+            },
+        },
+    ),
+    "credit": DatasetSpec(
+        name="credit",
+        target_column="good-credit",
+        feature_columns=(),
+        continuous_features=(),
+        sklearn=SklearnSpec(
+            hidden_layer_sizes=5,
+            learning_rate_init=0.02,
+            batch_size=32,
+            max_iter=7000,
+        ),
+        gap=0.04,
+        num_test_instances=2000,
+        num_sound_instances=50,
+        split_seed=0,
+        d1_size=None,
+        d1_train_test_seed=0,
+        d1_train_test_split=0.2,
+        loader=_load_credit_reference,
+        targets={
+            "notebook": {
+                "sound_fraction": 0.30633802816901406,
+                "sound_count": 87,
+                "delta_max": 1.5372448287620384,
+                "delta_min": 0.054449288758308775,
+                "delta_e": 1.2818451,
+                "found": 1.0,
+                "vm1": 1.0,
+                "vm2": 0.94,
+                "delta_validity": 0.34,
+                "l1": 0.028256931400971,
+                "l0": 0.09299999999999993,
+                "lof": 1.0,
+            },
+            "paper": {
+                "delta": 0.054,
+                "delta_e": 1.28,
+                "vm1": 1.0,
+                "vm2": 0.94,
+                "l1": 0.028,
+                "lof": 1.0,
+            },
+            "full_results": {
+                "full_results_milp_mean": 0.06997500000000001,
+                "full_results_wilks_mean": 0.20390900000000006,
             },
         },
     ),
@@ -714,8 +1031,22 @@ def _normalised_l1_all(counterfactual: np.ndarray, factual: np.ndarray) -> float
     return float(np.sum(np.abs(counterfactual - factual)) / counterfactual.shape[0])
 
 
-def _normalised_l0(counterfactual: np.ndarray, factual: np.ndarray) -> float:
-    return float(np.mean(np.abs(counterfactual - factual) >= 1e-4))
+def _normalised_l0(
+    counterfactual: np.ndarray,
+    factual: np.ndarray,
+    feature_groups: list[list[int]] | None = None,
+) -> float:
+    if feature_groups is None:
+        return float(np.mean(np.abs(counterfactual - factual) >= 1e-4))
+
+    changed = 0
+    for group in feature_groups:
+        group_indices = np.asarray(group, dtype=int)
+        if np.abs(
+            np.sum(counterfactual[group_indices]) - np.sum(factual[group_indices])
+        ) >= 1e-4:
+            changed += 1
+    return float(changed / max(len(feature_groups), 1))
 
 
 def _evaluate_counterfactuals(
@@ -728,6 +1059,7 @@ def _evaluate_counterfactuals(
     big_m: float,
     use_biases: bool,
     lof_model: LocalOutlierFactor,
+    feature_groups: list[list[int]] | None = None,
 ) -> dict[str, float]:
     target_networks = extract_binary_target_networks(base_model)
     original_predictions = _predict_label_indices(base_model, factuals)
@@ -768,7 +1100,11 @@ def _evaluate_counterfactuals(
         if cf_prediction != original_prediction:
             vm1 += 1
             l1_sum += _normalised_l1_all(counterfactual_array, factual)
-            l0_sum += _normalised_l0(counterfactual_array, factual)
+            l0_sum += _normalised_l0(
+                counterfactual_array,
+                factual,
+                feature_groups=feature_groups,
+            )
             lof_sum += float(lof_model.predict(counterfactual_array.reshape(1, -1))[0])
 
             retrained_prediction = int(
@@ -806,6 +1142,8 @@ def _prepare_datasets(spec: DatasetSpec) -> dict[str, object]:
     d2_df = loaded["d2_df"].copy(deep=True).reset_index(drop=True)
     scaled_df = loaded["scaled_df"].copy(deep=True).reset_index(drop=True)
     continuous_features = list(loaded["continuous_features"])
+    metadata = loaded.get("metadata", {})
+    feature_var_map = loaded.get("feature_var_map")
 
     X1 = d1_df.loc[:, feature_columns].copy(deep=True)
     y1 = d1_df.loc[:, target_column].astype(int).copy(deep=True)
@@ -826,11 +1164,20 @@ def _prepare_datasets(spec: DatasetSpec) -> dict[str, object]:
         target_column=target_column,
         continuous_features=continuous_features,
         name=spec.name,
+        metadata=metadata,
     )
+    feature_groups = None
+    if isinstance(feature_var_map, dict):
+        feature_groups = [
+            list(feature_var_map[index])
+            for index in sorted(feature_var_map)
+            if index < len(CREDIT_COLUMNS) - 1
+        ]
     return {
         "full_dataset": full_dataset,
         "feature_columns": feature_columns,
         "target_column": target_column,
+        "feature_groups": feature_groups,
         "X1": X1.reset_index(drop=True),
         "y1": y1.reset_index(drop=True),
         "X2": X2.reset_index(drop=True),
@@ -954,6 +1301,7 @@ def run_dataset_reproduction(
         big_m=float(method_cfg.get("big_m", 10000.0)),
         use_biases=bool(method_cfg.get("use_biases", True)),
         lof_model=lof_model,
+        feature_groups=datasets.get("feature_groups"),
     )
 
     full_results_targets = spec.targets.get("full_results", {})
@@ -1064,7 +1412,12 @@ def _print_report(output: dict[str, object]) -> None:
 
 def _selected_specs(selection: str) -> list[DatasetSpec]:
     if selection == "all":
-        return [DATASET_SPECS["diabetes"], DATASET_SPECS["no2"], DATASET_SPECS["sba"]]
+        return [
+            DATASET_SPECS["diabetes"],
+            DATASET_SPECS["no2"],
+            DATASET_SPECS["sba"],
+            DATASET_SPECS["credit"],
+        ]
     return [DATASET_SPECS[selection]]
 
 
@@ -1077,7 +1430,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--dataset",
-        choices=["diabetes", "no2", "sba", "all"],
+        choices=["diabetes", "no2", "sba", "credit", "all"],
         default="all",
         help="Notebook dataset to reproduce.",
     )
