@@ -8,3 +8,16 @@ AGENTS.md
 .omx/
 webapp/benchmark-live/data/runtime_results.csv
 _runs/
+1shot-bench
+benchmark/results/
+trials/
+.venv
+artifacts/
+dataset/credit_carla/
+skill_bench*/
+smoke_test/
+
+# Python packaging build artifacts
+build/
+dist/
+*.egg-info/

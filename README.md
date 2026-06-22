@@ -184,10 +184,16 @@ Return a one-row dataframe with stable, descriptive column names. If the counter
 
 ## Running Experiments
 
-The generic entry point is `experiment.py`:
+After installing the package, the generic CLI entry point is `recourse-bench`:
 
 ```bash
-python experiment.py -p experiment/wachter/credit_linear_wachter_smoke.yaml
+recourse-bench -p experiment/toy/smoke_config.yaml
+```
+
+From a source checkout, `experiments.py` is equivalent:
+
+```bash
+python experiments.py -p experiment/toy/smoke_config.yaml
 ```
 
 `main.py` is equivalent:
