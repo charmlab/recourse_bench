@@ -37,6 +37,13 @@ dependencies = [
 # Installing this extra will downgrade numpy; only needed for certain methods
 # (e.g. diverse_dist). See requirements.txt.
 alibi = ["alibi==0.9.6"]
+docs = [
+    "sphinx>=7",
+    "pydata-sphinx-theme>=0.15",
+    "myst-parser>=2",
+    "sphinx-copybutton>=0.5",
+    "sphinx-design>=0.5",
+]
 
 [project.urls]
 Homepage = "https://github.com/charmlab/recourse_bench"
@@ -51,6 +58,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 include = [
+    "recourse_bench",
     "method*",
     "model*",
     "dataset*",

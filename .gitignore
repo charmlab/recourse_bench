@@ -3,7 +3,7 @@ __pycache__/
 cache/
 logs/
 tmp/
-reference/
+/reference/
 AGENTS.md
 .omx/
 webapp/benchmark-live/data/runtime_results.csv
@@ -16,8 +16,12 @@ artifacts/
 dataset/credit_carla/
 skill_bench*/
 smoke_test/
-
+skill_bench_tasks/
 # Python packaging build artifacts
 build/
 dist/
 *.egg-info/
+
+# Documentation build artifacts
+docs/_build/
+_site/
