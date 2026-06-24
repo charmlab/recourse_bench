@@ -10,6 +10,21 @@ pip install -r requirements.txt
 pip install alibi==0.9.6
 ```
 
+## Documentation
+
+Full documentation — a getting-started guide, an extension guide, and a
+numpy-style API reference for the public classes and functions (arguments,
+return values, and examples) — is published at
+<https://charmlab.github.io/recourse_bench/docs/>.
+
+To build the site locally:
+
+```bash
+pip install -e ".[docs]"      # or: pip install -r docs/requirements.txt
+sphinx-build -b html docs docs/_build/html
+# open docs/_build/html/index.html
+```
+
 ## Supported Components
 ### Datasets
 
