@@ -43,3 +43,649 @@ Notes / Caveats
 Next Steps
 - Add any remaining paper datasets/settings not covered by the current German MLP run.
 - Only assign Level 3 after full experiment coverage is explicit.
+
+
+
+[geospatial/linear/l1] fold 0: train=339 test=84 lambda_factuals=322 eval_factuals=84                  
+[geospatial/linear/l1] fold 1: train=338 test=85 lambda_factuals=321 eval_factuals=81                  
+[geospatial/linear/l1] fold 2: train=339 test=84 lambda_factuals=326 eval_factuals=81                  
+[geospatial/linear/l1] fold 3: train=338 test=85 lambda_factuals=322 eval_factuals=81                   
+[geospatial/linear/l1] fold 4: train=338 test=85 lambda_factuals=323 eval_factuals=82                   
+[geospatial/linear/pfc] fold 0: train=339 test=84 lambda_factuals=322 eval_factuals=84                  
+[geospatial/linear/pfc] fold 1: train=338 test=85 lambda_factuals=321 eval_factuals=81                  
+[geospatial/linear/pfc] fold 2: train=339 test=84 lambda_factuals=326 eval_factuals=81                  
+[geospatial/linear/pfc] fold 3: train=338 test=85 lambda_factuals=322 eval_factuals=81                  
+[geospatial/linear/pfc] fold 4: train=338 test=85 lambda_factuals=323 eval_factuals=82                  
+[geospatial/mlp/l1] fold 0: train=339 test=84 lambda_factuals=317 eval_factuals=83                      
+[geospatial/mlp/l1] fold 1: train=338 test=85 lambda_factuals=314 eval_factuals=83                      
+[geospatial/mlp/l1] fold 2: train=339 test=84 lambda_factuals=317 eval_factuals=82                      
+[geospatial/mlp/l1] fold 3: train=338 test=85 lambda_factuals=317 eval_factuals=83                      
+[geospatial/mlp/l1] fold 4: train=338 test=85 lambda_factuals=316 eval_factuals=84                      
+[geospatial/mlp/pfc] fold 0: train=339 test=84 lambda_factuals=317 eval_factuals=83                     
+[geospatial/mlp/pfc] fold 1: train=338 test=85 lambda_factuals=314 eval_factuals=83                     
+[geospatial/mlp/pfc] fold 2: train=339 test=84 lambda_factuals=317 eval_factuals=82                     
+[geospatial/mlp/pfc] fold 3: train=338 test=85 lambda_factuals=317 eval_factuals=83                     
+[geospatial/mlp/pfc] fold 4: train=338 test=85 lambda_factuals=316 eval_factuals=84                     
+ROAR cases: 100%|██████████████████████████████| 4/4 [69:31:38<00:00, 62574.65s/it, geospatial_mlp_pfc] 
+{                                                                                                       
+  "results": [                                                                                          
+    {                                                                                                   
+      "avg_cost": {
+        "mean": 9.992804131056971,
+        "std": 1.2430152164704922
+      },
+      "cost": "l1",
+      "current_model_accuracy": {
+        "mean": 0.9243417366946778,
+        "std": 0.016001828077819892
+      },
+      "current_model_auc": {
+        "mean": 0.7719225418945129,
+        "std": 0.12536748300234304
+      },
+      "dataset": "student",
+      "fold_results": [
+        {
+          "avg_cost": 12.093073049471705,
+          "current_model_accuracy": 0.9166666666666666,
+          "current_model_auc": 0.6679035250463822,
+          "fold": 0,
+          "future_model_accuracy": 0.8294573643410853,
+          "future_model_auc": 0.7054963084495489,
+          "m1_validity": 1.0,
+          "m2_validity": 0.7857142857142857,
+          "num_factuals": 84,
+          "selected_lambda": 0.2
+        },
+        {
+          "avg_cost": 8.285032032316588,
+          "current_model_accuracy": 0.9058823529411765,
+          "current_model_auc": 0.609704641350211,
+          "fold": 1,
+          "future_model_accuracy": 0.8384615384615385,
+          "future_model_auc": 0.6626984126984128,
+          "m1_validity": 1.0,
+          "m2_validity": 0.30864197530864196,
+          "num_factuals": 81,
+          "selected_lambda": 0.4
+        },
+        {
+          "avg_cost": 9.673813589363677,
+          "current_model_accuracy": 0.9285714285714286,
+          "current_model_auc": 0.7884972170686456,
+          "fold": 2,
+          "future_model_accuracy": 0.8461538461538461,
+          "future_model_auc": 0.7594473791141811,
+          "m1_validity": 1.0,
+          "m2_validity": 0.6666666666666666,
+          "num_factuals": 81,
+          "selected_lambda": 0.30000000000000004
+        },
+        {
+          "avg_cost": 9.573061097389251,
+          "current_model_accuracy": 0.9176470588235294,
+          "current_model_auc": 0.8260073260073258,
+          "fold": 3,
+          "future_model_accuracy": 0.8461538461538461,
+          "future_model_auc": 0.75,
+          "m1_validity": 0.9753086419753086,
+          "m2_validity": 0.6172839506172839,
+          "num_factuals": 81,
+          "selected_lambda": 0.30000000000000004
+        },
+        {
+          "avg_cost": 10.339040886743641,
+          "current_model_accuracy": 0.9529411764705882,
+          "current_model_auc": 0.9674999999999999,
+          "fold": 4,
+          "future_model_accuracy": 0.8692307692307693,
+          "future_model_auc": 0.777281746031746,
+          "m1_validity": 1.0,
+          "m2_validity": 0.5121951219512195,
+          "num_factuals": 82,
+          "selected_lambda": 0.30000000000000004
+        }
+      ],
+      "future_model_accuracy": {
+        "mean": 0.8458914728682171,
+        "std": 0.01319199971611701
+      },
+      "future_model_auc": {
+        "mean": 0.7309847692587778,
+        "std": 0.041539853983740695
+      },
+      "m1_validity": {
+        "mean": 0.9950617283950617,
+        "std": 0.009876543209876543
+      },
+      "m2_validity": {
+        "mean": 0.5781004000516196,
+        "std": 0.16089388309284364
+      },
+      "model": "linear",
+      "num_factuals": 409,
+      "paper_comparison": {
+        "avg_cost": {
+          "delta": -0.8871958689430297,
+          "observed_mean": 9.992804131056971,
+          "observed_std": 1.2430152164704922,
+          "paper_mean": 10.88,
+          "paper_std": 1.67,
+          "relative_delta": 0.08154373795432258
+        },
+        "m1_validity": {
+          "delta": -0.004938271604938316,
+          "observed_mean": 0.9950617283950617,
+          "observed_std": 0.009876543209876543,
+          "paper_mean": 1.0,
+          "paper_std": 0.0,
+          "relative_delta": 0.004938271604938316
+        },
+        "m2_validity": {
+          "delta": -0.09189959994838048,
+          "observed_mean": 0.5781004000516196,
+          "observed_std": 0.16089388309284364,
+          "paper_mean": 0.67,
+          "paper_std": 0.19,
+          "relative_delta": 0.13716358201250817
+        }
+      },
+      "recourse": "ROAR",
+      "selected_lambda": {
+        "mean": 0.30000000000000004,
+        "std": 0.0632455532033676
+      },
+      "shift": "geospatial"
+    },
+    {
+      "avg_cost": {
+        "mean": 1.4018887536514921,
+        "std": 0.05950370060933582
+      },
+      "cost": "pfc",
+      "current_model_accuracy": {
+        "mean": 0.9243417366946778,
+        "std": 0.016001828077819892
+      },
+      "current_model_auc": {
+        "mean": 0.7719225418945129,
+        "std": 0.12536748300234304
+      },
+      "dataset": "student",
+      "fold_results": [
+        {
+          "avg_cost": 1.373980932763759,
+          "current_model_accuracy": 0.9166666666666666,
+          "current_model_auc": 0.6679035250463822,
+          "fold": 0,
+          "future_model_accuracy": 0.8294573643410853,
+          "future_model_auc": 0.7054963084495489,
+          "m1_validity": 1.0,
+          "m2_validity": 0.9761904761904762,
+          "num_factuals": 84,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 1.311235620809072,
+          "current_model_accuracy": 0.9058823529411765,
+          "current_model_auc": 0.609704641350211,
+          "fold": 1,
+          "future_model_accuracy": 0.8384615384615385,
+          "future_model_auc": 0.6626984126984128,
+          "m1_validity": 1.0,
+          "m2_validity": 0.9629629629629629,
+          "num_factuals": 81,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 1.3972250154661061,
+          "current_model_accuracy": 0.9285714285714286,
+          "current_model_auc": 0.7884972170686456,
+          "fold": 2,
+          "future_model_accuracy": 0.8461538461538461,
+          "future_model_auc": 0.7594473791141811,
+          "m1_validity": 1.0,
+          "m2_validity": 0.9876543209876543,
+          "num_factuals": 81,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 1.4401269454269336,
+          "current_model_accuracy": 0.9176470588235294,
+          "current_model_auc": 0.8260073260073258,
+          "fold": 3,
+          "future_model_accuracy": 0.8461538461538461,
+          "future_model_auc": 0.75,
+          "m1_validity": 1.0,
+          "m2_validity": 0.8024691358024691,
+          "num_factuals": 81,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 1.48687525379159,
+          "current_model_accuracy": 0.9529411764705882,
+          "current_model_auc": 0.9674999999999999,
+          "fold": 4,
+          "future_model_accuracy": 0.8692307692307693,
+          "future_model_auc": 0.777281746031746,
+          "m1_validity": 1.0,
+          "m2_validity": 0.9878048780487805,
+          "num_factuals": 82,
+          "selected_lambda": 1.0
+        }
+      ],
+      "future_model_accuracy": {
+        "mean": 0.8458914728682171,
+        "std": 0.01319199971611701
+      },
+      "future_model_auc": {
+        "mean": 0.7309847692587778,
+        "std": 0.041539853983740695
+      },
+      "m1_validity": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "m2_validity": {
+        "mean": 0.9434163547984685,
+        "std": 0.07106288780419716
+      },
+      "model": "linear",
+      "num_factuals": 409,
+      "paper_comparison": {
+        "avg_cost": {
+          "delta": 0.20188875365149217,
+          "observed_mean": 1.4018887536514921,
+          "observed_std": 0.05950370060933582,
+          "paper_mean": 1.2,
+          "paper_std": 0.1,
+          "relative_delta": 0.14401196466241248
+        },
+        "m1_validity": {
+          "delta": 0.0,
+          "observed_mean": 1.0,
+          "observed_std": 0.0,
+          "paper_mean": 1.0,
+          "paper_std": 0.0,
+          "relative_delta": 0.0
+        },
+        "m2_validity": {
+          "delta": 0.033416354798468495,
+          "observed_mean": 0.9434163547984685,
+          "observed_std": 0.07106288780419716,
+          "paper_mean": 0.91,
+          "paper_std": 0.07,
+          "relative_delta": 0.035420580349814754
+        }
+      },
+      "recourse": "ROAR",
+      "selected_lambda": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "shift": "geospatial"
+    },
+    {
+      "avg_cost": {
+        "mean": 0.009048305949817606,
+        "std": 0.00037599309772592276
+      },
+      "cost": "l1",
+      "current_model_accuracy": {
+        "mean": 0.9338095238095236,
+        "std": 0.011987224693552454
+      },
+      "current_model_auc": {
+        "mean": 0.7400229294515009,
+        "std": 0.15800910102455895
+      },
+      "dataset": "student",
+      "fold_results": [
+        {
+          "avg_cost": 0.008963406025984085,
+          "current_model_accuracy": 0.9285714285714286,
+          "current_model_auc": 0.6122448979591837,
+          "fold": 0,
+          "future_model_accuracy": 0.8527131782945736,
+          "future_model_auc": 0.728876127973749,
+          "m1_validity": 0.0,
+          "m2_validity": 0.024096385542168676,
+          "num_factuals": 83,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 0.009533174827964053,
+          "current_model_accuracy": 0.9294117647058824,
+          "current_model_auc": 0.5,
+          "fold": 1,
+          "future_model_accuracy": 0.823076923076923,
+          "future_model_auc": 0.5659722222222222,
+          "m1_validity": 0.0,
+          "m2_validity": 0.04819277108433735,
+          "num_factuals": 83,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 0.008614527799896252,
+          "current_model_accuracy": 0.9404761904761905,
+          "current_model_auc": 0.8738404452690167,
+          "fold": 2,
+          "future_model_accuracy": 0.8615384615384616,
+          "future_model_auc": 0.7492889069483949,
+          "m1_validity": 0.0,
+          "m2_validity": 0.036585365853658534,
+          "num_factuals": 82,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 0.008693852763656876,
+          "current_model_accuracy": 0.9176470588235294,
+          "current_model_auc": 0.804029304029304,
+          "fold": 3,
+          "future_model_accuracy": 0.823076923076923,
+          "future_model_auc": 0.6671626984126984,
+          "m1_validity": 0.0,
+          "m2_validity": 0.10843373493975904,
+          "num_factuals": 83,
+          "selected_lambda": 1.0
+        },
+        {
+          "avg_cost": 0.009436568331586763,
+          "current_model_accuracy": 0.9529411764705882,
+          "current_model_auc": 0.91,
+          "fold": 4,
+          "future_model_accuracy": 0.8769230769230769,
+          "future_model_auc": 0.7445436507936508,
+          "m1_validity": 0.0,
+          "m2_validity": 0.047619047619047616,
+          "num_factuals": 84,
+          "selected_lambda": 1.0
+        }
+      ],
+      "future_model_accuracy": {
+        "mean": 0.8474657125819917,
+        "std": 0.021367922597038208
+      },
+      "future_model_auc": {
+        "mean": 0.6911687212701432,
+        "std": 0.06913630032408914
+      },
+      "m1_validity": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "m2_validity": {
+        "mean": 0.05298546100779424,
+        "std": 0.029085464251817766
+      },
+      "model": "mlp",
+      "num_factuals": 415,
+      "paper_comparison": {
+        "avg_cost": {
+          "delta": -21.040951694050182,
+          "observed_mean": 0.009048305949817606,
+          "observed_std": 0.00037599309772592276,
+          "paper_mean": 21.05,
+          "paper_std": 3.58,
+          "relative_delta": 0.9995701517363507
+        },
+        "m1_validity": {
+          "delta": -1.0,
+          "observed_mean": 0.0,
+          "observed_std": 0.0,
+          "paper_mean": 1.0,
+          "paper_std": 0.0,
+          "relative_delta": 1.0
+        },
+        "m2_validity": {
+          "delta": -0.9170145389922058,
+          "observed_mean": 0.05298546100779424,
+          "observed_std": 0.029085464251817766,
+          "paper_mean": 0.97,
+          "paper_std": 0.03,
+          "relative_delta": 0.9453758133940265
+        }
+      },
+      "recourse": "ROAR-LIME",
+      "selected_lambda": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "shift": "geospatial"
+    },
+    {
+      "avg_cost": {
+        "mean": 1.8173941256904143,
+        "std": 0.5085181799333874
+      },
+      "cost": "pfc",
+      "current_model_accuracy": {
+        "mean": 0.9338095238095236,
+        "std": 0.011987224693552454
+      },
+      "current_model_auc": {
+        "mean": 0.7400229294515009,
+        "std": 0.15800910102455895
+      },
+      "dataset": "student",
+      "fold_results": [
+        {
+          "avg_cost": 1.162844866980266,
+          "current_model_accuracy": 0.9285714285714286,
+          "current_model_auc": 0.6122448979591837,
+          "fold": 0,
+          "future_model_accuracy": 0.8527131782945736,
+          "future_model_auc": 0.728876127973749,
+          "m1_validity": 0.012048192771084338,
+          "m2_validity": 0.024096385542168676,
+          "num_factuals": 83,
+          "selected_lambda": 0.5
+        },
+        {
+          "avg_cost": 2.228960431629849,
+          "current_model_accuracy": 0.9294117647058824,
+          "current_model_auc": 0.5,
+          "fold": 1,
+          "future_model_accuracy": 0.823076923076923,
+          "future_model_auc": 0.5659722222222222,
+          "m1_validity": 0.04819277108433735,
+          "m2_validity": 0.060240963855421686,
+          "num_factuals": 83,
+          "selected_lambda": 0.4
+        },
+        {
+          "avg_cost": 2.239583054988134,
+          "current_model_accuracy": 0.9404761904761905,
+          "current_model_auc": 0.8738404452690167,
+          "fold": 2,
+          "future_model_accuracy": 0.8615384615384616,
+          "future_model_auc": 0.7492889069483949,
+          "m1_validity": 0.07317073170731707,
+          "m2_validity": 0.04878048780487805,
+          "num_factuals": 82,
+          "selected_lambda": 0.4
+        },
+        {
+          "avg_cost": 1.2273756813715786,
+          "current_model_accuracy": 0.9176470588235294,
+          "current_model_auc": 0.804029304029304,
+          "fold": 3,
+          "future_model_accuracy": 0.823076923076923,
+          "future_model_auc": 0.6671626984126984,
+          "m1_validity": 0.07228915662650602,
+          "m2_validity": 0.04819277108433735,
+          "num_factuals": 83,
+          "selected_lambda": 0.5
+        },
+        {
+          "avg_cost": 2.2282065934822453,
+          "current_model_accuracy": 0.9529411764705882,
+          "current_model_auc": 0.91,
+          "fold": 4,
+          "future_model_accuracy": 0.8769230769230769,
+          "future_model_auc": 0.7445436507936508,
+          "m1_validity": 0.011904761904761904,
+          "m2_validity": 0.011904761904761904,
+          "num_factuals": 84,
+          "selected_lambda": 0.4
+        }
+      ],
+      "future_model_accuracy": {
+        "mean": 0.8474657125819917,
+        "std": 0.021367922597038208
+      },
+      "future_model_auc": {
+        "mean": 0.6911687212701432,
+        "std": 0.06913630032408914
+      },
+      "m1_validity": {
+        "mean": 0.04352112281880134,
+        "std": 0.027271461189878932
+      },
+      "m2_validity": {
+        "mean": 0.03864307403831353,
+        "std": 0.01781558979126102
+      },
+      "model": "mlp",
+      "num_factuals": 415,
+      "paper_comparison": {
+        "avg_cost": {
+          "delta": 0.15739412569041433,
+          "observed_mean": 1.8173941256904143,
+          "observed_std": 0.5085181799333874,
+          "paper_mean": 1.66,
+          "paper_std": 0.21,
+          "relative_delta": 0.08660428878112583
+        },
+        "m1_validity": {
+          "delta": -0.9564788771811986,
+          "observed_mean": 0.04352112281880134,
+          "observed_std": 0.027271461189878932,
+          "paper_mean": 1.0,
+          "paper_std": 0.0,
+          "relative_delta": 0.9564788771811986
+        },
+        "m2_validity": {
+          "delta": -0.9313569259616864,
+          "observed_mean": 0.03864307403831353,
+          "observed_std": 0.01781558979126102,
+          "paper_mean": 0.97,
+          "paper_std": 0.04,
+          "relative_delta": 0.9601617793419448
+        }
+      },
+      "recourse": "ROAR-LIME",
+      "selected_lambda": {
+        "mean": 0.44000000000000006,
+        "std": 0.04898979485566355
+      },
+      "shift": "geospatial"
+    }
+  ],
+  "rows": [
+    {
+      "avg_cost_mean": 9.992804131056971,
+      "avg_cost_std": 1.2430152164704922,
+      "cost": "l1",
+      "dataset": "student",
+      "m1_mean": 0.9950617283950617,
+      "m1_std": 0.009876543209876543,
+      "m2_mean": 0.5781004000516196,
+      "m2_std": 0.16089388309284364,
+      "model": "linear",
+      "paper_avg_cost": 10.88,
+      "paper_m1": 1.0,
+      "paper_m2": 0.67,
+      "recourse": "ROAR",
+      "shift": "geospatial"
+    },
+    {
+      "avg_cost_mean": 1.4018887536514921,
+      "avg_cost_std": 0.05950370060933582,
+      "cost": "pfc",
+      "dataset": "student",
+      "m1_mean": 1.0,
+      "m1_std": 0.0,
+      "m2_mean": 0.9434163547984685,
+      "m2_std": 0.07106288780419716,
+      "model": "linear",
+      "paper_avg_cost": 1.2,
+      "paper_m1": 1.0,
+      "paper_m2": 0.91,
+      "recourse": "ROAR",
+      "shift": "geospatial"
+    },
+    {
+      "avg_cost_mean": 0.009048305949817606,
+      "avg_cost_std": 0.00037599309772592276,
+      "cost": "l1",
+      "dataset": "student",
+      "m1_mean": 0.0,
+      "m1_std": 0.0,
+      "m2_mean": 0.05298546100779424,
+      "m2_std": 0.029085464251817766,
+      "model": "mlp",
+      "paper_avg_cost": 21.05,
+      "paper_m1": 1.0,
+      "paper_m2": 0.97,
+      "recourse": "ROAR-LIME",
+      "shift": "geospatial"
+    },
+    {
+      "avg_cost_mean": 1.8173941256904143,
+      "avg_cost_std": 0.5085181799333874,
+      "cost": "pfc",
+      "dataset": "student",
+      "m1_mean": 0.04352112281880134,
+      "m1_std": 0.027271461189878932,
+      "m2_mean": 0.03864307403831353,
+      "m2_std": 0.01781558979126102,
+      "model": "mlp",
+      "paper_avg_cost": 1.66,
+      "paper_m1": 1.0,
+      "paper_m2": 0.97,
+      "recourse": "ROAR-LIME",
+      "shift": "geospatial"
+    }
+  ],
+  "summary": {
+    "costs": [
+      "l1",
+      "pfc"
+    ],
+    "datasets": [
+      "geospatial"
+    ],
+    "device": "cuda",
+    "evaluated_folds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "lambda_factual_limit": null,
+    "lambda_grid": [
+      0.1,
+      0.2,
+      0.30000000000000004,
+      0.4,
+      0.5,
+      0.6000000000000001,
+      0.7000000000000001,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "max_factuals": null,
+    "models": [
+      "linear",
+      "mlp"
+    ],
+    "n_folds": 5,
+    "notes": [
+      "This reproducer targets the ROAR rows from Table 1 across correction, temporal, and geospatial shifts.",
+      "MINT and non-ROAR baselines remain out of scope for this method-specific script."
+    ]
+  }
+}
