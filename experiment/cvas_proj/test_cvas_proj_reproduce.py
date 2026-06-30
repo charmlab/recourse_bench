@@ -5,6 +5,8 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -817,8 +819,8 @@ def _print_single_fold_debug(
         f"{float(np.mean(feasible)):.6f}"
     )
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--current-config",
@@ -993,4 +995,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

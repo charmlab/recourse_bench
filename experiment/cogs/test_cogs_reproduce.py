@@ -6,6 +6,8 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -270,7 +272,8 @@ def _fit_reproduction_random_forest(experiment: Experiment, trainset, reproducti
     }
 
 
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
@@ -368,4 +371,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

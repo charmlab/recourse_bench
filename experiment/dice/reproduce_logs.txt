@@ -38,7 +38,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- Default paper assertion target encoded in `experiment/dice/reproduce.py`:
+- Default paper assertion target encoded in `experiment/dice/test_dice_reproduce.py`:
   - model_accuracy = 0.67
 - The script uses a default absolute accuracy tolerance of 0.05.
 

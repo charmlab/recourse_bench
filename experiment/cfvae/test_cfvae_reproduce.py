@@ -712,7 +712,8 @@ def test_cfvae_reproduce(tolerance):
     _assert_cfvae_reproduce(Path(weights_dir), tolerance=float(tolerance))
 
 
-def main():
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--weights-dir",
@@ -734,4 +735,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

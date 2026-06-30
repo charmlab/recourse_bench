@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import math
 import sys
 from copy import deepcopy
 from pathlib import Path
 from time import perf_counter
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -20,6 +23,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
 from evaluation.evaluation_utils import resolve_evaluation_inputs
+from experiment.utils import write_reproduction_report
 from experiments import Experiment
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name(
@@ -40,6 +44,7 @@ ASSERT_BOUNDS = {
     "rate_l0_le_10_min": 0.75,
     "rate_l0_le_5_min": 0.35,
 }
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 def _load_config(config_path: Path) -> dict:
@@ -290,16 +295,72 @@ def run_reproduction(
     if mode == "paper":
         _assert_paper_targets(summary)
 
-    return {
+    output = {
         "summary": summary,
         "metrics": metrics,
         "comparison": comparison,
         "factuals": factuals,
         "counterfactuals": counterfactuals,
     }
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="gs_news_popularity",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(resolved_config_path),
+            "mode": mode,
+            "factual_limit": factual_limit,
+        },
+        experiments_data={
+            "news_popularity_randomforest_gs": {
+                "configuration": {
+                    "dataset": "news_popularity",
+                    "model": "random_forest",
+                    "mode": mode,
+                    "selected_n_estimators": selected_n_estimators,
+                    "num_factuals": int(len(factuals)),
+                },
+                "metrics": {
+                    "test_accuracy": {
+                        "original": None,
+                        "reproduced": summary["test_accuracy"],
+                    },
+                    "test_auc": {
+                        "original": PAPER_TARGETS["test_auc"],
+                        "reproduced": summary["test_auc"],
+                    },
+                    "mean_l0": {
+                        "original": None,
+                        "reproduced": summary["mean_l0"],
+                    },
+                    "max_l0": {
+                        "original": PAPER_TARGETS["max_l0"],
+                        "reproduced": summary["max_l0"],
+                    },
+                    "rate_l0_le_5": {
+                        "original": PAPER_TARGETS["rate_l0_le_5"],
+                        "reproduced": summary["rate_l0_le_5"],
+                    },
+                    "rate_l0_le_10": {
+                        "original": PAPER_TARGETS["rate_l0_le_10"],
+                        "reproduced": summary["rate_l0_le_10"],
+                    },
+                    "search_seconds": {
+                        "original": None,
+                        "reproduced": summary["search_seconds"],
+                    },
+                },
+            }
+        },
+    )
+    output["report_path"] = str(report_path)
+    return output
 
 
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-p",
@@ -324,4 +385,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

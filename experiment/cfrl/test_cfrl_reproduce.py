@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import math
 import pickle
 import sys
@@ -39,6 +40,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from dataset.dataset_object import DatasetObject
 from evaluation.evaluation_object import EvaluationObject
+from experiment.utils import write_reproduction_report
 from experiments import Experiment
 from method.cfrl.cfrl_tabular import get_he_preprocessor
 from model.model_object import ModelObject, process_nan
@@ -511,6 +513,7 @@ REFERENCE_RESULTS = {
     "target_conditional_mmd_cls_0": 0.36,
     "target_conditional_mmd_cls_1": 0.43,
 }
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 def compare_results(
@@ -653,12 +656,40 @@ def test_cfrl_reproduce(tolerances: List[float]) -> None:
     )
 
 
-def main():
+@pytest.mark.slow
+def test_reproduce() -> None:
     results = run_experiment()
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="cfrl_adult_rf",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "experiment_name": "adult_cfrl_rf_reproduce",
+        },
+        experiments_data={
+            "adult_cfrl_rf_reproduce": {
+                "configuration": {
+                    "dataset": "adult_cfrl",
+                    "model": "random_forest",
+                    "method": "cfrl",
+                },
+                "metrics": {
+                    metric_name: {
+                        "original": reference_value,
+                        "reproduced": results.get(metric_name),
+                    }
+                    for metric_name, reference_value in REFERENCE_RESULTS.items()
+                },
+            }
+        },
+    )
     for key, value in results.items():
         if isinstance(value, (int, float, np.floating, np.integer)):
             print(f"{key}: {float(value):.6f}")
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

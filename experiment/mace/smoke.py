@@ -15,7 +15,7 @@ from experiments import Experiment
 
 
 def register_mace_preprocess() -> None:
-    reproduce_path = Path(__file__).with_name("reproduce.py")
+    reproduce_path = Path(__file__).with_name("test_mace_reproduce.py")
     spec = importlib.util.spec_from_file_location(
         "mace_smoke_reproduce_support",
         reproduce_path,

@@ -34,7 +34,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `REFERENCE_RESULTS` in `experiment/cfrl/reproduce.py`:
+- `REFERENCE_RESULTS` in `experiment/cfrl/test_cfrl_reproduce.py`:
   - accuracy = 0.86
   - validity = 0.9859
   - sparsity_cat_l0 = 0.11

@@ -51,7 +51,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `PAPER_PROBE_RESULTS` in `experiment/probe/reproduce.py`:
+- `PAPER_PROBE_RESULTS` in `experiment/probe/test_probe_reproduce.py`:
   - compas_carla / linear: paper_accuracy = 0.84, ra = 1.00, air_mean = 0.28, air_std = 0.02, ac_mean = 0.63, ac_std = 0.39
   - compas_carla / mlp: paper_accuracy = 0.85, ra = 1.00, air_mean = 0.33, air_std = 0.02, ac_mean = 0.80, ac_std = 0.34
   - credit_carla / linear: paper_accuracy = 0.92, ra = 1.00, air_mean = 0.24, air_std = 0.01, ac_mean = 0.60, ac_std = 0.56

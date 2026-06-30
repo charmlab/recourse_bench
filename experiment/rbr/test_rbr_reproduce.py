@@ -7,6 +7,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -855,8 +857,8 @@ def run_reproduction(
 def test_run_experiment():
     return run_reproduction()
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--current-config", default=DEFAULT_CURRENT_CONFIG)
     parser.add_argument("--future-config", default=DEFAULT_FUTURE_CONFIG)
@@ -870,4 +872,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

@@ -24,7 +24,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `PAPER_GERMAN_METRICS` in `experiment/rbr/reproduce.py`:
+- `PAPER_GERMAN_METRICS` in `experiment/rbr/test_rbr_reproduce.py`:
   - present_accuracy = 0.67 +- 0.02
   - present_auc = 0.60 +- 0.03
   - shift_accuracy = 0.66 +- 0.23

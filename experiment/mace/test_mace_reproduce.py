@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import sys
 import time
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -24,6 +27,7 @@ from dataset.dataset_object import DatasetObject
 from evaluation.evaluation_object import EvaluationObject
 from evaluation.evaluation_utils import resolve_evaluation_inputs
 from evaluation.validity import ValidityEvaluation
+from experiment.utils import write_reproduction_report
 from method.mace.library import normalizedDistance
 from method.mace.mace import MaceDatasetWrapper, MaceMethod
 from model.sklearn_logistic_regression.sklearn_logistic_regression import (
@@ -55,6 +59,7 @@ NORM_TO_METRIC = {
     "one_norm": "distance_l1",
     "infty_norm": "distance_linf",
 }
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 # Distance
@@ -693,8 +698,8 @@ def _assert_strict(result: dict):
             f"expected {expected:.0f}, got {actual}"
         )
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", choices=sorted(DEFAULTS), default="adult")
     parser.add_argument(
@@ -729,8 +734,72 @@ def main() -> None:
         result["norm_type"]: round(float(result["mace_vs_mo_improvement"]))
         for result in results
     }
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="mace_minimum_observable",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "dataset": args.dataset,
+            "epsilon": float(args.epsilon),
+            "num_factuals_requested": int(args.nfactuals),
+            "strict": bool(args.strict),
+            "cache_dir": args.cache_dir,
+        },
+        experiments_data={
+            f"{result['dataset']}_{result['norm_type']}": {
+                "configuration": {
+                    "dataset": result["dataset"],
+                    "norm_type": result["norm_type"],
+                    "optimized_metric": result["optimized_metric"],
+                    "epsilon": result["epsilon"],
+                    "num_factuals": result["num_factuals"],
+                    "encoded_dim": result["encoded_dim"],
+                },
+                "metrics": {
+                    "mace_validity": {
+                        "original": None,
+                        "reproduced": result["mace_validity"],
+                    },
+                    "mo_validity": {
+                        "original": None,
+                        "reproduced": result["mo_validity"],
+                    },
+                    "mace_seconds": {
+                        "original": None,
+                        "reproduced": result["mace_seconds"],
+                    },
+                    "mo_seconds": {
+                        "original": None,
+                        "reproduced": result["mo_seconds"],
+                    },
+                    "mace_vs_mo_improvement": {
+                        "original": DEFAULTS[result["dataset"]]["targets"][result["norm_type"]],
+                        "reproduced": result["mace_vs_mo_improvement"],
+                    },
+                    **{
+                        f"mace_{metric_name}": {
+                            "original": None,
+                            "reproduced": metric_value,
+                        }
+                        for metric_name, metric_value in result["mace_distances"].items()
+                    },
+                    **{
+                        f"mo_{metric_name}": {
+                            "original": None,
+                            "reproduced": metric_value,
+                        }
+                        for metric_name, metric_value in result["mo_distances"].items()
+                    },
+                },
+            }
+            for result in results
+        },
+    )
     print("rounded_table3:", json.dumps(rounded, sort_keys=True))
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

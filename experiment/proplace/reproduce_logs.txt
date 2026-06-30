@@ -31,7 +31,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `REFERENCE_PROPLACE_ROW` in `experiment/proplace/reproduce.py`: validity = 1.0, delta_validity = 1.0, m2_validity = 1.0, l1 = 0.039, pct_inlier_class_1 = 0.86, lof_class_1 = 1.241.
+- `REFERENCE_PROPLACE_ROW` in `experiment/proplace/test_proplace_reproduce.py`: validity = 1.0, delta_validity = 1.0, m2_validity = 1.0, l1 = 0.039, pct_inlier_class_1 = 0.86, lof_class_1 = 1.241.
 - validity matched exactly at 1.0.
 - delta_validity matched exactly at 1.0.
 - pct_inlier_class_1 matched exactly at 0.86.

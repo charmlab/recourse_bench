@@ -24,7 +24,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `PAPER_TARGETS` in `experiment/gs/reproduce.py`:
+- `PAPER_TARGETS` in `experiment/gs/test_gs_reproduce.py`:
   - test_auc = 0.70
   - max_l0 = 17.0
   - rate_l0_le_10 = 0.80

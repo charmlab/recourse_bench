@@ -44,7 +44,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `COMPAS_PAPER_RESULTS` in `experiment/clue/reproduce.py`:
+- `COMPAS_PAPER_RESULTS` in `experiment/clue/test_clue_reproduce.py`:
   - table1_epistemic = 0.71
   - table1_aleatoric = 0.18
   - table2_epistemic = 0.707
