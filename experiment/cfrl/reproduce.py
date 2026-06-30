@@ -37,15 +37,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from dataset.dataset_object import DatasetObject
-from evaluation.evaluation_object import EvaluationObject
-from experiments import Experiment
-from method.cfrl.cfrl_tabular import get_he_preprocessor
-from model.model_object import ModelObject, process_nan
-from model.model_utils import resolve_device
-from preprocess.preprocess_object import PreProcessObject
-from utils.caching import get_cache_dir
-from utils.registry import register
+from recourse_bench.dataset.dataset_object import DatasetObject
+from recourse_bench.evaluation.evaluation_object import EvaluationObject
+from recourse_bench.experiments import Experiment
+from recourse_bench.method.cfrl.cfrl_tabular import get_he_preprocessor
+from recourse_bench.model.model_object import ModelObject, process_nan
+from recourse_bench.model.model_utils import resolve_device
+from recourse_bench.preprocess.preprocess_object import PreProcessObject
+from recourse_bench.utils.caching import get_cache_dir
+from recourse_bench.utils.registry import register
 
 
 @dataclass

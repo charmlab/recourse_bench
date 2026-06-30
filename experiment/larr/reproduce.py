@@ -12,10 +12,10 @@ import numpy as np
 import pandas as pd
 import torch
 
-from dataset.german.german import GermanDataset
-from method.larr.library.larr import LARRecourse, RecourseCost
-from model.mlp.mlp import MlpModel
-from preprocess.common import EncodePreProcess, FinalizePreProcess, ScalePreProcess
+from recourse_bench.dataset.german.german import GermanDataset
+from recourse_bench.method.larr.library.larr import LARRecourse, RecourseCost
+from recourse_bench.model.mlp.mlp import MlpModel
+from recourse_bench.preprocess.common import EncodePreProcess, FinalizePreProcess, ScalePreProcess
 
 SEED = 0
 N_FOLDS = 5

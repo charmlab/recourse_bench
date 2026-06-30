@@ -1,7 +1,7 @@
 Target models
 =============
 
-.. currentmodule:: model.model_object
+.. currentmodule:: recourse_bench.model.model_object
 
 .. autoclass:: ModelObject
    :members:

@@ -16,8 +16,8 @@ import yaml
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
-from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiments import Experiment
+from recourse_bench.evaluation.evaluation_utils import resolve_evaluation_inputs
+from recourse_bench.experiments import Experiment
 
 
 def _load_config(config_path: Path) -> dict:

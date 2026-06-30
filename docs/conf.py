@@ -6,8 +6,9 @@ import os
 import sys
 from datetime import datetime
 
-# Make the repository root importable so autodoc can find the top-level
-# packages (dataset, model, method, evaluation, preprocess, utils, experiments).
+# Make the repository root importable so autodoc can find the recourse_bench
+# package (and its subpackages: dataset, model, method, evaluation, preprocess,
+# utils, experiments) when building from a source checkout.
 sys.path.insert(0, os.path.abspath(".."))
 
 project = "RecourseBench"

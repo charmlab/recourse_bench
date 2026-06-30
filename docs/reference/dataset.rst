@@ -1,7 +1,7 @@
 Dataset
 =======
 
-.. currentmodule:: dataset.dataset_object
+.. currentmodule:: recourse_bench.dataset.dataset_object
 
 .. autoclass:: DatasetObject
    :members:

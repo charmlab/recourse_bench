@@ -26,13 +26,13 @@ import yaml
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
-import dataset  # noqa: F401
-import method  # noqa: F401
-import model  # noqa: F401
-import preprocess  # noqa: F401
-from method.diverse_dist.support import DiverseDistModelAdapter, DiverseDistTrace
-from utils.logger import setup_logger
-from utils.registry import get_registry
+import recourse_bench.dataset  # noqa: F401
+import recourse_bench.method  # noqa: F401
+import recourse_bench.model  # noqa: F401
+import recourse_bench.preprocess  # noqa: F401
+from recourse_bench.method.diverse_dist.support import DiverseDistModelAdapter, DiverseDistTrace
+from recourse_bench.utils.logger import setup_logger
+from recourse_bench.utils.registry import get_registry
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")
 

@@ -13,29 +13,29 @@ if str(PROJECT_ROOT) not in sys.path:
 import numpy as np
 import pandas as pd
 
-import dataset  # noqa: F401
-import evaluation  # noqa: F401
-import method  # noqa: F401
-import model  # noqa: F401
-import preprocess  # noqa: F401
-from dataset.adult.adult import AdultDataset
-from dataset.credit.credit import CreditDataset
-from dataset.dataset_object import DatasetObject
-from evaluation.evaluation_object import EvaluationObject
-from evaluation.evaluation_utils import resolve_evaluation_inputs
-from evaluation.validity import ValidityEvaluation
-from method.mace.library import normalizedDistance
-from method.mace.mace import MaceDatasetWrapper, MaceMethod
-from model.sklearn_logistic_regression.sklearn_logistic_regression import (
+import recourse_bench.dataset  # noqa: F401
+import recourse_bench.evaluation  # noqa: F401
+import recourse_bench.method  # noqa: F401
+import recourse_bench.model  # noqa: F401
+import recourse_bench.preprocess  # noqa: F401
+from recourse_bench.dataset.adult.adult import AdultDataset
+from recourse_bench.dataset.credit.credit import CreditDataset
+from recourse_bench.dataset.dataset_object import DatasetObject
+from recourse_bench.evaluation.evaluation_object import EvaluationObject
+from recourse_bench.evaluation.evaluation_utils import resolve_evaluation_inputs
+from recourse_bench.evaluation.validity import ValidityEvaluation
+from recourse_bench.method.mace.library import normalizedDistance
+from recourse_bench.method.mace.mace import MaceDatasetWrapper, MaceMethod
+from recourse_bench.model.sklearn_logistic_regression.sklearn_logistic_regression import (
     SklearnLogisticRegressionModel,
 )
-from preprocess.balance import BalancePreProcess
-from preprocess.common import FinalizePreProcess, SplitPreProcess
-from preprocess.preprocess_object import PreProcessObject
-from preprocess.preprocess_utils import ensure_flag_absent
-from utils.caching import set_cache_dir
-from utils.registry import register
-from utils.seed import seed_context
+from recourse_bench.preprocess.balance import BalancePreProcess
+from recourse_bench.preprocess.common import FinalizePreProcess, SplitPreProcess
+from recourse_bench.preprocess.preprocess_object import PreProcessObject
+from recourse_bench.preprocess.preprocess_utils import ensure_flag_absent
+from recourse_bench.utils.caching import set_cache_dir
+from recourse_bench.utils.registry import register
+from recourse_bench.utils.seed import seed_context
 
 SEED = 54321
 DEFAULTS = {

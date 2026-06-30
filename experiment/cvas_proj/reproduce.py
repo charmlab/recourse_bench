@@ -9,21 +9,21 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import dataset  # noqa: F401
-import method  # noqa: F401
-import model  # noqa: F401
-import preprocess  # noqa: F401
+import recourse_bench.dataset  # noqa: F401
+import recourse_bench.method  # noqa: F401
+import recourse_bench.model  # noqa: F401
+import recourse_bench.preprocess  # noqa: F401
 import numpy as np
 import pandas as pd
 import torch
 import yaml
-from model.mlp import mlp as mlp_module
-from preprocess.common import EncodePreProcess, ScalePreProcess, SplitPreProcess
-from preprocess.preprocess_object import PreProcessObject
+from recourse_bench.model.mlp import mlp as mlp_module
+from recourse_bench.preprocess.common import EncodePreProcess, ScalePreProcess, SplitPreProcess
+from recourse_bench.preprocess.preprocess_object import PreProcessObject
 from sklearn.model_selection import KFold, train_test_split
-from utils.caching import set_cache_dir
-from utils.registry import get_registry
-from utils.seed import seed_context
+from recourse_bench.utils.caching import set_cache_dir
+from recourse_bench.utils.registry import get_registry
+from recourse_bench.utils.seed import seed_context
 
 PROFILE_DEFAULTS = {
     "smoke": {
@@ -118,7 +118,7 @@ class CvasGermanReferencePreProcess(PreProcessObject):
 
     def transform(self, input_dataset):
         with seed_context(self._seed):
-            from preprocess.preprocess_utils import ensure_flag_absent
+            from recourse_bench.preprocess.preprocess_utils import ensure_flag_absent
 
             for flag in (
                 "range",
@@ -242,7 +242,7 @@ class StratifiedSplitPreProcess(PreProcessObject):
 
     def transform(self, input_dataset):
         with seed_context(self._seed):
-            from preprocess.preprocess_utils import ensure_flag_absent
+            from recourse_bench.preprocess.preprocess_utils import ensure_flag_absent
 
             ensure_flag_absent(input_dataset, "trainset")
             ensure_flag_absent(input_dataset, "testset")

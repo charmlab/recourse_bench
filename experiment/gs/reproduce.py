@@ -19,8 +19,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
-from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiments import Experiment
+from recourse_bench.evaluation.evaluation_utils import resolve_evaluation_inputs
+from recourse_bench.experiments import Experiment
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name(
     "news_popularity_randomforest_gs_reproduce.yaml"

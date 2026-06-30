@@ -17,10 +17,10 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from experiments import Experiment
-from method.sns.support import resolve_target_indices, sns_search, validate_counterfactuals
-from method.sns.support import min_l2_search
-from utils.registry import get_registry
+from recourse_bench.experiments import Experiment
+from recourse_bench.method.sns.support import resolve_target_indices, sns_search, validate_counterfactuals
+from recourse_bench.method.sns.support import min_l2_search
+from recourse_bench.utils.registry import get_registry
 
 
 def _load_config(config_path: Path) -> dict:

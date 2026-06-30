@@ -1,7 +1,7 @@
 Evaluation metrics
 ==================
 
-.. currentmodule:: evaluation.evaluation_object
+.. currentmodule:: recourse_bench.evaluation.evaluation_object
 
 .. autoclass:: EvaluationObject
    :members:

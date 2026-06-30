@@ -20,10 +20,10 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from dataset.german.german import GermanDataset
-from dataset.german_roar.german_roar import GermanRoarDataset
-from method.rbr.rbr import RbrMethod
-from model.mlp.mlp import MlpModel
+from recourse_bench.dataset.german.german import GermanDataset
+from recourse_bench.dataset.german_roar.german_roar import GermanRoarDataset
+from recourse_bench.method.rbr.rbr import RbrMethod
+from recourse_bench.model.mlp.mlp import MlpModel
 
 DEFAULT_CURRENT_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_current.yaml"
 DEFAULT_FUTURE_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_future.yaml"

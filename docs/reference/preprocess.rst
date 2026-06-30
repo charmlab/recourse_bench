@@ -1,7 +1,7 @@
 Preprocessing
 =============
 
-.. currentmodule:: preprocess.preprocess_object
+.. currentmodule:: recourse_bench.preprocess.preprocess_object
 
 .. autoclass:: PreProcessObject
    :members:

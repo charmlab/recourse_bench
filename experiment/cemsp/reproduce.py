@@ -22,15 +22,15 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 from tqdm import tqdm
 
-import dataset  # noqa: F401
-import method  # noqa: F401
-import model  # noqa: F401
-import preprocess  # noqa: F401
-from dataset.dataset_object import DatasetObject
-from model.model_object import ModelObject, process_nan
-from model.model_utils import build_optimizer, logits_to_prediction, resolve_device
-from utils.registry import get_registry
-from utils.seed import seed_context
+import recourse_bench.dataset  # noqa: F401
+import recourse_bench.method  # noqa: F401
+import recourse_bench.model  # noqa: F401
+import recourse_bench.preprocess  # noqa: F401
+from recourse_bench.dataset.dataset_object import DatasetObject
+from recourse_bench.model.model_object import ModelObject, process_nan
+from recourse_bench.model.model_utils import build_optimizer, logits_to_prediction, resolve_device
+from recourse_bench.utils.registry import get_registry
+from recourse_bench.utils.seed import seed_context
 
 
 class _CemspReferenceMlp(ModelObject):

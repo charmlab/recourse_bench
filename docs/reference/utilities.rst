@@ -4,7 +4,7 @@ Utilities
 Exceptions
 ----------
 
-.. currentmodule:: utils.exceptions
+.. currentmodule:: recourse_bench.utils.exceptions
 
 .. autoexception:: RecourseBenchError
    :show-inheritance:
@@ -15,14 +15,14 @@ Exceptions
 Reproducibility
 ---------------
 
-.. currentmodule:: utils.seed
+.. currentmodule:: recourse_bench.utils.seed
 
 .. autofunction:: seed_context
 
 Caching
 -------
 
-.. currentmodule:: utils.caching
+.. currentmodule:: recourse_bench.utils.caching
 
 .. autofunction:: get_cache_dir
 
@@ -31,14 +31,14 @@ Caching
 Logging
 -------
 
-.. currentmodule:: utils.logger
+.. currentmodule:: recourse_bench.utils.logger
 
 .. autofunction:: setup_logger
 
 Model helpers
 -------------
 
-.. currentmodule:: model.model_utils
+.. currentmodule:: recourse_bench.model.model_utils
 
 .. autofunction:: resolve_device
 
@@ -47,7 +47,7 @@ Model helpers
 Evaluation helpers
 ------------------
 
-.. currentmodule:: evaluation.evaluation_utils
+.. currentmodule:: recourse_bench.evaluation.evaluation_utils
 
 .. autofunction:: distance
 
@@ -56,13 +56,13 @@ Evaluation helpers
 Preprocessing helpers
 ---------------------
 
-.. currentmodule:: preprocess.preprocess_utils
+.. currentmodule:: recourse_bench.preprocess.preprocess_utils
 
 .. autofunction:: resolve_feature_metadata
 
 Benchmark suites
 ----------------
 
-.. currentmodule:: benchmark.run
+.. currentmodule:: recourse_bench.benchmark.run
 
 .. autofunction:: run_benchmarks

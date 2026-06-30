@@ -21,9 +21,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import LocalOutlierFactor
 from tqdm.auto import tqdm
 
-from dataset.dataset_object import DatasetObject
-from method.trex.trex import TrexMethod
-from model.mlp.mlp import MlpModel
+from recourse_bench.dataset.dataset_object import DatasetObject
+from recourse_bench.method.trex.trex import TrexMethod
+from recourse_bench.model.mlp.mlp import MlpModel
 
 TARGET_COLUMN = "credit_risk"
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")

@@ -22,34 +22,34 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # Trigger local registrations.
-import dataset  # noqa: E402,F401
-import method  # noqa: E402,F401
-import model  # noqa: E402,F401
-import preprocess  # noqa: E402,F401
-from dataset.compas_clue.compas_clue import CompasClueDataset  # noqa: E402
-from method.clue.clue import ClueMethod  # noqa: E402
-from method.clue.library.clue_ml.interpret.FIDO import mask_explainer  # noqa: E402
-from method.clue.library.clue_ml.interpret.functionally_grounded import (  # noqa: E402
+import recourse_bench.dataset  # noqa: E402,F401
+import recourse_bench.method  # noqa: E402,F401
+import recourse_bench.model  # noqa: E402,F401
+import recourse_bench.preprocess  # noqa: E402,F401
+from recourse_bench.dataset.compas_clue.compas_clue import CompasClueDataset  # noqa: E402
+from recourse_bench.method.clue.clue import ClueMethod  # noqa: E402
+from recourse_bench.method.clue.library.clue_ml.interpret.FIDO import mask_explainer  # noqa: E402
+from recourse_bench.method.clue.library.clue_ml.interpret.functionally_grounded import (  # noqa: E402
     evaluate_aleatoric_explanation_cat,
     evaluate_epistemic_explanation_cat,
     get_BNN_uncertainties,
     get_VAEAC_px_gauss_cat,
 )
-from method.clue.library.clue_ml.interpret.generate_data import (
+from recourse_bench.method.clue.library.clue_ml.interpret.generate_data import (
     sample_artificial_dataset,
 )  # noqa: E402
-from method.clue.library.clue_ml.src.gauss_cat import selective_softmax  # noqa: E402
-from method.clue.library.clue_ml.src.utils import (  # noqa: E402
+from recourse_bench.method.clue.library.clue_ml.src.gauss_cat import selective_softmax  # noqa: E402
+from recourse_bench.method.clue.library.clue_ml.src.utils import (  # noqa: E402
     generate_ind_batch,
     register_checkpoint_aliases,
 )
-from method.clue.library.clue_ml.VAEAC.fc_gauss_cat import (
+from recourse_bench.method.clue.library.clue_ml.VAEAC.fc_gauss_cat import (
     VAEAC_gauss_cat_net,
 )  # noqa: E402
-from method.clue.library.clue_ml.VAEAC.under_net import under_VAEAC  # noqa: E402
-from method.clue.support import resolve_vae_checkpoint_path  # noqa: E402
-from model.mlp_bayesian.mlp_bayesian import MlpBayesianModel  # noqa: E402
-from preprocess.common import (
+from recourse_bench.method.clue.library.clue_ml.VAEAC.under_net import under_VAEAC  # noqa: E402
+from recourse_bench.method.clue.support import resolve_vae_checkpoint_path  # noqa: E402
+from recourse_bench.model.mlp_bayesian.mlp_bayesian import MlpBayesianModel  # noqa: E402
+from recourse_bench.preprocess.common import (
     EncodePreProcess,  # noqa: E402
     FinalizePreProcess,
     ReorderPreProcess,

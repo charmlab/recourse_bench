@@ -16,12 +16,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from evaluation.evaluation_object import EvaluationObject
-from evaluation.evaluation_utils import resolve_evaluation_inputs
-from experiments import Experiment
-from model.model_object import ModelObject, process_nan
-from model.model_utils import resolve_device
-from utils.registry import register
+from recourse_bench.evaluation.evaluation_object import EvaluationObject
+from recourse_bench.evaluation.evaluation_utils import resolve_evaluation_inputs
+from recourse_bench.experiments import Experiment
+from recourse_bench.model.model_object import ModelObject, process_nan
+from recourse_bench.model.model_utils import resolve_device
+from recourse_bench.utils.registry import register
 
 GLOBAL_SEED = 10_000_000
 SAMPLE_SIZES = [1, 2, 3]

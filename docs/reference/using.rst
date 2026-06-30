@@ -150,7 +150,7 @@ For full control — including access to the trained model, the generated
 counterfactuals, and run provenance — use the :class:`~experiments.Experiment`
 class directly.
 
-.. currentmodule:: experiments
+.. currentmodule:: recourse_bench.experiments
 
 .. autoclass:: Experiment
    :members:

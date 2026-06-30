@@ -1,7 +1,7 @@
 Recourse methods
 ================
 
-.. currentmodule:: method.method_object
+.. currentmodule:: recourse_bench.method.method_object
 
 .. autoclass:: MethodObject
    :members:

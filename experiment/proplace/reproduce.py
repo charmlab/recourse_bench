@@ -20,22 +20,22 @@ from sklearn.neighbors import LocalOutlierFactor
 from tqdm import tqdm
 
 # Trigger standard registration.
-import dataset  # noqa: F401
-import method  # noqa: F401
-import model  # noqa: F401
-import preprocess  # noqa: F401
-from dataset.compas_carla.compas_carla import CompasCarlaDataset
-from preprocess.common import EncodePreProcess
-from method.proplace.support import (
+import recourse_bench.dataset  # noqa: F401
+import recourse_bench.method  # noqa: F401
+import recourse_bench.model  # noqa: F401
+import recourse_bench.preprocess  # noqa: F401
+from recourse_bench.dataset.compas_carla.compas_carla import CompasCarlaDataset
+from recourse_bench.preprocess.common import EncodePreProcess
+from recourse_bench.method.proplace.support import (
     OptSolver,
     build_inn,
     build_proplace_dataset,
     extract_scalar_network,
 )
-from utils.caching import set_cache_dir
-from utils.logger import setup_logger
-from utils.registry import get_registry
-from utils.seed import seed_context
+from recourse_bench.utils.caching import set_cache_dir
+from recourse_bench.utils.logger import setup_logger
+from recourse_bench.utils.registry import get_registry
+from recourse_bench.utils.seed import seed_context
 
 REFERENCE_PROPLACE_ROW = {
     "validity": 1.0,
@@ -156,7 +156,7 @@ class ProplaceEncodePreProcess(EncodePreProcess):
 
     def transform(self, input):
         with seed_context(self._seed):
-            from preprocess.preprocess_utils import ensure_flag_absent
+            from recourse_bench.preprocess.preprocess_utils import ensure_flag_absent
 
             ensure_flag_absent(input, "encoding")
 

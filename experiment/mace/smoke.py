@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if ROOT.as_posix() not in sys.path:
     sys.path.insert(0, ROOT.as_posix())
 
-from experiments import Experiment
+from recourse_bench.experiments import Experiment
 
 
 def register_mace_preprocess() -> None:

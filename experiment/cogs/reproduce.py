@@ -18,9 +18,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from tqdm import tqdm
 
-from experiments import Experiment
-from method.cogs.support import compute_ranges_numerical_features, gower_distance
-from utils.registry import get_registry
+from recourse_bench.experiments import Experiment
+from recourse_bench.method.cogs.support import compute_ranges_numerical_features, gower_distance
+from recourse_bench.utils.registry import get_registry
 
 
 def _load_config(config_path: Path) -> dict:

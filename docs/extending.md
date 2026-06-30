@@ -15,8 +15,8 @@ metadata should include at least `name`, `target_column`, `raw_feature_type`,
 dataframe must be raw (non-encoded, non-scaled) and include the target column.
 
 ```python
-from dataset.dataset_object import DatasetObject
-from utils.registry import register
+from recourse_bench.dataset.dataset_object import DatasetObject
+from recourse_bench.utils.registry import register
 
 
 @register("custom")
@@ -38,8 +38,8 @@ When modifying the dataframe, only use
 a unique flag to guard against double application).
 
 ```python
-from preprocess.preprocess_object import PreProcessObject
-from utils.registry import register
+from recourse_bench.preprocess.preprocess_object import PreProcessObject
+from recourse_bench.utils.registry import register
 
 
 @register("custom")
@@ -57,8 +57,8 @@ class CustomPreProcess(PreProcessObject):
 ## Target model
 
 ```python
-from model.model_object import ModelObject, process_nan
-from utils.registry import register
+from recourse_bench.model.model_object import ModelObject, process_nan
+from recourse_bench.utils.registry import register
 
 
 @register("custom")
@@ -87,8 +87,8 @@ with the same rows and feature columns; rows with no valid counterfactual are
 filled with `NaN`.
 
 ```python
-from method.method_object import MethodObject
-from utils.registry import register
+from recourse_bench.method.method_object import MethodObject
+from recourse_bench.utils.registry import register
 
 
 @register("custom")
@@ -113,8 +113,8 @@ Return a one-row dataframe with stable, descriptive column names. If the
 counterfactual dataset has an `evaluation_filter`, apply it first.
 
 ```python
-from evaluation.evaluation_object import EvaluationObject
-from utils.registry import register
+from recourse_bench.evaluation.evaluation_object import EvaluationObject
+from recourse_bench.utils.registry import register
 
 
 @register("custom")

@@ -19,13 +19,13 @@ import yaml
 from sklearn.model_selection import ShuffleSplit
 from tqdm.auto import tqdm
 
-from dataset.compas_carla.compas_carla import CompasCarlaDataset
-from method.cols.cols import ColsMethod
-from method.cols.support import decode_feature_dataframe
-from model.mlp.mlp import MlpModel
-from model.model_utils import build_optimizer
-from model.model_object import process_nan
-from utils.seed import seed_context
+from recourse_bench.dataset.compas_carla.compas_carla import CompasCarlaDataset
+from recourse_bench.method.cols.cols import ColsMethod
+from recourse_bench.method.cols.support import decode_feature_dataframe
+from recourse_bench.model.mlp.mlp import MlpModel
+from recourse_bench.model.model_utils import build_optimizer
+from recourse_bench.model.model_object import process_nan
+from recourse_bench.utils.seed import seed_context
 
 EPSILON = 1e-7
 

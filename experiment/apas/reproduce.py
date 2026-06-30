@@ -21,15 +21,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.neural_network import MLPClassifier
 
-from dataset.dataset_object import DatasetObject
-from dataset.diabetes.diabetes import DiabetesDataset
-from method.apas.apas import ApasMethod
-from method.apas.support import (
+from recourse_bench.dataset.dataset_object import DatasetObject
+from recourse_bench.dataset.diabetes.diabetes import DiabetesDataset
+from recourse_bench.method.apas.apas import ApasMethod
+from recourse_bench.method.apas.support import (
     BinaryNetwork,
     create_silent_gurobi_model,
     extract_binary_target_networks,
 )
-from model.mlp.mlp import MlpModel
+from recourse_bench.model.mlp.mlp import MlpModel
 
 
 warnings.filterwarnings("ignore")

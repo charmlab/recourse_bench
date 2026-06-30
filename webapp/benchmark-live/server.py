@@ -31,14 +31,14 @@ if str(SITE_ROOT) not in sys.path:
     sys.path.insert(0, str(SITE_ROOT))
 
 # Trigger registration
-import dataset  # noqa: F401,E402
-import evaluation  # noqa: F401,E402
-import method  # noqa: F401,E402
-import model  # noqa: F401,E402
-import preprocess  # noqa: F401,E402
-from experiments import Experiment  # noqa: E402
+import recourse_bench.dataset  # noqa: F401,E402
+import recourse_bench.evaluation  # noqa: F401,E402
+import recourse_bench.method  # noqa: F401,E402
+import recourse_bench.model  # noqa: F401,E402
+import recourse_bench.preprocess  # noqa: F401,E402
+from recourse_bench.experiments import Experiment  # noqa: E402
 from sync_data import sync_live_site_data  # noqa: E402
-from utils.registry import get_registry  # noqa: E402
+from recourse_bench.utils.registry import get_registry  # noqa: E402
 
 JOB_LOCK = Lock()
 JOBS: dict[str, dict[str, object]] = {}

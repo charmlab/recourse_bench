@@ -20,15 +20,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from tqdm import tqdm
 
-from dataset.compas_carla.compas_carla import CompasCarlaDataset
-from dataset.dataset_object import DatasetObject
-from preprocess.common import EncodePreProcess, ScalePreProcess
-from method.arg_ensembling.support import (
+from recourse_bench.dataset.compas_carla.compas_carla import CompasCarlaDataset
+from recourse_bench.dataset.dataset_object import DatasetObject
+from recourse_bench.preprocess.common import EncodePreProcess, ScalePreProcess
+from recourse_bench.method.arg_ensembling.support import (
     build_baf_program,
     nearest_neighbor_counterfactual,
     solve_argumentative_extension,
 )
-from model.model_object import ModelObject
+from recourse_bench.model.model_object import ModelObject
 
 
 @dataclass(frozen=True)
