@@ -1,0 +1,1 @@
+from recourse_bench.method.cvas_proj.cvas_proj import CvasProjMethod

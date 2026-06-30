@@ -1,1 +1,0 @@
-from model.mlp_bayesian.mlp_bayesian import MlpBayesianModel

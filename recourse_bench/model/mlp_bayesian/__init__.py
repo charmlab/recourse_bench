@@ -1,0 +1,1 @@
+from recourse_bench.model.mlp_bayesian.mlp_bayesian import MlpBayesianModel

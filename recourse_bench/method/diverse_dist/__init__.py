@@ -1,0 +1,1 @@
+from recourse_bench.method.diverse_dist.diverse_dist import DiverseDistMethod

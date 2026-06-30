@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "recourse_bench"
-version = "0.1.1"
+version = "0.1.2"
 description = "A benchmark for algorithmic recourse methods."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -50,20 +50,13 @@ Homepage = "https://github.com/charmlab/recourse_bench"
 Repository = "https://github.com/charmlab/recourse_bench"
 
 [project.scripts]
-recourse-bench = "experiments:run_experiment"
+recourse-bench = "recourse_bench.experiments:run_experiment"
 
 [tool.setuptools]
-py-modules = ["experiments", "main"]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 include = [
     "recourse_bench",
-    "method*",
-    "model*",
-    "dataset*",
-    "preprocess*",
-    "evaluation*",
-    "utils*",
-    "benchmark*",
+    "recourse_bench.*",
 ]

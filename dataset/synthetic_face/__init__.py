@@ -1,1 +1,0 @@
-from dataset.synthetic_face.synthetic_face import SyntheticFaceDataset

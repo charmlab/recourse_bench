@@ -2,11 +2,7 @@ include requirements.txt
 include README.md
 
 # Bundle non-Python data files that packages load at runtime.
-recursive-include dataset *.csv *.yaml *.yml *.json
-recursive-include benchmark *.yaml *.yml *.json *.csv
-recursive-include method *.yaml *.yml *.json
-recursive-include model *.yaml *.yml *.json
-recursive-include preprocess *.yaml *.yml *.json
+recursive-include recourse_bench *.csv *.yaml *.yml *.json
 
 global-exclude *.pyc
 global-exclude __pycache__/*

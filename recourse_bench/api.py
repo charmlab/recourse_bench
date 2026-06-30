@@ -22,8 +22,8 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from experiments import Experiment
-from utils.registry import get_registry
+from recourse_bench.experiments import Experiment
+from recourse_bench.utils.registry import get_registry
 
 
 def list_datasets() -> list[str]:
