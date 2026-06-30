@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -1070,8 +1072,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--trex-epsilon", type=float, default=None)
     return parser.parse_args()
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     args = parse_args()
     start_time = time.perf_counter()
     config = _load_config(Path(args.config).resolve())
@@ -1249,4 +1251,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

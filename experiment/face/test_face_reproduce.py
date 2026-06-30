@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import sys
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -16,12 +19,14 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
 from experiments import Experiment
+from experiment.utils import write_reproduction_report
 
 SEED = 482
 DESIRED_CLASS = 1
 CACHE_DIR = PROJECT_ROOT / "cache" / "face"
 SUMMARY_CSV_PATH = CACHE_DIR / "synthetic_face_summary.csv"
 SUMMARY_JSON_PATH = CACHE_DIR / "synthetic_face_summary.json"
+REPORT_PATH = CACHE_DIR / "reproduction_report.json"
 # Approximate original-space query point (x1 ~= 0, x2 ~= 7) after min-max normalization.
 TRIPTYCH_QUERY_POINT = (0.1465, 0.7269)
 
@@ -468,14 +473,56 @@ def run_reproduction() -> pd.DataFrame:
         json.dumps(summary_df.to_dict(orient="records"), indent=2),
         encoding="utf-8",
     )
+    write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="face_synthetic",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "cache_dir": CACHE_DIR.as_posix(),
+            "triptych_query_point": list(TRIPTYCH_QUERY_POINT),
+        },
+        experiments_data={
+            str(row["label"]): {
+                "configuration": {
+                    "dataset": "synthetic_face",
+                    "mode": row["mode"],
+                    "epsilon": row["epsilon"],
+                    "k_neighbors": row["k_neighbors"],
+                    "prediction_threshold": row["prediction_threshold"],
+                    "density_threshold": row["density_threshold"],
+                },
+                "metrics": {
+                    key: {
+                        "original": None,
+                        "reproduced": value,
+                    }
+                    for key, value in row.items()
+                    if key
+                    not in {
+                        "label",
+                        "mode",
+                        "epsilon",
+                        "k_neighbors",
+                        "prediction_threshold",
+                        "density_threshold",
+                    }
+                },
+            }
+            for row in summary_df.to_dict(orient="records")
+        },
+    )
     return summary_df
 
 
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     summary_df = run_reproduction()
     print(summary_df.to_string(index=False))
     print(f"\nSaved summary to {SUMMARY_CSV_PATH}")
+    print(f"Saved reproduction report to {REPORT_PATH}")
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

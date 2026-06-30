@@ -5,7 +5,7 @@ Reason
 The implementation functionally reproduces the Hepatitis / HCV CEMSP reproduction under `method/cemsp/` and `experiment/cemsp/`, with valid counterfactual generation for the full evaluated subset and credible model quality, but it does not match the key quantitative metrics closely enough to qualify as a partial exact reproduction.
 
 Method
-CEMSP Hepatitis / HCV Figure 4-style local-reference reproduction for the benchmark implementation under `method/cemsp/`, using the reproduction script in `experiment/cemsp/` with a reproduction-local weighted-sampler MLP inside `experiment/cemsp/reproduce.py`.
+CEMSP Hepatitis / HCV Figure 4-style local-reference reproduction for the benchmark implementation under `method/cemsp/`, using the reproduction script in `experiment/cemsp/` with a reproduction-local weighted-sampler MLP inside `experiment/cemsp/test_cemsp_reproduce.py`.
 
 Reproduction Summary
 No value available.

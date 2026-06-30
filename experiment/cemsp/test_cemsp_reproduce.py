@@ -6,6 +6,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Sequence
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -574,7 +576,8 @@ def _print_metric(name: str, value: float, reference: float | None = None) -> No
     print(f"{name}: {value:.6f} | reference: {reference:.6f} | delta: {delta:+.6f}")
 
 
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="./experiment/cemsp/config.yaml")
     parser.add_argument("--max-factuals", type=int, default=None)
@@ -721,4 +724,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

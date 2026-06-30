@@ -34,8 +34,8 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `evaluation.paper_targets` in `experiment/trex/config.yaml` contains the same L1 and L2 targets as `PAPER_TARGETS` in `experiment/trex/reproduce.py`.
-- `PAPER_TARGETS` in `experiment/trex/reproduce.py`:
+- `evaluation.paper_targets` in `experiment/trex/config.yaml` contains the same L1 and L2 targets as `PAPER_TARGETS` in `experiment/trex/test_trex_reproduce.py`.
+- `PAPER_TARGETS` in `experiment/trex/test_trex_reproduce.py`:
   - l1: cost = 4.81, lof = 0.72, wi_validity_pct = 98.0, lo_validity_pct = 96.5
   - l2: cost = 1.20, lof = 0.75, wi_validity_pct = 99.2, lo_validity_pct = 98.7
 - paper cost target = 4.81 versus reproduced 3.0869

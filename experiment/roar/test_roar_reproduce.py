@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -24,6 +27,7 @@ from dataset.student_roar.student_roar import StudentRoarDataset
 from evaluation.evaluation_object import EvaluationObject
 from evaluation.evaluation_utils import resolve_evaluation_inputs
 from evaluation.validity import ValidityEvaluation
+from experiment.utils import write_reproduction_report
 from method.roar.roar import RoarMethod
 from model.model_object import ModelObject, process_nan
 from preprocess.common import EncodePreProcess, FinalizePreProcess, ScalePreProcess
@@ -103,6 +107,7 @@ PAPER_METRIC_TO_AGGREGATE_KEY = {
     "m1_validity": "M1_validity",
     "m2_validity": "M2_validity",
 }
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 @dataclass(frozen=True)
@@ -964,7 +969,7 @@ def run_reproduction(
             }
         )
 
-    return {
+    output = {
         "results": cases,
         "rows": rows,
         "summary": {
@@ -976,9 +981,88 @@ def run_reproduction(
             "device": "cpu",
         },
     }
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="roar_robust_recourse",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "n_trials": int(n_trials),
+            "lambda_value": None if lambda_value is None else float(lambda_value),
+            "factual_limit": None if factual_limit is None else int(factual_limit),
+            "lambda_factual_limit": None
+            if lambda_factual_limit is None
+            else int(lambda_factual_limit),
+        },
+        experiments_data={
+            f"{case['dataset']}_{case['model']}_{case['cost']}": {
+                "configuration": {
+                    "dataset": case["dataset"],
+                    "model": case["model"],
+                    "cost": case["cost"],
+                    "recourse": case["recourse"],
+                    "n_trials": case["n_trials"],
+                    "lambda_mode": case["lambda_mode"],
+                    "lambda_value": case["lambda_value"],
+                    "factual_limit": case["factual_limit"],
+                    "lambda_factual_limit": case["lambda_factual_limit"],
+                },
+                "metrics": {
+                    "cost_mean": {
+                        "original": PAPER_METRICS.get(
+                            (case["dataset"], case["model"], case["cost"]), {}
+                        ).get("cost", {}).get("mean"),
+                        "reproduced": case["aggregate"]["cost"]["mean"],
+                    },
+                    "cost_std": {
+                        "original": PAPER_METRICS.get(
+                            (case["dataset"], case["model"], case["cost"]), {}
+                        ).get("cost", {}).get("std"),
+                        "reproduced": case["aggregate"]["cost"]["std"],
+                    },
+                    "m1_validity_mean": {
+                        "original": PAPER_METRICS.get(
+                            (case["dataset"], case["model"], case["cost"]), {}
+                        ).get("m1_validity", {}).get("mean"),
+                        "reproduced": case["aggregate"]["M1_validity"]["mean"],
+                    },
+                    "m1_validity_std": {
+                        "original": PAPER_METRICS.get(
+                            (case["dataset"], case["model"], case["cost"]), {}
+                        ).get("m1_validity", {}).get("std"),
+                        "reproduced": case["aggregate"]["M1_validity"]["std"],
+                    },
+                    "m2_validity_mean": {
+                        "original": PAPER_METRICS.get(
+                            (case["dataset"], case["model"], case["cost"]), {}
+                        ).get("m2_validity", {}).get("mean"),
+                        "reproduced": case["aggregate"]["M2_validity"]["mean"],
+                    },
+                    "m2_validity_std": {
+                        "original": PAPER_METRICS.get(
+                            (case["dataset"], case["model"], case["cost"]), {}
+                        ).get("m2_validity", {}).get("std"),
+                        "reproduced": case["aggregate"]["M2_validity"]["std"],
+                    },
+                    "lambda_mean": {
+                        "original": None,
+                        "reproduced": case["aggregate"]["lambda"]["mean"],
+                    },
+                    "lambda_std": {
+                        "original": None,
+                        "reproduced": case["aggregate"]["lambda"]["std"],
+                    },
+                },
+            }
+            for case in cases
+        },
+    )
+    output["report_path"] = str(report_path)
+    return output
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", "--dataset", default="all")
     parser.add_argument("--base-model", "--model", default="all")
@@ -1004,4 +1088,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

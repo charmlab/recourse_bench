@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import sys
 from copy import deepcopy
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -13,6 +16,7 @@ import pandas as pd
 import torch
 
 from dataset.german.german import GermanDataset
+from experiment.utils import write_reproduction_report
 from method.larr.library.larr import LARRecourse, RecourseCost
 from model.mlp.mlp import MlpModel
 from preprocess.common import EncodePreProcess, FinalizePreProcess, ScalePreProcess
@@ -25,6 +29,7 @@ ALPHA = 0.5
 BETA = 0.518
 ROBUSTNESS_BOUNDS = (0.27, 0.29)
 CONSISTENCY_BOUNDS = (0.40, 0.41)
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 class ReferencePredictAdapter:
@@ -180,8 +185,8 @@ def _evaluate_fold(
         int(recourse_needed_X_test.shape[0]),
     )
 
-
-def run_reproduction() -> tuple[float, float]:
+@pytest.mark.slow
+def test_reproduce() -> tuple[float, float]:
     dataset = _build_preprocessed_german_dataset()
     full_df = pd.concat([dataset.get(target=False), dataset.get(target=True)], axis=1)
     feature_names = list(dataset.get(target=False).columns)
@@ -217,16 +222,49 @@ def run_reproduction() -> tuple[float, float]:
 
     assert ROBUSTNESS_BOUNDS[0] < avge_robustness < ROBUSTNESS_BOUNDS[1]
     assert CONSISTENCY_BOUNDS[0] < avge_consistency < CONSISTENCY_BOUNDS[1]
+    write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="larr_german",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "robustness_bounds": list(ROBUSTNESS_BOUNDS),
+            "consistency_bounds": list(CONSISTENCY_BOUNDS),
+            "n_folds": N_FOLDS,
+            "num_factuals_per_fold": NUM_FACTUALS,
+            "alpha": ALPHA,
+            "beta": BETA,
+        },
+        experiments_data={
+            "german_larr_reproduction": {
+                "configuration": {
+                    "dataset": "german",
+                    "model": "mlp",
+                    "method": "larr",
+                    "n_folds": N_FOLDS,
+                    "num_factuals_per_fold": NUM_FACTUALS,
+                },
+                "metrics": {
+                    "average_robustness": {
+                        "original": None,
+                        "reproduced": avge_robustness,
+                    },
+                    "average_consistency": {
+                        "original": None,
+                        "reproduced": avge_consistency,
+                    },
+                },
+            }
+        },
+    )
     return avge_robustness, avge_consistency
 
 
-def test_run_experiment():
-    return run_reproduction()
-
-
-def main() -> None:
-    run_reproduction()
+# @pytest.mark.slow
+# def test_reproduce() -> tuple[float, float]:
+#     return test_reproduce()
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

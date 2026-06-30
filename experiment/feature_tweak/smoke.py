@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,7 +22,8 @@ def load_config(path: Path) -> dict:
     return config
 
 
-def main() -> None:
+@pytest.mark.fast
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-p",
@@ -39,4 +41,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
 import logging
 import sys
 import time
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -19,16 +24,20 @@ import yaml
 from tqdm import tqdm
 
 from dataset.dataset_object import DatasetObject
+from experiment.utils import write_reproduction_report
 from method.sns.support import (
     min_l2_search,
+    pgd_l2_search,
     resolve_target_indices,
-    sns_search,
+    sns_search_batch,
 )
 from utils.registry import get_registry
 
 
 DATASET_ROOT = PROJECT_ROOT / "dataset"
 DEFAULT_STDOUT_LOG = PROJECT_ROOT / "experiment" / "sns" / "reproduce_stdout.txt"
+MODEL_CACHE_ROOT = PROJECT_ROOT / "experiment" / "sns" / "cache" / "models"
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 DATASET_SPECS: dict[str, dict[str, Any]] = {
     "german_credit": {
@@ -41,7 +50,15 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
             "min_l2": {"loo_invalidation": 0.36, "rs_invalidation": 0.56, "l2_cost": 4.49},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.06, "l2_cost": 6.23},
         },
-        "method_overrides": {},
+        "method_overrides": {
+            "base_search": "min_l2",
+            "base_steps": 100,
+            "base_step_size": 0.01,
+            "sns_eps": 2.4,
+            "sns_nb_iters": 200,
+            "sns_eps_iter": 0.024,
+            "n_interpolations": 20,
+        },
     },
     "seizure": {
         "display_name": "Seizure",
@@ -53,7 +70,15 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
             "min_l2": {"loo_invalidation": 0.64, "rs_invalidation": 0.77, "l2_cost": 8.23},
             "min_l2_sns": {"loo_invalidation": 0.02, "rs_invalidation": 0.13, "l2_cost": 9.60},
         },
-        "method_overrides": {},
+        "method_overrides": {
+            "base_search": "min_l2",
+            "base_steps": 200,
+            "base_step_size": 0.005,
+            "sns_eps": 1.0,
+            "sns_nb_iters": 200,
+            "sns_eps_iter": 0.01,
+            "n_interpolations": 20,
+        },
     },
     "ctg": {
         "display_name": "CTG",
@@ -65,7 +90,15 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
             "min_l2": {"loo_invalidation": 0.48, "rs_invalidation": 0.49, "l2_cost": 0.06},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.00, "l2_cost": 0.21},
         },
-        "method_overrides": {},
+        "method_overrides": {
+            "base_search": "min_l2",
+            "base_steps": 100,
+            "base_step_size": 0.01,
+            "sns_eps": 0.5,
+            "sns_nb_iters": 200,
+            "sns_eps_iter": 0.005,
+            "n_interpolations": 20,
+        },
     },
     "warfarin": {
         "display_name": "Warfarin",
@@ -77,7 +110,15 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
             "min_l2": {"loo_invalidation": 0.35, "rs_invalidation": 0.30, "l2_cost": 0.54},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.00, "l2_cost": 0.90},
         },
-        "method_overrides": {},
+        "method_overrides": {
+            "base_search": "min_l2",
+            "base_steps": 100,
+            "base_step_size": 0.01,
+            "sns_eps": 0.3,
+            "sns_nb_iters": 200,
+            "sns_eps_iter": 0.003,
+            "n_interpolations": 20,
+        },
     },
     "heloc": {
         "display_name": "HELOC",
@@ -89,7 +130,15 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
             "min_l2": {"loo_invalidation": 0.55, "rs_invalidation": 0.61, "l2_cost": 0.11},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.00, "l2_cost": 1.71},
         },
-        "method_overrides": {},
+        "method_overrides": {
+            "base_search": "min_l2",
+            "base_steps": 100,
+            "base_step_size": 0.01,
+            "sns_eps": 2.0,
+            "sns_nb_iters": 200,
+            "sns_eps_iter": 0.02,
+            "n_interpolations": 20,
+        },
     },
     "taiwanese_credit": {
         "display_name": "Taiwanese Credit",
@@ -101,7 +150,15 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
             "min_l2": {"loo_invalidation": 0.27, "rs_invalidation": 0.72, "l2_cost": 2.65},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.04, "l2_cost": 4.68},
         },
-        "method_overrides": {},
+        "method_overrides": {
+            "base_search": "min_l2",
+            "base_steps": 100,
+            "base_step_size": 0.01,
+            "sns_eps": 2.0,
+            "sns_nb_iters": 200,
+            "sns_eps_iter": 0.02,
+            "n_interpolations": 20,
+        },
     },
 }
 
@@ -271,12 +328,68 @@ def _predict_indices(model, features: pd.DataFrame) -> np.ndarray:
     )
 
 
+def _convert_to_super_labels(preds: np.ndarray, affinity_set: list[list[int]]) -> np.ndarray:
+    converted = preds.astype(np.int64, copy=True)
+    for subset in affinity_set:
+        super_label = int(subset[0])
+        for label in subset:
+            converted[converted == int(label)] = super_label
+    return converted
+
+
+def _json_default(value: Any):
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, np.generic):
+        return value.item()
+    raise TypeError(f"Unsupported cache payload type: {type(value)!r}")
+
+
+def _cache_key(*, dataset_key: str, role: str, payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, default=_json_default)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+    return f"{dataset_key}_{role}_{digest}"
+
+
+def _model_cache_path(dataset_key: str, role: str, payload: dict[str, Any]) -> Path:
+    MODEL_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+    return MODEL_CACHE_ROOT / f"{_cache_key(dataset_key=dataset_key, role=role, payload=payload)}.pt"
+
+
+def _with_model_checkpoint(model_cfg: dict[str, Any], checkpoint_path: Path) -> dict[str, Any]:
+    cfg = deepcopy(model_cfg)
+    cfg["pretrained_path"] = checkpoint_path.as_posix()
+    cfg["save_name"] = checkpoint_path.stem
+    return cfg
+
+
+def _build_cached_model(
+    *,
+    config: dict,
+    dataset_key: str,
+    role: str,
+    trainset,
+    seed: int,
+    cache_payload: dict[str, Any],
+):
+    checkpoint_path = _model_cache_path(dataset_key, role, cache_payload)
+    cache_hit = checkpoint_path.exists()
+    model_cfg = _with_model_checkpoint(config["model"], checkpoint_path)
+    model_cfg["seed"] = int(seed)
+    model_name = model_cfg.pop("name")
+    model_class = get_registry("model")[model_name]
+    model = model_class(**model_cfg)
+    model.fit(trainset)
+    return model, cache_hit
+
+
 def _validate_candidates(
     target_model,
     factuals: pd.DataFrame,
     candidates: pd.DataFrame,
     *,
     desired_class: int | str | None,
+    affinity_set: list[list[int]] | None = None,
 ) -> pd.DataFrame:
     if list(candidates.columns) != list(factuals.columns):
         candidates = candidates.reindex(columns=factuals.columns)
@@ -290,7 +403,15 @@ def _validate_candidates(
     candidate_prediction = _predict_indices(target_model, candidates.loc[valid_rows])
 
     if desired_class is None:
-        success = candidate_prediction != factual_prediction[valid_rows.to_numpy()]
+        if affinity_set is not None and len(affinity_set) > 0:
+            factual_super = _convert_to_super_labels(
+                factual_prediction[valid_rows.to_numpy()],
+                affinity_set,
+            )
+            candidate_super = _convert_to_super_labels(candidate_prediction, affinity_set)
+            success = candidate_super != factual_super
+        else:
+            success = candidate_prediction != factual_prediction[valid_rows.to_numpy()]
     else:
         class_to_index = target_model.get_class_to_index()
         desired_index = int(class_to_index[desired_class])
@@ -302,11 +423,10 @@ def _validate_candidates(
     return candidates
 
 
-def _run_base_and_sns(method, factuals: pd.DataFrame):
+def _run_base_and_sns(method, factuals: pd.DataFrame, affinity_set: list[list[int]] | None = None):
     original_prediction = _predict_indices(method._target_model, factuals)
 
     base_rows: list[np.ndarray] = []
-    sns_rows: list[np.ndarray] = []
     for row_position, (_, row) in enumerate(
         tqdm(
             factuals.iterrows(),
@@ -314,99 +434,99 @@ def _run_base_and_sns(method, factuals: pd.DataFrame):
             desc="sns-reproduce",
             leave=False,
         )
-    ):
+        ):
         factual = row.to_numpy(dtype=np.float64)
         original_index = int(original_prediction[row_position])
-        if len(method._target_model.get_class_to_index()) == 2:
-            target_index = int(
-                resolve_target_indices(
-                    method._target_model,
-                    np.asarray([original_index], dtype=np.int64),
-                    desired_class=None,
-                )[0]
+        if method._base_search == "pgd_l2":
+            base_cf = pgd_l2_search(
+                method._target_model,
+                factual=factual,
+                original_index=original_index,
+                target_index=None,
+                clamp=method._clamp,
+                epsilon=method._base_epsilon,
+                steps=method._base_steps,
+                step_size=method._base_step_size,
+                interpolation_steps=method._base_num_interpolations,
+                targeted=False,
+                feature_names=method._feature_names,
             )
         else:
-            target_index = original_index
+            if len(method._target_model.get_class_to_index()) == 2:
+                target_index = int(
+                    resolve_target_indices(
+                        method._target_model,
+                        np.asarray([original_index], dtype=np.int64),
+                        desired_class=None,
+                    )[0]
+                )
+            else:
+                target_index = original_index
 
-        base_cf = min_l2_search(
-            method._target_model,
-            factual=factual,
-            original_index=original_index,
-            target_index=target_index,
-            clamp=method._clamp,
-            steps=method._base_steps,
-            step_size=method._base_step_size,
-            confidence=method._base_confidence,
-            beta=method._base_beta,
-            targeted=False,
-            art_classifier=method._art_classifier,
-            lambda_start=method._base_lambda_start,
-            lambda_growth=method._base_lambda_growth,
-            lambda_max=method._base_lambda_max,
-        )
+            base_cf = min_l2_search(
+                method._target_model,
+                factual=factual,
+                original_index=original_index,
+                target_index=target_index,
+                clamp=method._clamp,
+                steps=method._base_steps,
+                step_size=method._base_step_size,
+                confidence=method._base_confidence,
+                beta=method._base_beta,
+                targeted=False,
+                art_classifier=method._art_classifier,
+                lambda_start=method._base_lambda_start,
+                lambda_growth=method._base_lambda_growth,
+                lambda_max=method._base_lambda_max,
+            )
         if base_cf is None:
             nan_row = np.full(len(method._feature_names), np.nan, dtype=np.float64)
             base_rows.append(nan_row)
-            sns_rows.append(nan_row)
             continue
 
         base_rows.append(base_cf)
-        base_cf_df = pd.DataFrame([base_cf], columns=factuals.columns)
-        base_prediction = int(_predict_indices(method._target_model, base_cf_df)[0])
-        sns_cf = sns_search(
+
+    base_df = pd.DataFrame(base_rows, index=factuals.index, columns=factuals.columns)
+    sns_df = base_df.copy(deep=True)
+    base_valid_mask = ~base_df.isna().any(axis=1)
+    if bool(base_valid_mask.any()):
+        valid_base_df = base_df.loc[base_valid_mask]
+        base_prediction = _predict_indices(method._target_model, valid_base_df)
+        refined = sns_search_batch(
             method._target_model,
-            counterfactual=base_cf,
-            target_index=base_prediction,
+            counterfactuals=valid_base_df.to_numpy(dtype=np.float64),
+            target_indices=base_prediction,
             clamp=method._clamp,
             sns_eps=method._sns_eps,
             sns_nb_iters=method._sns_nb_iters,
             sns_eps_iter=method._sns_eps_iter,
             n_interpolations=method._n_interpolations,
         )
-        sns_rows.append(sns_cf)
-
-    base_df = pd.DataFrame(base_rows, index=factuals.index, columns=factuals.columns)
-    sns_df = pd.DataFrame(sns_rows, index=factuals.index, columns=factuals.columns)
+        sns_df.loc[base_valid_mask, :] = refined
     base_df = _validate_candidates(
         target_model=method._target_model,
         factuals=factuals,
         candidates=base_df,
         desired_class=method._desired_class,
+        affinity_set=affinity_set,
     )
     sns_df = _validate_candidates(
         target_model=method._target_model,
         factuals=factuals,
         candidates=sns_df,
         desired_class=method._desired_class,
+        affinity_set=affinity_set,
     )
     return original_prediction, base_df, sns_df
 
 
 def _compute_l2_costs(factuals: pd.DataFrame, counterfactuals: pd.DataFrame) -> list[float]:
-    costs = []
-    for idx in counterfactuals.index:
-        cf = counterfactuals.loc[idx]
-        if cf.isna().any():
-            continue
-        factual = factuals.loc[idx]
-        costs.append(
-            float(
-                np.linalg.norm(
-                    cf.to_numpy(dtype=np.float64) - factual.to_numpy(dtype=np.float64),
-                    ord=2,
-                )
-            )
-        )
-    return costs
-
-
-def _convert_to_super_labels(preds: np.ndarray, affinity_set: list[list[int]]) -> np.ndarray:
-    converted = preds.astype(np.int64, copy=True)
-    for subset in affinity_set:
-        super_label = int(subset[0])
-        for label in subset:
-            converted[converted == int(label)] = super_label
-    return converted
+    valid_rows = ~counterfactuals.isna().any(axis=1)
+    if not bool(valid_rows.any()):
+        return []
+    factual_array = factuals.loc[valid_rows].to_numpy(dtype=np.float64)
+    cf_array = counterfactuals.loc[valid_rows].to_numpy(dtype=np.float64)
+    return np.linalg.norm(cf_array - factual_array, ord=2, axis=1).astype(float).tolist()
 
 
 def _compute_invalidation_rate(
@@ -443,16 +563,36 @@ def _build_rs_models(config: dict, trainset, max_related_models: int | None) -> 
     if max_related_models is not None:
         rs_count = min(rs_count, int(max_related_models))
     rs_seed_start = int(reproduction_cfg["rs_seed_start"])
+    cache_base_payload = {
+        "config_name": config.get("name"),
+        "model": config["model"],
+        "trainset_name": trainset.name,
+        "train_rows": len(trainset),
+        "role": "rs",
+    }
 
     models = []
+    cache_hits = 0
     for offset in range(rs_count):
-        model = _build_model_from_cfg(config, seed=rs_seed_start + offset)
-        model.fit(trainset)
+        seed = rs_seed_start + offset
+        model, cache_hit = _build_cached_model(
+            config=config,
+            dataset_key=config["dataset"]["name"],
+            role=f"rs_{offset}",
+            trainset=trainset,
+            seed=seed,
+            cache_payload={**cache_base_payload, "offset": offset, "seed": seed},
+        )
         models.append(model)
-    return models
+        cache_hits += int(cache_hit)
+    return models, {"hits": cache_hits, "misses": rs_count - cache_hits}
 
 
-def _build_loo_models(config: dict, trainset, max_related_models: int | None) -> list:
+def _build_loo_models(
+    config: dict,
+    trainset,
+    max_related_models: int | None,
+) -> list:
     reproduction_cfg = config["reproduction"]
     loo_count = int(reproduction_cfg["loo_count"])
     if max_related_models is not None:
@@ -462,8 +602,17 @@ def _build_loo_models(config: dict, trainset, max_related_models: int | None) ->
     rng = np.random.RandomState(int(reproduction_cfg["loo_selection_seed"]))
     sampled_positions = rng.choice(train_df.shape[0], size=loo_count, replace=False)
     sampled_indices = train_df.index[sampled_positions]
+    cache_base_payload = {
+        "config_name": config.get("name"),
+        "model": config["model"],
+        "trainset_name": trainset.name,
+        "train_rows": len(trainset),
+        "role": "loo",
+        "selection_seed": int(reproduction_cfg["loo_selection_seed"]),
+    }
 
     models = []
+    cache_hits = 0
     for removed_index in sampled_indices:
         reduced_df = train_df.drop(index=removed_index).copy(deep=True)
         reduced_trainset = _make_dataset(
@@ -473,15 +622,77 @@ def _build_loo_models(config: dict, trainset, max_related_models: int | None) ->
             name=f"{trainset.name}_loo_{removed_index}",
             trainset=True,
         )
-        model = _build_model_from_cfg(config, seed=int(config["model"]["seed"]))
-        model.fit(reduced_trainset)
+        model, cache_hit = _build_cached_model(
+            config=config,
+            dataset_key=config["dataset"]["name"],
+            role=f"loo_{removed_index}",
+            trainset=reduced_trainset,
+            seed=int(config["model"]["seed"]),
+            cache_payload={
+                **cache_base_payload,
+                "removed_index": int(removed_index),
+                "reduced_rows": len(reduced_trainset),
+            },
+        )
         models.append(model)
-    return models
+        cache_hits += int(cache_hit)
+    return models, {"hits": cache_hits, "misses": loo_count - cache_hits}
 
 
 def _print_comparison(prefix: str, reproduced: float, paper: float) -> None:
     print(f"{prefix}: {reproduced:.4f}")
     print(f"{prefix}_paper: {paper:.4f}")
+    print(f"{prefix}_abs_diff: {abs(reproduced - paper):.4f}")
+    denominator = max(abs(reproduced), abs(paper), 1e-12)
+    print(f"{prefix}_rel_diff: {abs(reproduced - paper) / denominator:.4f}")
+
+
+def _paper_comparison_rows(result: dict[str, Any]) -> list[dict[str, Any]]:
+    paper_cfg = result["paper"]
+    return [
+        {
+            "dataset": result["dataset_key"],
+            "variant": "min_l2",
+            "metric": "loo_invalidation",
+            "reproduced": result["base_loo_iv"],
+            "paper": float(paper_cfg["min_l2"]["loo_invalidation"]),
+        },
+        {
+            "dataset": result["dataset_key"],
+            "variant": "min_l2",
+            "metric": "rs_invalidation",
+            "reproduced": result["base_rs_iv"],
+            "paper": float(paper_cfg["min_l2"]["rs_invalidation"]),
+        },
+        {
+            "dataset": result["dataset_key"],
+            "variant": "min_l2",
+            "metric": "l2_cost",
+            "reproduced": result["base_cost"],
+            "paper": float(paper_cfg["min_l2"]["l2_cost"]),
+        },
+        {
+            "dataset": result["dataset_key"],
+            "variant": "min_l2_sns",
+            "metric": "loo_invalidation",
+            "reproduced": result["sns_loo_iv"],
+            "paper": float(paper_cfg["min_l2_sns"]["loo_invalidation"]),
+        },
+        {
+            "dataset": result["dataset_key"],
+            "variant": "min_l2_sns",
+            "metric": "rs_invalidation",
+            "reproduced": result["sns_rs_iv"],
+            "paper": float(paper_cfg["min_l2_sns"]["rs_invalidation"]),
+        },
+        {
+            "dataset": result["dataset_key"],
+            "variant": "min_l2_sns",
+            "metric": "l2_cost",
+            "reproduced": result["sns_cost"],
+            "paper": float(paper_cfg["min_l2_sns"]["l2_cost"]),
+        },
+    ]
 
 
 def _resolve_dataset_keys(argument: str) -> list[str]:
@@ -496,6 +707,8 @@ def _prepare_dataset_config(base_config: dict, dataset_key: str) -> dict:
     cfg = deepcopy(base_config)
     dataset_spec = DATASET_SPECS[dataset_key]
     cfg["name"] = f"sns_{dataset_key}_reproduce"
+    cfg.setdefault("dataset", {})
+    cfg["dataset"]["name"] = dataset_key
     method_overrides = dataset_spec.get("method_overrides", {})
     for key, value in method_overrides.items():
         cfg["method"][key] = deepcopy(value)
@@ -514,8 +727,20 @@ def _run_single_dataset(
     trainset = loaded["trainset"]
     testset = loaded["testset"]
 
-    base_model = _build_model_from_cfg(config, seed=int(config["model"]["seed"]))
-    base_model.fit(trainset)
+    base_model, baseline_cache_hit = _build_cached_model(
+        config=config,
+        dataset_key=dataset_key,
+        role="baseline",
+        trainset=trainset,
+        seed=int(config["model"]["seed"]),
+        cache_payload={
+            "config_name": config.get("name"),
+            "model": config["model"],
+            "trainset_name": trainset.name,
+            "train_rows": len(trainset),
+            "role": "baseline",
+        },
+    )
     method = _build_method_from_cfg(config, target_model=base_model)
     method.fit(trainset)
 
@@ -526,9 +751,13 @@ def _run_single_dataset(
     )
 
     started_at = time.perf_counter()
-    original_prediction, base_cfs, sns_cfs = _run_base_and_sns(method, factuals)
-    rs_models = _build_rs_models(config, trainset, max_related_models)
-    loo_models = _build_loo_models(config, trainset, max_related_models)
+    original_prediction, base_cfs, sns_cfs = _run_base_and_sns(
+        method,
+        factuals,
+        affinity_set=spec["affinity_set"],
+    )
+    rs_models, rs_cache_stats = _build_rs_models(config, trainset, max_related_models)
+    loo_models, loo_cache_stats = _build_loo_models(config, trainset, max_related_models)
     runtime = float(time.perf_counter() - started_at)
 
     base_valid_mask = ~base_cfs.isna().any(axis=1)
@@ -550,6 +779,7 @@ def _run_single_dataset(
 
     print()
     print(f"SNS {spec['display_name']} Reproduction")
+    print("paper_reference: reference/sns.pdf Table 1")
     print(f"dataset_key: {dataset_key}")
     print(f"device: {config['model']['device']}")
     print(f"feature_count: {loaded['feature_count']}")
@@ -560,6 +790,11 @@ def _run_single_dataset(
     print(f"num_factuals_evaluated: {len(factuals)}")
     print(f"rs_models_evaluated: {len(rs_models)}")
     print(f"loo_models_evaluated: {len(loo_models)}")
+    print(f"baseline_model_cache_hit: {int(baseline_cache_hit)}")
+    print(f"rs_model_cache_hits: {rs_cache_stats['hits']}")
+    print(f"rs_model_cache_misses: {rs_cache_stats['misses']}")
+    print(f"loo_model_cache_hits: {loo_cache_stats['hits']}")
+    print(f"loo_model_cache_misses: {loo_cache_stats['misses']}")
     print(f"base_valid_counterfactuals: {base_valid_count}")
     print(f"sns_valid_counterfactuals: {sns_valid_count}")
     print(f"base_success_rate: {base_success_rate:.4f}")
@@ -596,6 +831,11 @@ def _run_single_dataset(
         "feature_count": loaded["feature_count"],
         "class_count": loaded["class_count"],
         "baseline_accuracy": baseline_accuracy,
+        "baseline_cache_hit": int(baseline_cache_hit),
+        "rs_cache_hits": rs_cache_stats["hits"],
+        "rs_cache_misses": rs_cache_stats["misses"],
+        "loo_cache_hits": loo_cache_stats["hits"],
+        "loo_cache_misses": loo_cache_stats["misses"],
         "base_loo_iv": base_loo_iv,
         "base_rs_iv": base_rs_iv,
         "base_cost": float(np.mean(base_costs)) if base_costs else float("nan"),
@@ -613,6 +853,11 @@ def _print_summary_table(results: list[dict[str, Any]]) -> None:
         [
             {
                 "dataset": item["dataset_key"],
+                "baseline_cache_hit": item["baseline_cache_hit"],
+                "rs_cache_hits": item["rs_cache_hits"],
+                "rs_cache_misses": item["rs_cache_misses"],
+                "loo_cache_hits": item["loo_cache_hits"],
+                "loo_cache_misses": item["loo_cache_misses"],
                 "base_loo_iv": item["base_loo_iv"],
                 "base_rs_iv": item["base_rs_iv"],
                 "base_cost": item["base_cost"],
@@ -626,9 +871,106 @@ def _print_summary_table(results: list[dict[str, Any]]) -> None:
     print()
     print("SNS Reproduction Summary")
     print(summary.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
+    comparison_rows = []
+    for item in results:
+        comparison_rows.extend(_paper_comparison_rows(item))
+    comparison = pd.DataFrame(comparison_rows)
+    comparison["abs_diff"] = (comparison["reproduced"] - comparison["paper"]).abs()
+    comparison["rel_diff"] = comparison["abs_diff"] / comparison[["reproduced", "paper"]].abs().max(axis=1).clip(lower=1e-12)
+    print()
+    print("SNS Table 1 Comparison")
+    print(comparison.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
 
 
-def main() -> None:
+def _write_reproduction_report(
+    *,
+    results: list[dict[str, Any]],
+    config_path: Path,
+    max_factuals: int | None,
+    max_related_models: int | None,
+    stdout_log: Path,
+) -> Path:
+    experiments_data: dict[str, dict[str, Any]] = {}
+    for item in results:
+        paper_cfg = item["paper"]
+        experiments_data[item["dataset_key"]] = {
+            "configuration": {
+                "dataset": item["dataset_key"],
+                "display_name": item["display_name"],
+                "feature_count": item["feature_count"],
+                "class_count": item["class_count"],
+                "max_factuals": max_factuals,
+                "max_related_models": max_related_models,
+            },
+            "metrics": {
+                "baseline_accuracy": {
+                    "original": None,
+                    "reproduced": item["baseline_accuracy"],
+                },
+                "base_loo_invalidation": {
+                    "original": paper_cfg["min_l2"]["loo_invalidation"],
+                    "reproduced": item["base_loo_iv"],
+                },
+                "base_rs_invalidation": {
+                    "original": paper_cfg["min_l2"]["rs_invalidation"],
+                    "reproduced": item["base_rs_iv"],
+                },
+                "base_l2_cost": {
+                    "original": paper_cfg["min_l2"]["l2_cost"],
+                    "reproduced": item["base_cost"],
+                },
+                "sns_loo_invalidation": {
+                    "original": paper_cfg["min_l2_sns"]["loo_invalidation"],
+                    "reproduced": item["sns_loo_iv"],
+                },
+                "sns_rs_invalidation": {
+                    "original": paper_cfg["min_l2_sns"]["rs_invalidation"],
+                    "reproduced": item["sns_rs_iv"],
+                },
+                "sns_l2_cost": {
+                    "original": paper_cfg["min_l2_sns"]["l2_cost"],
+                    "reproduced": item["sns_cost"],
+                },
+                "baseline_model_cache_hit": {
+                    "original": None,
+                    "reproduced": item["baseline_cache_hit"],
+                },
+                "rs_cache_hits": {
+                    "original": None,
+                    "reproduced": item["rs_cache_hits"],
+                },
+                "rs_cache_misses": {
+                    "original": None,
+                    "reproduced": item["rs_cache_misses"],
+                },
+                "loo_cache_hits": {
+                    "original": None,
+                    "reproduced": item["loo_cache_hits"],
+                },
+                "loo_cache_misses": {
+                    "original": None,
+                    "reproduced": item["loo_cache_misses"],
+                },
+            },
+        }
+
+    return write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="sns_stable_neighbor_search",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "stdout_log": str(stdout_log),
+            "max_factuals": max_factuals,
+            "max_related_models": max_related_models,
+        },
+        experiments_data=experiments_data,
+    )
+
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="./experiment/sns/config.yaml")
     parser.add_argument("--dataset", default="all", choices=["all", *DATASET_SPECS.keys()])
@@ -644,7 +986,7 @@ def main() -> None:
     with log_path.open("w", encoding="utf-8") as log_file:
         sys.stdout = TeeStdout(log_file)
         try:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = "cpu"
             config_path = (PROJECT_ROOT / args.config).resolve()
             base_config = _apply_device(_load_config(config_path), device)
             logging.getLogger("art").setLevel(logging.WARNING)
@@ -663,7 +1005,15 @@ def main() -> None:
                     )
                 )
             _print_summary_table(results)
+            report_path = _write_reproduction_report(
+                results=results,
+                config_path=config_path,
+                max_factuals=args.max_factuals,
+                max_related_models=args.max_related_models,
+                stdout_log=log_path,
+            )
             print()
+            print(f"reproduction_report_path: {report_path}")
             print(f"stdout_log_path: {log_path}")
         finally:
             sys.stdout.flush()
@@ -671,4 +1021,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

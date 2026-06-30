@@ -8,6 +8,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
+
 os.environ.setdefault("TMPDIR", "/tmp")
 os.environ.setdefault("TEMP", "/tmp")
 os.environ.setdefault("TMP", "/tmp")
@@ -449,8 +451,8 @@ def _print_comparison(
     print("Observed metrics vs config targets")
     print(comparison.to_string(index=False))
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
     args = parser.parse_args()
@@ -526,4 +528,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

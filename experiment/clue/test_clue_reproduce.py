@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import logging
 import sys
@@ -10,6 +11,7 @@ from typing import Any
 import matplotlib
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 from tqdm.auto import tqdm
 
@@ -27,6 +29,7 @@ import method  # noqa: E402,F401
 import model  # noqa: E402,F401
 import preprocess  # noqa: E402,F401
 from dataset.compas_clue.compas_clue import CompasClueDataset  # noqa: E402
+from experiment.utils import write_reproduction_report
 from method.clue.clue import ClueMethod  # noqa: E402
 from method.clue.library.clue_ml.interpret.FIDO import mask_explainer  # noqa: E402
 from method.clue.library.clue_ml.interpret.functionally_grounded import (  # noqa: E402
@@ -899,6 +902,46 @@ def _run_compas_reproduction(
     }
     with (output_dir / "summary.json").open("w", encoding="utf-8") as file:
         json.dump(summary, file, indent=2, sort_keys=True)
+    report_path = write_reproduction_report(
+        output_path=output_dir / "reproduction_report.json",
+        paper_id="clue_compas_uncertainty",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "device": device,
+            "output_dir": output_dir.as_posix(),
+            "assert_paper": bool(assert_paper),
+        },
+        experiments_data={
+            "compas_table2": {
+                "configuration": {
+                    "dataset": "compas_clue",
+                    "target_model": "mlp_bayesian",
+                    "device": device,
+                },
+                "metrics": {
+                    "table2_epistemic": {
+                        "original": COMPAS_PAPER_RESULTS["table2_epistemic"],
+                        "reproduced": comparison["table2_epistemic"],
+                    },
+                    "table2_aleatoric": {
+                        "original": COMPAS_PAPER_RESULTS["table2_aleatoric"],
+                        "reproduced": comparison["table2_aleatoric"],
+                    },
+                    "epistemic_selected_count": {
+                        "original": None,
+                        "reproduced": int(baselines["epistemic_mask"].sum()),
+                    },
+                    "aleatoric_selected_count": {
+                        "original": None,
+                        "reproduced": int(baselines["aleatoric_mask"].sum()),
+                    },
+                },
+            }
+        },
+    )
+    summary["reproduction_report_path"] = report_path.as_posix()
 
     expected_outputs = [
         output_dir / "compas_epistemic_delta_x.png",
@@ -907,6 +950,7 @@ def _run_compas_reproduction(
         output_dir / "compas_aleatoric_logpx.png",
         output_dir / "compas_curves.npz",
         output_dir / "summary.json",
+        output_dir / "reproduction_report.json",
     ]
     missing_outputs = [
         path.as_posix() for path in expected_outputs if not path.exists()
@@ -940,7 +984,8 @@ def _run_compas_reproduction(
     return summary
 
 
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--bnn-art-path", type=Path, required=True)
     parser.add_argument("--vae-art-path", type=Path, required=True)
@@ -1010,4 +1055,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

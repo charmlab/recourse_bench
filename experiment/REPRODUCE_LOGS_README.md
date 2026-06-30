@@ -19,7 +19,7 @@ have a value.
 ## Method Coverage
 
 `Smoke` and `Reproduce` indicate whether the initial repository contains
-`smoke.py` or `reproduce.py` for the method. `Observed Result` and
+`smoke.py` or `test_<method_name>_reproduce.py` for the method. `Observed Result` and
 `Paper Result` indicate whether the corresponding log field contains a
 recorded value. The table uses only `Yes` and `No`.
 
@@ -54,7 +54,7 @@ recorded value. The table uses only `Yes` and `No`.
 | TreX | No | Yes | Yes | Yes |
 | Wachter | Yes | No | No | No |
 
-No method has both `smoke.py` and `reproduce.py`, and no listed method has
+No method has both `smoke.py` and `test_<method_name>_reproduce.py`, and no listed method has
 neither file.
 
 ## Fields

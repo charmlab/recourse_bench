@@ -8,6 +8,8 @@ from copy import deepcopy
 from pathlib import Path
 from time import strftime
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -1446,8 +1448,8 @@ def run_autorepro(
         f"Best candidate: {failure_payload}"
     )
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
     parser.add_argument("--num-factuals", type=int, default=None)
@@ -1507,4 +1509,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

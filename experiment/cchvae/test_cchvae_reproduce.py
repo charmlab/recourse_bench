@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import math
 import sys
 from copy import deepcopy
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -23,6 +26,7 @@ import model  # noqa: F401
 import preprocess  # noqa: F401
 from evaluation.evaluation_utils import resolve_evaluation_inputs
 from evaluation.validity import ValidityEvaluation
+from experiment.utils import write_reproduction_report
 from preprocess.common import FinalizePreProcess
 from utils.caching import set_cache_dir
 from utils.logger import setup_logger
@@ -38,6 +42,7 @@ CONNECTEDNESS_EPSILONS = [1, 5, 10, 15, 20]
 # The paper figures do not expose DBSCAN min_samples or connectedness reference
 # count; keep the existing defaults and apply them through the official loop.
 DBSCAN_MIN_SAMPLES = 5
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 CONNECTEDNESS_REFERENCE_LIMIT: int | None = None
 OUTLIER_PCT_LIMIT_K_20 = 10.0
 NOT_CONNECTED_PCT_LIMIT_EPS_20 = 10.0
@@ -233,6 +238,7 @@ def _assert_results(results: pd.DataFrame, config: dict) -> None:
 
 
 def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
+    config_path = Path(config_path).resolve()
     config = _load_config(config_path)
     device = _resolve_device()
     if str(config["model"]["name"]).lower() == "sklearn_logistic_regression":
@@ -341,12 +347,47 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
 
     metrics = pd.DataFrame([results])
     _assert_results(metrics, config)
+    row = metrics.iloc[0].to_dict()
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="cchvae_credit",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "outlier_pct_limit_k_20": OUTLIER_PCT_LIMIT_K_20,
+            "not_connected_pct_limit_eps_20": NOT_CONNECTED_PCT_LIMIT_EPS_20,
+        },
+        experiments_data={
+            f"{config['dataset']['name']}_{config['method']['name']}": {
+                "configuration": {
+                    "dataset": str(config["dataset"]["name"]),
+                    "model": str(config["model"]["name"]),
+                    "method": str(config["method"]["name"]),
+                    "device": device,
+                    "n_counterfactuals_requested": len(selected_indices),
+                },
+                "metrics": {
+                    metric_name: {
+                        "original": None,
+                        "reproduced": metric_value,
+                    }
+                    for metric_name, metric_value in row.items()
+                },
+            }
+        },
+    )
+    metrics.attrs["reproduction_report_path"] = report_path.as_posix()
     logger.info("Reproduction metrics:\n%s", metrics.to_string(index=False))
+    logger.info("Reproduction report path: %s", report_path)
     print(metrics.to_string(index=False))
+    print(f"reproduction_report_path: {report_path}")
     return metrics
 
 
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-p",
@@ -359,4 +400,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

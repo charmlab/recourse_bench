@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+import pytest
 import torch
 import yaml
 
@@ -25,8 +26,8 @@ def load_config(path: Path) -> dict:
         raise TypeError("Smoke config must parse to a dictionary")
     return config
 
-
-def main() -> None:
+@pytest.mark.fast
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-p",
@@ -46,4 +47,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

@@ -24,7 +24,7 @@ Reproduction Assessment
 No value available.
 
 Paper Result
-- `REFERENCE_RESULTS` in `experiment/cfvae/reproduce.py`:
+- `REFERENCE_RESULTS` in `experiment/cfvae/test_cfvae_reproduce.py`:
   - adult-age / BaseCVAE:
     - target_class_validity = [100.0, 100.0, 100.0]
     - constraint_feasibility_score = [56.82554814, 56.93040991, 56.9399428]

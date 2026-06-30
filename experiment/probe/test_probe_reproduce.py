@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -18,6 +21,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
 from evaluation.evaluation_utils import resolve_evaluation_inputs
+from experiment.utils import write_reproduction_report
 from experiments import Experiment
 from method.probe.utils import compute_invalidation_rate, reparametrization_trick
 
@@ -36,6 +40,7 @@ MC_SAMPLES = 10000
 SMOKE_MC_SAMPLES = 256
 DEFAULT_N_CFS = 500
 SMOKE_N_CFS = 32
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "experiment" / "probe" / "probe_reproduce"
 
 PAPER_PROBE_RESULTS = {
     ("compas_carla", "linear"): {
@@ -549,6 +554,68 @@ def _save_outputs(output_dir: Path, rows: list[dict[str, Any]], summary: dict[st
         json.dump(summary, file, indent=2)
 
 
+def _write_reproduction_report(
+    output_dir: Path,
+    rows: list[dict[str, Any]],
+    summary: dict[str, Any],
+) -> Path:
+    return write_reproduction_report(
+        output_path=output_dir / "reproduction_report.json",
+        paper_id="probe_probabilistic_recourse",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "device": summary["device"],
+            "datasets": summary["datasets"],
+            "models": summary["models"],
+            "n_cfs": summary["n_cfs"],
+            "monte_carlo_samples": summary["monte_carlo_samples"],
+        },
+        experiments_data={
+            f"{row['dataset']}_{row['model']}": {
+                "configuration": {
+                    "dataset": row["dataset"],
+                    "model": row["model"],
+                    "n_cfs": summary["n_cfs"],
+                    "monte_carlo_samples": summary["monte_carlo_samples"],
+                },
+                "metrics": {
+                    "test_accuracy": {
+                        "original": row["paper_accuracy"],
+                        "reproduced": row["test_accuracy"],
+                    },
+                    "test_auc": {
+                        "original": None,
+                        "reproduced": row["test_auc"],
+                    },
+                    "ra": {
+                        "original": row["paper_ra"],
+                        "reproduced": row["ra"],
+                    },
+                    "air_mean": {
+                        "original": row["paper_air_mean"],
+                        "reproduced": row["air_mean"],
+                    },
+                    "air_std": {
+                        "original": row["paper_air_std"],
+                        "reproduced": row["air_std"],
+                    },
+                    "ac_mean": {
+                        "original": row["paper_ac_mean"],
+                        "reproduced": row["ac_mean"],
+                    },
+                    "ac_std": {
+                        "original": row["paper_ac_std"],
+                        "reproduced": row["ac_std"],
+                    },
+                },
+            }
+            for row in rows
+        },
+    )
+
+
 def run_reproduction(
     datasets: list[str] | None = None,
     models: list[str] | None = None,
@@ -595,8 +662,8 @@ def run_reproduction(
     }
     return {"rows": rows, "frame": frame, "summary": summary}
 
-
-def main() -> None:
+@pytest.mark.slow
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--datasets",
@@ -630,6 +697,11 @@ def main() -> None:
         "--smoke",
         action="store_true",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+    )
     args = parser.parse_args()
 
     n_cfs = args.n_cfs
@@ -645,6 +717,12 @@ def main() -> None:
         monte_carlo_samples=mc_samples,
         device=args.device,
     )
+    _save_outputs(args.output_dir, output["rows"], output["summary"])
+    report_path = _write_reproduction_report(
+        args.output_dir,
+        output["rows"],
+        output["summary"],
+    )
     print(json.dumps(output["summary"], indent=2, sort_keys=True))
     print(
         output["frame"].to_string(
@@ -652,7 +730,8 @@ def main() -> None:
             float_format=lambda value: f"{value:.4f}",
         )
     )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()
