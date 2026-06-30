@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "recourse_bench"
-version = "0.1.0"
+version = "0.1.1"
 description = "A benchmark for algorithmic recourse methods."
 readme = "README.md"
 requires-python = ">=3.11"
