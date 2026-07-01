@@ -1,0 +1,674 @@
+{
+  "paper_id": "roar_robust_recourse",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-01T00:09:48.517780Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_roar_reproduce.py",
+    "n_trials": 5,
+    "lambda_value": 0.1,
+    "factual_limit": null,
+    "lambda_factual_limit": null
+  },
+  "experiments": {
+    "correction_linear_l1": {
+      "configuration": {
+        "dataset": "correction",
+        "model": "linear",
+        "cost": "l1",
+        "recourse": "ROAR",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 3.13,
+          "reproduced": 3.191951370239258,
+          "delta": 0.01940861969792928
+        },
+        "cost_std": {
+          "original": 0.32,
+          "reproduced": 0.24958050709830226,
+          "delta": 0.22006091531780544
+        },
+        "m1_validity_mean": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m1_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0
+        },
+        "m2_validity_mean": {
+          "original": 0.94,
+          "reproduced": 0.9,
+          "delta": 0.042553191489361625
+        },
+        "m2_validity_std": {
+          "original": 0.08,
+          "reproduced": 0.1264911064067352,
+          "delta": 0.36754446796632423
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "correction_linear_pfc": {
+      "configuration": {
+        "dataset": "correction",
+        "model": "linear",
+        "cost": "pfc",
+        "recourse": "ROAR",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 0.36,
+          "reproduced": 1.2016569375991821,
+          "delta": 0.7004136632213415
+        },
+        "cost_std": {
+          "original": 0.08,
+          "reproduced": 0.08953443740850744,
+          "delta": 0.1064890525307695
+        },
+        "m1_validity_mean": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m1_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0
+        },
+        "m2_validity_mean": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m2_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "correction_mlp_l1": {
+      "configuration": {
+        "dataset": "correction",
+        "model": "mlp",
+        "cost": "l1",
+        "recourse": "ROAR-LIME",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 1.83,
+          "reproduced": 1.740061140060425,
+          "delta": 0.04914691799976786
+        },
+        "cost_std": {
+          "original": 0.19,
+          "reproduced": 0.2881142938155606,
+          "delta": 0.3405394870077827
+        },
+        "m1_validity_mean": {
+          "original": 0.78,
+          "reproduced": 1.0,
+          "delta": 0.21999999999999997
+        },
+        "m1_validity_std": {
+          "original": 0.06,
+          "reproduced": 0.0,
+          "delta": 1.0
+        },
+        "m2_validity_mean": {
+          "original": 0.72,
+          "reproduced": 0.6653193222548062,
+          "delta": 0.07594538575721363
+        },
+        "m2_validity_std": {
+          "original": 0.1,
+          "reproduced": 0.08320900156685355,
+          "delta": 0.1679099843314645
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "correction_mlp_pfc": {
+      "configuration": {
+        "dataset": "correction",
+        "model": "mlp",
+        "cost": "pfc",
+        "recourse": "ROAR-LIME",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 0.64,
+          "reproduced": 0.35200436115264894,
+          "delta": 0.44999318569898605
+        },
+        "cost_std": {
+          "original": 0.08,
+          "reproduced": 0.04564242826937143,
+          "delta": 0.4294696466328572
+        },
+        "m1_validity_mean": {
+          "original": 0.85,
+          "reproduced": 1.0,
+          "delta": 0.15000000000000002
+        },
+        "m1_validity_std": {
+          "original": 0.07,
+          "reproduced": 0.0,
+          "delta": 1.0
+        },
+        "m2_validity_mean": {
+          "original": 0.82,
+          "reproduced": 0.6916492885847724,
+          "delta": 0.15652525782344828
+        },
+        "m2_validity_std": {
+          "original": 0.05,
+          "reproduced": 0.05569598847864622,
+          "delta": 0.10226927709219227
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "temporal_linear_l1": {
+      "configuration": {
+        "dataset": "temporal",
+        "model": "linear",
+        "cost": "l1",
+        "recourse": "ROAR",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 3.14,
+          "reproduced": 4.583902835845947,
+          "delta": 0.3149942063681371
+        },
+        "cost_std": {
+          "original": 0.25,
+          "reproduced": 0.2825571439952963,
+          "delta": 0.11522322010672034
+        },
+        "m1_validity_mean": {
+          "original": 0.99,
+          "reproduced": 1.0,
+          "delta": 0.010000000000000009
+        },
+        "m1_validity_std": {
+          "original": 0.01,
+          "reproduced": 0.0,
+          "delta": 1.0
+        },
+        "m2_validity_mean": {
+          "original": 0.98,
+          "reproduced": 0.9894076655052265,
+          "delta": 0.009508381462177827
+        },
+        "m2_validity_std": {
+          "original": 0.02,
+          "reproduced": 0.013040113327627677,
+          "delta": 0.34799433361861615
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "temporal_linear_pfc": {
+      "configuration": {
+        "dataset": "temporal",
+        "model": "linear",
+        "cost": "pfc",
+        "recourse": "ROAR",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 0.44,
+          "reproduced": 1.4209423303604125,
+          "delta": 0.6903463352461342
+        },
+        "cost_std": {
+          "original": 0.12,
+          "reproduced": 0.12175410121756877,
+          "delta": 0.014406916892551169
+        },
+        "m1_validity_mean": {
+          "original": 0.99,
+          "reproduced": 1.0,
+          "delta": 0.010000000000000009
+        },
+        "m1_validity_std": {
+          "original": 0.01,
+          "reproduced": 0.0,
+          "delta": 1.0
+        },
+        "m2_validity_mean": {
+          "original": 0.98,
+          "reproduced": 0.9650174216027875,
+          "delta": 0.015288345303278071
+        },
+        "m2_validity_std": {
+          "original": 0.01,
+          "reproduced": 0.03631832189525258,
+          "delta": 0.724656881756776
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "temporal_mlp_l1": {
+      "configuration": {
+        "dataset": "temporal",
+        "model": "mlp",
+        "cost": "l1",
+        "recourse": "ROAR-LIME",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 4.9,
+          "reproduced": 5.354806137084961,
+          "delta": 0.08493419284316935
+        },
+        "cost_std": {
+          "original": 0.24,
+          "reproduced": 0.39105471014318804,
+          "delta": 0.386275132929298
+        },
+        "m1_validity_mean": {
+          "original": 0.98,
+          "reproduced": 1.0,
+          "delta": 0.020000000000000018
+        },
+        "m1_validity_std": {
+          "original": 0.02,
+          "reproduced": 0.0,
+          "delta": 1.0
+        },
+        "m2_validity_mean": {
+          "original": 0.97,
+          "reproduced": 0.9254084397986837,
+          "delta": 0.04597068061991368
+        },
+        "m2_validity_std": {
+          "original": 0.02,
+          "reproduced": 0.031546516663829696,
+          "delta": 0.3660155822233328
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "temporal_mlp_pfc": {
+      "configuration": {
+        "dataset": "temporal",
+        "model": "mlp",
+        "cost": "pfc",
+        "recourse": "ROAR-LIME",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 0.37,
+          "reproduced": 1.1311453580856323,
+          "delta": 0.6728979194803101
+        },
+        "cost_std": {
+          "original": 0.07,
+          "reproduced": 0.08325986802258663,
+          "delta": 0.15925881625214083
+        },
+        "m1_validity_mean": {
+          "original": 0.99,
+          "reproduced": 1.0,
+          "delta": 0.010000000000000009
+        },
+        "m1_validity_std": {
+          "original": 0.01,
+          "reproduced": 0.0,
+          "delta": 1.0
+        },
+        "m2_validity_mean": {
+          "original": 0.99,
+          "reproduced": 0.9472338366240806,
+          "delta": 0.04319814482416104
+        },
+        "m2_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.031974842069695066,
+          "delta": 1.0
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "geospatial_linear_l1": {
+      "configuration": {
+        "dataset": "geospatial",
+        "model": "linear",
+        "cost": "l1",
+        "recourse": "ROAR",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 10.88,
+          "reproduced": 14.190243148803711,
+          "delta": 0.23327599915599587
+        },
+        "cost_std": {
+          "original": 1.67,
+          "reproduced": 0.9406067219590035,
+          "delta": 0.43676244194071645
+        },
+        "m1_validity_mean": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m1_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0
+        },
+        "m2_validity_mean": {
+          "original": 0.67,
+          "reproduced": 0.9042371058631222,
+          "delta": 0.2590438993758563
+        },
+        "m2_validity_std": {
+          "original": 0.19,
+          "reproduced": 0.0406341881708397,
+          "delta": 0.7861358517324227
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "geospatial_linear_pfc": {
+      "configuration": {
+        "dataset": "geospatial",
+        "model": "linear",
+        "cost": "pfc",
+        "recourse": "ROAR",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 1.2,
+          "reproduced": 2.6274044036865236,
+          "delta": 0.5432754857545818
+        },
+        "cost_std": {
+          "original": 0.1,
+          "reproduced": 0.07624951766819847,
+          "delta": 0.23750482331801534
+        },
+        "m1_validity_mean": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m1_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0
+        },
+        "m2_validity_mean": {
+          "original": 0.91,
+          "reproduced": 0.9802469135802468,
+          "delta": 0.07166246851385381
+        },
+        "m2_validity_std": {
+          "original": 0.07,
+          "reproduced": 0.033674522708607074,
+          "delta": 0.5189353898770418
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "geospatial_mlp_l1": {
+      "configuration": {
+        "dataset": "geospatial",
+        "model": "mlp",
+        "cost": "l1",
+        "recourse": "ROAR-LIME",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 21.05,
+          "reproduced": 23.541633224487306,
+          "delta": 0.10583943776235469
+        },
+        "cost_std": {
+          "original": 3.58,
+          "reproduced": 1.424386588815102,
+          "delta": 0.602126651168966
+        },
+        "m1_validity_mean": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m1_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0
+        },
+        "m2_validity_mean": {
+          "original": 0.97,
+          "reproduced": 0.9879518072289157,
+          "delta": 0.018170731707317173
+        },
+        "m2_validity_std": {
+          "original": 0.03,
+          "reproduced": 0.024096385542168662,
+          "delta": 0.1967871485943779
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "geospatial_mlp_pfc": {
+      "configuration": {
+        "dataset": "geospatial",
+        "model": "mlp",
+        "cost": "pfc",
+        "recourse": "ROAR-LIME",
+        "n_trials": 5,
+        "lambda_mode": "fixed",
+        "lambda_value": 0.1,
+        "factual_limit": null,
+        "lambda_factual_limit": null
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 1.66,
+          "reproduced": 4.872445678710937,
+          "delta": 0.6593086697193979
+        },
+        "cost_std": {
+          "original": 0.21,
+          "reproduced": 0.23586359937178414,
+          "delta": 0.10965489986869993
+        },
+        "m1_validity_mean": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m1_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0
+        },
+        "m2_validity_mean": {
+          "original": 0.97,
+          "reproduced": 0.9807228915662651,
+          "delta": 0.010933660933661033
+        },
+        "m2_validity_std": {
+          "original": 0.04,
+          "reproduced": 0.02810097298720627,
+          "delta": 0.29747567531984326
+        },
+        "lambda_mean": {
+          "original": null,
+          "reproduced": 0.1,
+          "delta": null
+        },
+        "lambda_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    }
+  }
+}
