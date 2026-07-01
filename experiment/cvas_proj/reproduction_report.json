@@ -1,0 +1,160 @@
+{
+  "paper_id": "cvas_proj_table1",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-01T18:05:35.161754Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_cvas_proj_reproduce.py",
+    "mode": "aggregate_table1",
+    "device": "cpu",
+    "datasets": [
+      "german",
+      "sba",
+      "student"
+    ],
+    "paper_ids": [
+      "cvas_proj_german",
+      "cvas_proj_sba",
+      "cvas_proj_student"
+    ]
+  },
+  "experiments": {
+    "german_aggregate_table1": {
+      "configuration": {
+        "dataset": "german",
+        "surrogate_method": "fr_rmpm",
+        "rho_neg": 10.0,
+        "num_future_models": 100,
+        "max_ins": 200
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 1.04,
+          "reproduced": 0.943845832422124,
+          "delta": 0.09245593036334229
+        },
+        "cost_std": {
+          "original": 0.02,
+          "reproduced": 0.046343173086334025,
+          "delta": 0.5684369742498765
+        },
+        "current_validity_mean": {
+          "original": 0.94,
+          "reproduced": 0.9099999999999999,
+          "delta": 0.03191489361702131
+        },
+        "current_validity_std": {
+          "original": 0.03,
+          "reproduced": 0.0317804971641414,
+          "delta": 0.05602483670867091
+        },
+        "future_validity_mean": {
+          "original": 0.79,
+          "reproduced": 0.7834099999999999,
+          "delta": 0.008341772151898855
+        },
+        "future_validity_std": {
+          "original": 0.01,
+          "reproduced": 0.02886954104242046,
+          "delta": 0.6536141677726655
+        },
+        "feasibility_mean": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        }
+      }
+    },
+    "sba_aggregate_table1": {
+      "configuration": {
+        "dataset": "sba",
+        "surrogate_method": "fr_rmpm",
+        "rho_neg": 10.0,
+        "num_future_models": 100,
+        "max_ins": 200
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 1.72,
+          "reproduced": 1.7217721394699486,
+          "delta": 0.0010292531917110374
+        },
+        "cost_std": {
+          "original": 0.13,
+          "reproduced": 0.11146434220155249,
+          "delta": 0.14258198306498088
+        },
+        "current_validity_mean": {
+          "original": 1.0,
+          "reproduced": 0.999,
+          "delta": 0.0010000000000000009
+        },
+        "current_validity_std": {
+          "original": 0.0,
+          "reproduced": 0.0020000000000000018,
+          "delta": 1.0
+        },
+        "future_validity_mean": {
+          "original": 0.97,
+          "reproduced": 0.9889199999999999,
+          "delta": 0.019131982364599703
+        },
+        "future_validity_std": {
+          "original": 0.02,
+          "reproduced": 0.0033344564774487914,
+          "delta": 0.8332771761275604
+        },
+        "feasibility_mean": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        }
+      }
+    },
+    "student_aggregate_table1": {
+      "configuration": {
+        "dataset": "student",
+        "surrogate_method": "fr_rmpm",
+        "rho_neg": 10.0,
+        "num_future_models": 100,
+        "max_ins": 200
+      },
+      "metrics": {
+        "cost_mean": {
+          "original": 2.34,
+          "reproduced": 2.4808233635714037,
+          "delta": 0.05676476835846704
+        },
+        "cost_std": {
+          "original": 0.2,
+          "reproduced": 0.21903819535965366,
+          "delta": 0.08691723983752489
+        },
+        "current_validity_mean": {
+          "original": 0.95,
+          "reproduced": 0.9617647058823529,
+          "delta": 0.012232415902140631
+        },
+        "current_validity_std": {
+          "original": 0.03,
+          "reproduced": 0.029190343001881187,
+          "delta": 0.026988566603960408
+        },
+        "future_validity_mean": {
+          "original": 0.8,
+          "reproduced": 0.9221617647058823,
+          "delta": 0.13247324860063459
+        },
+        "future_validity_std": {
+          "original": 0.06,
+          "reproduced": 0.04504276610674252,
+          "delta": 0.24928723155429125
+        },
+        "feasibility_mean": {
+          "original": null,
+          "reproduced": 0.961764705882353,
+          "delta": null
+        }
+      }
+    }
+  }
+}

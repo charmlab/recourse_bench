@@ -1,15 +1,15 @@
-name: german_mlp_cvas_proj_reproduce_future
+name: sba_mlp_cvas_proj_reproduce_current
 logger:
   level: INFO
-  path: ./logs/german_mlp_cvas_proj_reproduce_future.log
+  path: ./logs/sba_mlp_cvas_proj_reproduce_current.log
 caching:
   path: ./cache/
 dataset:
-  name: cvas_german_reference_future
+  name: cvas_sba_reference_current
 preprocess:
   - name: cvas_reference
     seed: 42
-    paired_dataset_name: cvas_german_reference_current
+    paired_dataset_name: cvas_sba_reference_future
   - name: stratified_split
     seed: 42
     split: 0.2
