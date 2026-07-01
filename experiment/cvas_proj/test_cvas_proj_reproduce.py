@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
+import importlib.util
 import sys
+import types
 from copy import deepcopy
 from pathlib import Path
 
@@ -11,21 +14,108 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import dataset  # noqa: F401
-import method  # noqa: F401
-import model  # noqa: F401
-import preprocess  # noqa: F401
 import numpy as np
 import pandas as pd
 import torch
 import yaml
+from dataset.dataset_object import DatasetObject
+from experiment.utils import write_reproduction_report
+from model.mlp.mlp import MlpModel  # noqa: F401
 from model.mlp import mlp as mlp_module
 from preprocess.common import EncodePreProcess, ScalePreProcess, SplitPreProcess
 from preprocess.preprocess_object import PreProcessObject
 from sklearn.model_selection import KFold, train_test_split
+from tqdm.auto import tqdm
 from utils.caching import set_cache_dir
-from utils.registry import get_registry
+from utils.registry import get_registry, register
 from utils.seed import seed_context
+
+
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+
+REFERENCE_DATA_ROOT = PROJECT_ROOT / "experiment" / "cvas_proj" / "data"
+
+TABLE1_PAPER_METRICS = {
+    "german": {
+        "cost_mean": 1.04,
+        "cost_std": 0.02,
+        "current_validity_mean": 0.94,
+        "current_validity_std": 0.03,
+        "future_validity_mean": 0.79,
+        "future_validity_std": 0.01,
+    },
+    "sba": {
+        "cost_mean": 1.72,
+        "cost_std": 0.13,
+        "current_validity_mean": 1.00,
+        "current_validity_std": 0.00,
+        "future_validity_mean": 0.97,
+        "future_validity_std": 0.02,
+    },
+    "student": {
+        "cost_mean": 2.34,
+        "cost_std": 0.20,
+        "current_validity_mean": 0.95,
+        "current_validity_std": 0.03,
+        "future_validity_mean": 0.80,
+        "future_validity_std": 0.06,
+    },
+}
+
+DATASET_CONFIGS = {
+    "german": {
+        "current_config": "./experiment/cvas_proj/german_mlp_cvas_proj_reproduce_current.yaml",
+        "future_config": "./experiment/cvas_proj/german_mlp_cvas_proj_reproduce_future.yaml",
+        "paper_id": "cvas_proj_german",
+    },
+    "sba": {
+        "current_config": "./experiment/cvas_proj/sba_mlp_cvas_proj_reproduce_current.yaml",
+        "future_config": "./experiment/cvas_proj/sba_mlp_cvas_proj_reproduce_future.yaml",
+        "paper_id": "cvas_proj_sba",
+    },
+    "student": {
+        "current_config": "./experiment/cvas_proj/student_mlp_cvas_proj_reproduce_current.yaml",
+        "future_config": "./experiment/cvas_proj/student_mlp_cvas_proj_reproduce_future.yaml",
+        "paper_id": "cvas_proj_student",
+    },
+}
+
+
+def _load_local_method_module(module_name: str, relative_path: str) -> None:
+    if module_name in sys.modules:
+        return
+
+    module_path = PROJECT_ROOT / relative_path
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Unable to load module spec for {module_name}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+
+
+def _ensure_cvas_proj_registered() -> None:
+    if "cvas_proj" in get_registry("Method"):
+        return
+
+    if "method" not in sys.modules:
+        method_pkg = types.ModuleType("method")
+        method_pkg.__path__ = [str(PROJECT_ROOT / "method")]
+        sys.modules["method"] = method_pkg
+    if "method.cvas_proj" not in sys.modules:
+        cvas_pkg = types.ModuleType("method.cvas_proj")
+        cvas_pkg.__path__ = [str(PROJECT_ROOT / "method" / "cvas_proj")]
+        sys.modules["method.cvas_proj"] = cvas_pkg
+
+    _load_local_method_module("method.method_object", "method/method_object.py")
+    _load_local_method_module(
+        "method.cvas_proj.support",
+        "method/cvas_proj/support.py",
+    )
+    _load_local_method_module(
+        "method.cvas_proj.cvas_proj",
+        "method/cvas_proj/cvas_proj.py",
+    )
 
 PROFILE_DEFAULTS = {
     "smoke": {
@@ -47,27 +137,105 @@ PROFILE_DEFAULTS = {
 }
 
 
-class CvasGermanReferencePreProcess(PreProcessObject):
-    _PAIR_DATASET_NAME = {
-        "german": "german_roar",
-        "german_roar": "german",
+class _BaseCvasReferenceDataset(DatasetObject):
+    _FILE_NAME = ""
+    _TARGET_COLUMN = "label"
+    _RAW_FEATURE_TYPE: dict[str, str] = {}
+
+    def __init__(self, path: str | None = None, **kwargs):
+        self._rawdf = self._read_df(path or str(REFERENCE_DATA_ROOT))
+        self._freeze = False
+        self.name = type(self).__name__.replace("Dataset", "")
+        self.target_column = self._TARGET_COLUMN
+        self.feature_order = list(self._rawdf.columns)
+        self.raw_feature_type = dict(self._RAW_FEATURE_TYPE)
+        self.raw_feature_mutability = {
+            column: column != self.target_column for column in self._rawdf.columns
+        }
+        self.raw_feature_actionability = {
+            column: ("any" if column != self.target_column else "none")
+            for column in self._rawdf.columns
+        }
+        self._rawdf = self._rawdf.loc[:, self.feature_order].copy(deep=True)
+
+    def _read_df(self, path: str) -> pd.DataFrame:
+        return pd.read_csv(Path(path) / self._FILE_NAME)
+
+
+@register("cvas_german_reference_current")
+class CvasGermanReferenceCurrentDataset(_BaseCvasReferenceDataset):
+    _FILE_NAME = "german_small.csv"
+    _RAW_FEATURE_TYPE = {
+        "Duration": "numerical",
+        "Credit amount": "numerical",
+        "Personal status": "categorical",
+        "Age": "numerical",
+        "label": "binary",
     }
 
-    _PERSONAL_STATUS_MAP = {
-        "german": {
-            1: "A91",
-            2: "A92",
-            3: "A94",
-            5: "A93",
-        },
-        "german_roar": {
-            1: "A91",
-            2: "A92",
-            3: "A93",
-            4: "A94",
-        },
+
+@register("cvas_german_reference_future")
+class CvasGermanReferenceFutureDataset(_BaseCvasReferenceDataset):
+    _FILE_NAME = "corrected_german_small.csv"
+    _RAW_FEATURE_TYPE = CvasGermanReferenceCurrentDataset._RAW_FEATURE_TYPE
+
+
+@register("cvas_sba_reference_current")
+class CvasSbaReferenceCurrentDataset(_BaseCvasReferenceDataset):
+    _FILE_NAME = "sba.csv"
+    _RAW_FEATURE_TYPE = {
+        "Selected": "numerical",
+        "Term": "numerical",
+        "NoEmp": "numerical",
+        "CreateJob": "numerical",
+        "RetainedJob": "numerical",
+        "UrbanRural": "categorical",
+        "ChgOffPrinGr": "numerical",
+        "GrAppv": "numerical",
+        "SBA_Appv": "numerical",
+        "New": "numerical",
+        "RealEstate": "numerical",
+        "Portion": "numerical",
+        "Recession": "numerical",
+        "label": "binary",
     }
 
+
+@register("cvas_sba_reference_future")
+class CvasSbaReferenceFutureDataset(_BaseCvasReferenceDataset):
+    _FILE_NAME = "sba_shift.csv"
+    _RAW_FEATURE_TYPE = CvasSbaReferenceCurrentDataset._RAW_FEATURE_TYPE
+
+
+@register("cvas_student_reference_current")
+class CvasStudentReferenceCurrentDataset(_BaseCvasReferenceDataset):
+    _FILE_NAME = "gp_student.csv"
+    _RAW_FEATURE_TYPE = {
+        "age": "numerical",
+        "Medu": "numerical",
+        "Fedu": "numerical",
+        "studytime": "numerical",
+        "famsup": "categorical",
+        "higher": "categorical",
+        "internet": "categorical",
+        "romantic": "categorical",
+        "freetime": "numerical",
+        "goout": "numerical",
+        "health": "numerical",
+        "absences": "numerical",
+        "G1": "numerical",
+        "G2": "numerical",
+        "label": "binary",
+    }
+
+
+@register("cvas_student_reference_future")
+class CvasStudentReferenceFutureDataset(_BaseCvasReferenceDataset):
+    _FILE_NAME = "ms_student.csv"
+    _RAW_FEATURE_TYPE = CvasStudentReferenceCurrentDataset._RAW_FEATURE_TYPE
+
+
+class CvasReferencePreProcess(PreProcessObject):
     def __init__(
         self,
         seed: int | None = None,
@@ -77,46 +245,11 @@ class CvasGermanReferencePreProcess(PreProcessObject):
         self._seed = seed
         self._paired_dataset_name = paired_dataset_name
 
-    def _resolve_dataset_name(self, input_dataset) -> str:
-        dataset_name = str(input_dataset.attr("name")).lower()
-        if dataset_name not in self._PAIR_DATASET_NAME:
-            raise ValueError(
-                "CvasGermanReferencePreProcess supports ['german', 'german_roar'] only"
-            )
-        return dataset_name
-
     def _load_paired_snapshot(self, paired_dataset_name: str) -> pd.DataFrame:
         dataset_registry = get_registry("Dataset")
         if paired_dataset_name not in dataset_registry:
             raise ValueError(f"Unknown paired dataset: {paired_dataset_name}")
-        paired_dataset = dataset_registry[paired_dataset_name]()
-        return paired_dataset.snapshot()
-
-    def _normalize_personal_status(
-        self,
-        df: pd.DataFrame,
-        dataset_name: str,
-        target_column: str,
-    ) -> pd.DataFrame:
-        if "personal_status_sex" not in df.columns or target_column == "personal_status_sex":
-            return df.copy(deep=True)
-
-        mapping = self._PERSONAL_STATUS_MAP[dataset_name]
-        series = df["personal_status_sex"]
-        if series.dropna().map(lambda value: isinstance(value, str)).all():
-            return df.copy(deep=True)
-
-        unique_values = set(pd.Index(series.dropna().unique()).tolist())
-        missing_values = sorted(unique_values.difference(mapping))
-        if missing_values:
-            raise ValueError(
-                "CvasGermanReferencePreProcess found unmapped personal_status_sex "
-                f"values for dataset '{dataset_name}': {missing_values}"
-            )
-
-        normalized = df.copy(deep=True)
-        normalized["personal_status_sex"] = series.map(mapping)
-        return normalized
+        return dataset_registry[paired_dataset_name]().snapshot()
 
     def transform(self, input_dataset):
         with seed_context(self._seed):
@@ -133,22 +266,12 @@ class CvasGermanReferencePreProcess(PreProcessObject):
             ):
                 ensure_flag_absent(input_dataset, flag)
 
-            dataset_name = self._resolve_dataset_name(input_dataset)
-            paired_dataset_name = (
-                self._paired_dataset_name or self._PAIR_DATASET_NAME[dataset_name]
-            ).lower()
-            target_column = input_dataset.target_column
+            if not self._paired_dataset_name:
+                raise ValueError("paired_dataset_name is required for CvasReferencePreProcess")
 
-            raw_df = self._normalize_personal_status(
-                input_dataset.snapshot(),
-                dataset_name=dataset_name,
-                target_column=target_column,
-            )
-            paired_df = self._normalize_personal_status(
-                self._load_paired_snapshot(paired_dataset_name),
-                dataset_name=paired_dataset_name,
-                target_column=target_column,
-            )
+            target_column = input_dataset.target_column
+            raw_df = input_dataset.snapshot().copy(deep=True)
+            paired_df = self._load_paired_snapshot(str(self._paired_dataset_name).lower())
             joint_df = pd.concat([raw_df, paired_df], axis=0, ignore_index=True)
 
             raw_feature_type = input_dataset.attr("raw_feature_type")
@@ -336,6 +459,22 @@ def _disable_mlp_progress() -> None:
     mlp_module.tqdm = _quiet_tqdm
 
 
+def _progress(
+    iterable,
+    *,
+    desc: str,
+    leave: bool = False,
+    total: int | None = None,
+):
+    return tqdm(
+        iterable,
+        desc=desc,
+        leave=leave,
+        dynamic_ncols=True,
+        total=total,
+    )
+
+
 def _instantiate_dataset(dataset_cfg: dict):
     cfg = deepcopy(dataset_cfg)
     name = cfg.pop("name")
@@ -350,8 +489,8 @@ def _instantiate_preprocess(preprocess_cfg: list[dict]) -> list:
         item_cfg = deepcopy(cfg)
         name = item_cfg.pop("name")
         normalized_name = str(name).lower()
-        if normalized_name == "cvas_german_reference":
-            instances.append(CvasGermanReferencePreProcess(**item_cfg))
+        if normalized_name == "cvas_reference":
+            instances.append(CvasReferencePreProcess(**item_cfg))
         elif normalized_name == "stratified_split":
             instances.append(StratifiedSplitPreProcess(**item_cfg))
         else:
@@ -464,6 +603,7 @@ def _instantiate_model(model_cfg: dict):
 
 
 def _instantiate_method(method_cfg: dict, target_model):
+    _ensure_cvas_proj_registered()
     cfg = deepcopy(method_cfg)
     name = cfg.pop("name")
     method_class = get_registry("Method")[name]
@@ -520,7 +660,11 @@ def _prepare_future_models(
 
     target = future_df.loc[:, future_dataset.target_column]
     future_models = []
-    for future_index in range(num_future_models):
+    for future_index in _progress(
+        range(num_future_models),
+        desc="future models",
+        leave=False,
+    ):
         train_df, _test_df = train_test_split(
             future_df,
             train_size=0.8,
@@ -819,9 +963,146 @@ def _print_single_fold_debug(
         f"{float(np.mean(feasible)):.6f}"
     )
 
+
+def _resolve_dataset_name_from_config(config: dict) -> str:
+    dataset_name = str(config["dataset"]["name"]).lower()
+    mapping = {
+        "cvas_german_reference_current": "german",
+        "cvas_german_reference_future": "german",
+        "cvas_sba_reference_current": "sba",
+        "cvas_sba_reference_future": "sba",
+        "cvas_student_reference_current": "student",
+        "cvas_student_reference_future": "student",
+    }
+    return mapping.get(dataset_name, dataset_name)
+
+
+def _resolve_requested_datasets(
+    dataset_option: str,
+    current_config_path: str,
+    future_config_path: str,
+) -> list[dict[str, str]]:
+    normalized = str(dataset_option).lower()
+    if normalized == "all":
+        return [
+            {
+                "dataset": dataset_name,
+                "current_config": spec["current_config"],
+                "future_config": spec["future_config"],
+                "paper_id": spec["paper_id"],
+            }
+            for dataset_name, spec in DATASET_CONFIGS.items()
+        ]
+
+    if normalized in DATASET_CONFIGS:
+        spec = DATASET_CONFIGS[normalized]
+        return [
+            {
+                "dataset": normalized,
+                "current_config": spec["current_config"],
+                "future_config": spec["future_config"],
+                "paper_id": spec["paper_id"],
+            }
+        ]
+
+    return [
+        {
+            "dataset": "custom",
+            "current_config": current_config_path,
+            "future_config": future_config_path,
+            "paper_id": "cvas_proj_custom",
+        }
+    ]
+
+
+def _run_table1_summary(
+    current_cfg: dict,
+    future_cfg: dict,
+    surrogate_method: str,
+    rho_neg: float,
+    num_future_models: int,
+    max_ins: int | None,
+) -> dict[str, float]:
+    shared_state = _prepare_shared_state(current_cfg, future_cfg)
+    future_models = _prepare_future_models(
+        future_cfg=future_cfg,
+        future_dataset=shared_state["future_dataset"],
+        future_df=shared_state["future_df"],
+        num_future_models=num_future_models,
+    )
+    dataset_name = _resolve_dataset_name_from_config(current_cfg)
+    fold_metrics = [
+        _run_single_fold(
+            current_cfg=current_cfg,
+            shared_state=shared_state,
+            future_models=future_models,
+            fold_index=fold_index,
+            surrogate_method=surrogate_method,
+            rho_neg=rho_neg,
+            max_ins=max_ins,
+        )
+        for fold_index in _progress(
+            range(5),
+            desc=f"{dataset_name} folds",
+            leave=False,
+        )
+    ]
+    return _summarize_fold_metrics(fold_metrics)
+
+
+def _print_multidataset_aggregate_summary(
+    device: str,
+    surrogate_method: str,
+    rho_neg: float,
+    num_future_models: int,
+    max_ins: int | None,
+    rows: list[dict[str, object]],
+) -> None:
+    print("mode: aggregate_table1")
+    print(f"device: {device}")
+    print(f"method: {surrogate_method}")
+    print(f"rho_neg: {rho_neg:.1f}")
+    print(f"num_future_models: {num_future_models}")
+    print("max_ins: " + ("all" if max_ins is None else str(int(max_ins))))
+    print()
+    print(
+        "dataset   cost_mean  cost_std  current_mean  current_std  future_mean  future_std  feasible_mean"
+    )
+    for row in rows:
+        print(
+            f"{str(row['dataset']):<8} "
+            f"{float(row['cost_mean']):.6f}  "
+            f"{float(row['cost_std']):.6f}  "
+            f"{float(row['current_validity_mean']):.6f}  "
+            f"{float(row['current_validity_std']):.6f}  "
+            f"{float(row['future_validity_mean']):.6f}  "
+            f"{float(row['future_validity_std']):.6f}  "
+            f"{float(row['feasibility_mean']):.6f}"
+        )
+
+
+def _build_experiment_metrics(
+    dataset_name: str,
+    summary: dict[str, float],
+) -> dict[str, dict[str, float | None]]:
+    paper_metrics = TABLE1_PAPER_METRICS.get(dataset_name, {})
+    return {
+        key: {
+            "original": paper_metrics.get(key),
+            "reproduced": value,
+        }
+        for key, value in summary.items()
+        if isinstance(value, (int, float, np.floating, np.integer))
+    }
+
 @pytest.mark.slow
 def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dataset",
+        choices=["all", "german", "sba", "student", "custom"],
+        default="all",
+    )
     parser.add_argument(
         "--current-config",
         default="./experiment/cvas_proj/german_mlp_cvas_proj_reproduce_current.yaml",
@@ -857,23 +1138,6 @@ def test_reproduce() -> None:
     profile_defaults = _resolve_profile(args.profile, args.smoke)
     device = _resolve_device(args.device)
 
-    current_cfg = _prepare_config(
-        _load_config((PROJECT_ROOT / args.current_config).resolve()),
-        device=device,
-        epochs=profile_defaults["current_epochs"],
-        model_seed=args.model_seed,
-    )
-    future_cfg = _prepare_config(
-        _load_config((PROJECT_ROOT / args.future_config).resolve()),
-        device=device,
-        epochs=profile_defaults["future_epochs"],
-        model_seed=args.model_seed,
-    )
-    if profile_defaults["num_samples"] is not None:
-        current_cfg["method"]["num_samples"] = int(profile_defaults["num_samples"])
-
-    set_cache_dir(current_cfg.get("caching", {}).get("path", "./cache/"))
-
     max_ins = args.max_ins
     if max_ins is None and args.max_factuals is not None:
         max_ins = int(args.max_factuals)
@@ -883,49 +1147,141 @@ def test_reproduce() -> None:
         raise ValueError("max_ins must be >= 1 when provided")
 
     surrogate_method = str(args.surrogate_method).lower()
-    shared_state = _prepare_shared_state(current_cfg, future_cfg)
     num_future_models = (
         int(args.num_future_models)
         if args.num_future_models is not None
         else int(profile_defaults["num_future_models"])
     )
-    future_models = _prepare_future_models(
-        future_cfg=future_cfg,
-        future_dataset=shared_state["future_dataset"],
-        future_df=shared_state["future_df"],
-        num_future_models=num_future_models,
+
+    requested_datasets = _resolve_requested_datasets(
+        dataset_option=args.dataset,
+        current_config_path=args.current_config,
+        future_config_path=args.future_config,
     )
 
     if args.mode == "aggregate_table1":
         if args.rho_neg_values:
             raise ValueError("--rho-neg-values is only supported in frontier_sweep mode")
         rho_neg = (
-            float(args.rho_neg)
-            if args.rho_neg is not None
-            else float(current_cfg["method"]["rho_neg"])
+            float(args.rho_neg) if args.rho_neg is not None else None
         )
-        fold_metrics = [
-            _run_single_fold(
+        result_rows: list[dict[str, object]] = []
+        experiments_data: dict[str, dict[str, object]] = {}
+        paper_ids: list[str] = []
+
+        for item in _progress(
+            requested_datasets,
+            desc="table1 datasets",
+            leave=False,
+            total=len(requested_datasets),
+        ):
+            current_cfg = _prepare_config(
+                _load_config((PROJECT_ROOT / item["current_config"]).resolve()),
+                device=device,
+                epochs=profile_defaults["current_epochs"],
+                model_seed=args.model_seed,
+            )
+            future_cfg = _prepare_config(
+                _load_config((PROJECT_ROOT / item["future_config"]).resolve()),
+                device=device,
+                epochs=profile_defaults["future_epochs"],
+                model_seed=args.model_seed,
+            )
+            if profile_defaults["num_samples"] is not None:
+                current_cfg["method"]["num_samples"] = int(profile_defaults["num_samples"])
+            set_cache_dir(current_cfg.get("caching", {}).get("path", "./cache/"))
+
+            resolved_dataset = (
+                item["dataset"]
+                if item["dataset"] != "custom"
+                else _resolve_dataset_name_from_config(current_cfg)
+            )
+            resolved_rho_neg = (
+                float(rho_neg)
+                if rho_neg is not None
+                else float(current_cfg["method"]["rho_neg"])
+            )
+            summary = _run_table1_summary(
                 current_cfg=current_cfg,
-                shared_state=shared_state,
-                future_models=future_models,
-                fold_index=fold_index,
+                future_cfg=future_cfg,
                 surrogate_method=surrogate_method,
-                rho_neg=rho_neg,
+                rho_neg=resolved_rho_neg,
+                num_future_models=num_future_models,
                 max_ins=max_ins,
             )
-            for fold_index in range(5)
-        ]
-        summary = _summarize_fold_metrics(fold_metrics)
-        _print_aggregate_summary(
+            row = {"dataset": resolved_dataset, **summary}
+            result_rows.append(row)
+            experiments_data[f"{resolved_dataset}_aggregate_table1"] = {
+                "configuration": {
+                    "dataset": resolved_dataset,
+                    "surrogate_method": surrogate_method,
+                    "rho_neg": resolved_rho_neg,
+                    "num_future_models": num_future_models,
+                    "max_ins": max_ins,
+                },
+                "metrics": _build_experiment_metrics(resolved_dataset, summary),
+            }
+            paper_ids.append(str(item["paper_id"]))
+
+        _print_multidataset_aggregate_summary(
             device=device,
             surrogate_method=surrogate_method,
-            rho_neg=rho_neg,
+            rho_neg=float(rho_neg if rho_neg is not None else 10.0),
             num_future_models=num_future_models,
             max_ins=max_ins,
-            summary=summary,
+            rows=result_rows,
         )
+        report_path = write_reproduction_report(
+            output_path=REPORT_PATH,
+            paper_id="cvas_proj_table1",
+            reproduction_metadata={
+                "timestamp": datetime.now(timezone.utc),
+                "framework_version": "1.0.0",
+                "source_script": Path(__file__).name,
+                "mode": args.mode,
+                "device": device,
+                "datasets": [str(row["dataset"]) for row in result_rows],
+                "paper_ids": paper_ids,
+            },
+            experiments_data=experiments_data,
+        )
+        print(f"reproduction_report_path: {report_path}")
         return
+
+    if len(requested_datasets) != 1:
+        raise ValueError(
+            f"{args.mode} mode requires a single dataset; use --dataset german|sba|student|custom"
+        )
+
+    request = requested_datasets[0]
+    current_cfg = _prepare_config(
+        _load_config((PROJECT_ROOT / request["current_config"]).resolve()),
+        device=device,
+        epochs=profile_defaults["current_epochs"],
+        model_seed=args.model_seed,
+    )
+    future_cfg = _prepare_config(
+        _load_config((PROJECT_ROOT / request["future_config"]).resolve()),
+        device=device,
+        epochs=profile_defaults["future_epochs"],
+        model_seed=args.model_seed,
+    )
+    if profile_defaults["num_samples"] is not None:
+        current_cfg["method"]["num_samples"] = int(profile_defaults["num_samples"])
+    set_cache_dir(current_cfg.get("caching", {}).get("path", "./cache/"))
+
+    dataset_name = (
+        request["dataset"]
+        if request["dataset"] != "custom"
+        else _resolve_dataset_name_from_config(current_cfg)
+    )
+    shared_state = _prepare_shared_state(current_cfg, future_cfg)
+    future_models = _prepare_future_models(
+        future_cfg=future_cfg,
+        future_dataset=shared_state["future_dataset"],
+        future_df=shared_state["future_df"],
+        num_future_models=num_future_models,
+    )
 
     if args.mode == "single_fold_debug":
         if args.rho_neg_values:
@@ -953,6 +1309,36 @@ def test_reproduce() -> None:
             max_ins=max_ins,
             fold_metrics=fold_metrics,
         )
+        report_path = write_reproduction_report(
+            output_path=REPORT_PATH,
+            paper_id=str(request["paper_id"]),
+            reproduction_metadata={
+                "timestamp": datetime.now(timezone.utc),
+                "framework_version": "1.0.0",
+                "source_script": Path(__file__).name,
+                "mode": args.mode,
+                "device": device,
+                "dataset": dataset_name,
+            },
+            experiments_data={
+                f"single_fold_{int(args.fold_index)}": {
+                    "configuration": {
+                        "dataset": dataset_name,
+                        "surrogate_method": surrogate_method,
+                        "rho_neg": rho_neg,
+                        "fold_index": int(args.fold_index),
+                        "num_future_models": num_future_models,
+                        "max_ins": max_ins,
+                    },
+                    "metrics": {
+                        key: {"original": None, "reproduced": value}
+                        for key, value in fold_metrics.items()
+                        if isinstance(value, (int, float, np.floating, np.integer))
+                    },
+                }
+            },
+        )
+        print(f"reproduction_report_path: {report_path}")
         return
 
     rho_neg_values = (
@@ -961,7 +1347,12 @@ def test_reproduce() -> None:
         else list(profile_defaults["rho_neg_values"])
     )
     rows = []
-    for rho_neg in rho_neg_values:
+    for rho_neg in _progress(
+        rho_neg_values,
+        desc="rho sweep",
+        leave=False,
+        total=len(rho_neg_values),
+    ):
         fold_metrics = [
             _run_single_fold(
                 current_cfg=current_cfg,
@@ -972,7 +1363,11 @@ def test_reproduce() -> None:
                 rho_neg=float(rho_neg),
                 max_ins=max_ins,
             )
-            for fold_index in range(5)
+            for fold_index in _progress(
+                range(5),
+                desc=f"rho={float(rho_neg):.1f} folds",
+                leave=False,
+            )
         ]
         summary = _summarize_fold_metrics(fold_metrics)
         rows.append(
@@ -992,6 +1387,36 @@ def test_reproduce() -> None:
         max_ins=max_ins,
         rows=rows,
     )
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id=str(request["paper_id"]),
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "mode": args.mode,
+            "device": device,
+            "dataset": dataset_name,
+        },
+        experiments_data={
+            f"rho_neg_{row['rho_neg']}": {
+                "configuration": {
+                    "dataset": dataset_name,
+                    "surrogate_method": surrogate_method,
+                    "num_future_models": num_future_models,
+                    "max_ins": max_ins,
+                    "rho_neg": row["rho_neg"],
+                },
+                "metrics": {
+                    key: {"original": None, "reproduced": value}
+                    for key, value in row.items()
+                    if key != "rho_neg"
+                },
+            }
+            for row in rows
+        },
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

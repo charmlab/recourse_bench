@@ -5,11 +5,11 @@ logger:
 caching:
   path: ./cache/
 dataset:
-  name: german
+  name: cvas_german_reference_current
 preprocess:
-  - name: cvas_german_reference
+  - name: cvas_reference
     seed: 42
-    paired_dataset_name: german_roar
+    paired_dataset_name: cvas_german_reference_future
   - name: stratified_split
     seed: 42
     split: 0.2
