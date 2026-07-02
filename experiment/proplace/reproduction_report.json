@@ -1,0 +1,343 @@
+{
+  "paper_id": "proplace_table1",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-02T18:54:07.760672Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_proplace_reproduce.py",
+    "config_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/proplace/config.yaml",
+    "device": "cpu",
+    "datasets": [
+      "adult_carla",
+      "compas_carla",
+      "gmc_carla",
+      "heloc_carla"
+    ],
+    "max_factuals": null,
+    "row_limit": null,
+    "ensemble_count_override": null,
+    "ensemble_epochs_override": null,
+    "model_epochs_override": null,
+    "method_k_override": null
+  },
+  "experiments": {
+    "proplace_adult_carla_reference": {
+      "configuration": {
+        "dataset": "adult_carla",
+        "dataset_label": "ADULT",
+        "method": "proplace",
+        "processed_row_count": 48832,
+        "processed_feature_names": [
+          "age",
+          "workclass_cat_Private",
+          "fnlwgt",
+          "education-num",
+          "marital-status_cat_Non-Married",
+          "occupation_cat_Other",
+          "relationship_cat_Non-Husband",
+          "race_cat_White",
+          "sex_cat_Male",
+          "capital-gain",
+          "capital-loss",
+          "hours-per-week",
+          "native-country_cat_US"
+        ],
+        "max_factuals": null,
+        "row_limit": null,
+        "ensemble_count": 10,
+        "ensemble_epochs": 20,
+        "method_k": 20
+      },
+      "metrics": {
+        "main_model_test_accuracy": {
+          "original": null,
+          "reproduced": 0.8406717182060209,
+          "delta": null
+        },
+        "main_model_test_auc": {
+          "original": null,
+          "reproduced": 0.8936780220109065,
+          "delta": null
+        },
+        "validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "delta_validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m2_validity": {
+          "original": 1.0,
+          "reproduced": 0.99,
+          "delta": 0.010000000000000009
+        },
+        "l1": {
+          "original": 0.046,
+          "reproduced": 0.030280421452011694,
+          "delta": 0.3417299684345284
+        },
+        "pct_inlier_class_1": {
+          "original": null,
+          "reproduced": 0.9,
+          "delta": null
+        },
+        "lof_class_1": {
+          "original": 1.22,
+          "reproduced": 1.23048926818928,
+          "delta": 0.008524469461416363
+        },
+        "avg_bound": {
+          "original": null,
+          "reproduced": 0.03873577053400662,
+          "delta": null
+        },
+        "valid_counterfactual_count": {
+          "original": null,
+          "reproduced": 50,
+          "delta": null
+        }
+      }
+    },
+    "proplace_compas_carla_reference": {
+      "configuration": {
+        "dataset": "compas_carla",
+        "dataset_label": "COMPAS",
+        "method": "proplace",
+        "processed_row_count": 6172,
+        "processed_feature_names": [
+          "age",
+          "two_year_recid",
+          "priors_count",
+          "length_of_stay",
+          "c_charge_degree_cat_M",
+          "race_cat_Other",
+          "sex_cat_Male"
+        ],
+        "max_factuals": null,
+        "row_limit": null,
+        "ensemble_count": 10,
+        "ensemble_epochs": 50,
+        "method_k": 20
+      },
+      "metrics": {
+        "main_model_test_accuracy": {
+          "original": null,
+          "reproduced": 0.8460291734197731,
+          "delta": null
+        },
+        "main_model_test_auc": {
+          "original": null,
+          "reproduced": 0.8528205128205129,
+          "delta": null
+        },
+        "validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "delta_validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m2_validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "l1": {
+          "original": 0.039,
+          "reproduced": 0.0357067783889271,
+          "delta": 0.08444157977109999
+        },
+        "pct_inlier_class_1": {
+          "original": null,
+          "reproduced": 0.88,
+          "delta": null
+        },
+        "lof_class_1": {
+          "original": 1.24,
+          "reproduced": 1.1547658104660639,
+          "delta": 0.06873724962414204
+        },
+        "avg_bound": {
+          "original": null,
+          "reproduced": 0.0056180643945932356,
+          "delta": null
+        },
+        "valid_counterfactual_count": {
+          "original": null,
+          "reproduced": 50,
+          "delta": null
+        }
+      }
+    },
+    "proplace_gmc_carla_reference": {
+      "configuration": {
+        "dataset": "gmc_carla",
+        "dataset_label": "GMC",
+        "method": "proplace",
+        "processed_row_count": 115527,
+        "processed_feature_names": [
+          "RevolvingUtilizationOfUnsecuredLines",
+          "age",
+          "NumberOfTime30-59DaysPastDueNotWorse",
+          "DebtRatio",
+          "MonthlyIncome",
+          "NumberOfOpenCreditLinesAndLoans",
+          "NumberOfTimes90DaysLate",
+          "NumberRealEstateLoansOrLines",
+          "NumberOfTime60-89DaysPastDueNotWorse",
+          "NumberOfDependents"
+        ],
+        "max_factuals": null,
+        "row_limit": null,
+        "ensemble_count": 10,
+        "ensemble_epochs": 3,
+        "method_k": 20
+      },
+      "metrics": {
+        "main_model_test_accuracy": {
+          "original": null,
+          "reproduced": 0.9366398338094002,
+          "delta": null
+        },
+        "main_model_test_auc": {
+          "original": null,
+          "reproduced": 0.8004417408501682,
+          "delta": null
+        },
+        "validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "delta_validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m2_validity": {
+          "original": 1.0,
+          "reproduced": 0.999,
+          "delta": 0.0010000000000000009
+        },
+        "l1": {
+          "original": 0.058,
+          "reproduced": 0.051421778355191086,
+          "delta": 0.11341761456567097
+        },
+        "pct_inlier_class_1": {
+          "original": null,
+          "reproduced": 0.86,
+          "delta": null
+        },
+        "lof_class_1": {
+          "original": 1.24,
+          "reproduced": 1.2896651183067187,
+          "delta": 0.038510088860840966
+        },
+        "avg_bound": {
+          "original": null,
+          "reproduced": 0.004903578705772402,
+          "delta": null
+        },
+        "valid_counterfactual_count": {
+          "original": null,
+          "reproduced": 50,
+          "delta": null
+        }
+      }
+    },
+    "proplace_heloc_carla_reference": {
+      "configuration": {
+        "dataset": "heloc_carla",
+        "dataset_label": "HELOC",
+        "method": "proplace",
+        "processed_row_count": 9871,
+        "processed_feature_names": [
+          "ExternalRiskEstimate",
+          "MSinceOldestTradeOpen",
+          "MSinceMostRecentTradeOpen",
+          "AverageMInFile",
+          "NumSatisfactoryTrades",
+          "NumTrades60Ever2DerogPubRec",
+          "NumTrades90Ever2DerogPubRec",
+          "PercentTradesNeverDelq",
+          "MSinceMostRecentDelq",
+          "NumTotalTrades",
+          "NumTradesOpeninLast12M",
+          "PercentInstallTrades",
+          "MSinceMostRecentInqexcl7days",
+          "NumInqLast6M",
+          "NumInqLast6Mexcl7days",
+          "NetFractionRevolvingBurden",
+          "NetFractionInstallBurden",
+          "NumRevolvingTradesWBalance",
+          "NumInstallTradesWBalance",
+          "NumBank2NatlTradesWHighUtilization",
+          "PercentTradesWBalance"
+        ],
+        "max_factuals": null,
+        "row_limit": null,
+        "ensemble_count": 10,
+        "ensemble_epochs": 50,
+        "method_k": 23
+      },
+      "metrics": {
+        "main_model_test_accuracy": {
+          "original": null,
+          "reproduced": 0.7274569402228976,
+          "delta": null
+        },
+        "main_model_test_auc": {
+          "original": null,
+          "reproduced": 0.8201088654639939,
+          "delta": null
+        },
+        "validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "delta_validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "m2_validity": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "l1": {
+          "original": 0.057,
+          "reproduced": 0.0736928645183863,
+          "delta": 0.22651941443016435
+        },
+        "pct_inlier_class_1": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "lof_class_1": {
+          "original": 1.04,
+          "reproduced": 1.0337201277271526,
+          "delta": 0.006038338723891761
+        },
+        "avg_bound": {
+          "original": null,
+          "reproduced": 0.006234807577099233,
+          "delta": null
+        },
+        "valid_counterfactual_count": {
+          "original": null,
+          "reproduced": 50,
+          "delta": null
+        }
+      }
+    }
+  }
+}
