@@ -1,0 +1,94 @@
+name: heloc_carla
+target_column: RiskPerformance
+feature_order:
+- ExternalRiskEstimate
+- MSinceOldestTradeOpen
+- MSinceMostRecentTradeOpen
+- AverageMInFile
+- NumSatisfactoryTrades
+- NumTrades60Ever2DerogPubRec
+- NumTrades90Ever2DerogPubRec
+- PercentTradesNeverDelq
+- MSinceMostRecentDelq
+- NumTotalTrades
+- NumTradesOpeninLast12M
+- PercentInstallTrades
+- MSinceMostRecentInqexcl7days
+- NumInqLast6M
+- NumInqLast6Mexcl7days
+- NetFractionRevolvingBurden
+- NetFractionInstallBurden
+- NumRevolvingTradesWBalance
+- NumInstallTradesWBalance
+- NumBank2NatlTradesWHighUtilization
+- PercentTradesWBalance
+- RiskPerformance
+raw_feature_type:
+  ExternalRiskEstimate: numerical
+  MSinceOldestTradeOpen: numerical
+  MSinceMostRecentTradeOpen: numerical
+  AverageMInFile: numerical
+  NumSatisfactoryTrades: numerical
+  NumTrades60Ever2DerogPubRec: numerical
+  NumTrades90Ever2DerogPubRec: numerical
+  PercentTradesNeverDelq: numerical
+  MSinceMostRecentDelq: numerical
+  NumTotalTrades: numerical
+  NumTradesOpeninLast12M: numerical
+  PercentInstallTrades: numerical
+  MSinceMostRecentInqexcl7days: numerical
+  NumInqLast6M: numerical
+  NumInqLast6Mexcl7days: numerical
+  NetFractionRevolvingBurden: numerical
+  NetFractionInstallBurden: numerical
+  NumRevolvingTradesWBalance: numerical
+  NumInstallTradesWBalance: numerical
+  NumBank2NatlTradesWHighUtilization: numerical
+  PercentTradesWBalance: numerical
+  RiskPerformance: binary
+raw_feature_mutability:
+  ExternalRiskEstimate: true
+  MSinceOldestTradeOpen: true
+  MSinceMostRecentTradeOpen: true
+  AverageMInFile: true
+  NumSatisfactoryTrades: true
+  NumTrades60Ever2DerogPubRec: true
+  NumTrades90Ever2DerogPubRec: true
+  PercentTradesNeverDelq: true
+  MSinceMostRecentDelq: true
+  NumTotalTrades: true
+  NumTradesOpeninLast12M: true
+  PercentInstallTrades: true
+  MSinceMostRecentInqexcl7days: true
+  NumInqLast6M: true
+  NumInqLast6Mexcl7days: true
+  NetFractionRevolvingBurden: true
+  NetFractionInstallBurden: true
+  NumRevolvingTradesWBalance: true
+  NumInstallTradesWBalance: true
+  NumBank2NatlTradesWHighUtilization: true
+  PercentTradesWBalance: true
+  RiskPerformance: false
+raw_feature_actionability:
+  ExternalRiskEstimate: any
+  MSinceOldestTradeOpen: any
+  MSinceMostRecentTradeOpen: any
+  AverageMInFile: any
+  NumSatisfactoryTrades: any
+  NumTrades60Ever2DerogPubRec: any
+  NumTrades90Ever2DerogPubRec: any
+  PercentTradesNeverDelq: any
+  MSinceMostRecentDelq: any
+  NumTotalTrades: any
+  NumTradesOpeninLast12M: any
+  PercentInstallTrades: any
+  MSinceMostRecentInqexcl7days: any
+  NumInqLast6M: any
+  NumInqLast6Mexcl7days: any
+  NetFractionRevolvingBurden: any
+  NetFractionInstallBurden: any
+  NumRevolvingTradesWBalance: any
+  NumInstallTradesWBalance: any
+  NumBank2NatlTradesWHighUtilization: any
+  PercentTradesWBalance: any
+  RiskPerformance: none

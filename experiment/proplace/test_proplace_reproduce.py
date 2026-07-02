@@ -1,61 +1,208 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+import sys
 
+import numpy as np
+import pandas as pd
 import pytest
+from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import LocalOutlierFactor
+import torch
+from tqdm import tqdm
+import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-import numpy as np
-import pandas as pd
-import torch
-import yaml
-from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import LocalOutlierFactor
-from tqdm import tqdm
 
 # Trigger standard registration.
 import dataset  # noqa: F401
 import method  # noqa: F401
 import model  # noqa: F401
 import preprocess  # noqa: F401
-from dataset.compas_carla.compas_carla import CompasCarlaDataset
-from preprocess.common import EncodePreProcess
+from dataset.dataset_object import DatasetObject
+from experiment.utils import write_reproduction_report
 from method.proplace.support import (
     OptSolver,
     build_inn,
     build_proplace_dataset,
     extract_scalar_network,
 )
+from preprocess.common import EncodePreProcess
 from utils.caching import set_cache_dir
 from utils.logger import setup_logger
 from utils.registry import get_registry
 from utils.seed import seed_context
 
-REFERENCE_PROPLACE_ROW = {
-    "validity": 1.0,
-    "delta_validity": 1.0,
-    "m2_validity": 1.0,
-    "l1": 0.039,
-    "pct_inlier_class_1": 0.86,
-    "lof_class_1": 1.241,
+
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+
+PAPER_EXPERIMENT_SPECS = {
+    "adult_carla": {
+        "dataset_label": "ADULT",
+        "csv_filename": "adult_carla.csv",
+        "preprocess": [
+            {
+                "name": "scale",
+                "seed": 1,
+                "scaling": "normalize",
+                "range": True,
+            },
+            {
+                "name": "encode",
+                "seed": 1,
+                "encoding": "onehot_drop_binary",
+            },
+        ],
+        "config_overrides": {
+            "model": {
+                "seed": 5,
+                "layers": [10, 10],
+                "epochs": 20,
+            },
+            "method": {
+                "delta": 0.035,
+            },
+            "reproduction": {
+                "ensemble": {
+                    "hidden_size": 10,
+                    "epochs": 20,
+                },
+                "metrics": {
+                    "delta": 0.035,
+                },
+            },
+        },
+        "reference_metrics": {
+            "validity": 1.0,
+            "m2_validity": 1.0,
+            "delta_validity": 1.0,
+            "l1": 0.046,
+            "lof_class_1": 1.22,
+        },
+    },
+    "compas_carla": {
+        "dataset_label": "COMPAS",
+        "csv_filename": "compas_carla.csv",
+        "preprocess": [
+            {
+                "name": "scale",
+                "seed": 1,
+                "scaling": "normalize",
+                "range": True,
+            },
+            {
+                "name": "encode",
+                "seed": 1,
+                "encoding": "onehot_drop_binary",
+                "binary_positive_category": {
+                    "c_charge_degree": "M",
+                    "race": "Other",
+                    "sex": "Male",
+                },
+            },
+            {
+                "name": "reorder",
+                "seed": 1,
+                "order": [
+                    "age",
+                    "two_year_recid",
+                    "priors_count",
+                    "length_of_stay",
+                    "c_charge_degree_cat_M",
+                    "race_cat_Other",
+                    "sex_cat_Male",
+                ],
+            },
+        ],
+        "reference_metrics": {
+            "validity": 1.0,
+            "m2_validity": 1.0,
+            "delta_validity": 1.0,
+            "l1": 0.039,
+            "lof_class_1": 1.24,
+        },
+    },
+    "gmc_carla": {
+        "dataset_label": "GMC",
+        "csv_filename": "give_me_some_credit.csv",
+        "preprocess": [
+            {
+                "name": "scale",
+                "seed": 1,
+                "scaling": "normalize",
+                "range": True,
+            },
+        ],
+        "config_overrides": {
+            "model": {
+                "seed": 0,
+                "layers": [20, 20],
+                "epochs": 3,
+            },
+            "method": {
+                "seed": 0,
+                "delta": 0.045,
+            },
+            "reproduction": {
+                "ensemble": {
+                    "hidden_size": 20,
+                    "epochs": 3,
+                    "leave_out_selection_seed": 5,
+                },
+                "metrics": {
+                    "delta": 0.045,
+                },
+            },
+        },
+        "reference_metrics": {
+            "validity": 1.0,
+            "m2_validity": 1.0,
+            "delta_validity": 1.0,
+            "l1": 0.058,
+            "lof_class_1": 1.24,
+        },
+    },
+    "heloc_carla": {
+        "dataset_label": "HELOC",
+        "csv_filename": "heloc.csv",
+        "preprocess": [
+            {
+                "name": "scale",
+                "seed": 1,
+                "scaling": "normalize",
+                "range": True,
+            },
+        ],
+        "config_overrides": {
+            "method": {
+                "k": 23,
+            },
+        },
+        "reference_metrics": {
+            "validity": 1.0,
+            "m2_validity": 1.0,
+            "delta_validity": 1.0,
+            "l1": 0.057,
+            "lof_class_1": 1.04,
+        },
+    },
 }
 
 
 @dataclass
-class ReferenceCompasData:
-    full_dataset: object
-    x1_dataset: object
-    x1_trainset: object
-    x1_testset: object
-    x2_trainset: object
+class ReferenceSplitData:
+    full_dataset: DatasetObject
+    x1_dataset: DatasetObject
+    x1_trainset: DatasetObject
+    x1_testset: DatasetObject
+    x2_trainset: DatasetObject
     X1: pd.DataFrame
     y1: pd.DataFrame
     X1_train: pd.DataFrame
@@ -66,11 +213,34 @@ class ReferenceCompasData:
     y2_train: pd.DataFrame
 
 
-class ProplaceCompasCarlaDataset(CompasCarlaDataset):
-    """Reference-faithful COMPAS loader used only by the ProPlace reproduction."""
+class ProplacePaperDataset(DatasetObject):
+    """Reference-faithful CARLA-style loader used only by the ProPlace reproduction."""
+
+    def __init__(
+        self,
+        dataset_name: str,
+        csv_filename: str,
+        path: str | None = None,
+        **kwargs,
+    ):
+        dataset_path = Path(path or f"./dataset/{dataset_name}/")
+        if not dataset_path.exists():
+            dataset_path = PROJECT_ROOT / "dataset" / dataset_name
+
+        self._dataset_name = dataset_name
+        self._csv_filename = csv_filename
+        self._rawdf = self._read_df(str(dataset_path))
+        self._freeze = False
+
+        rawattrs = self._read_attrs(str(dataset_path))
+        for flag, value in rawattrs.items():
+            setattr(self, flag, value)
+
+        feature_order = getattr(self, "feature_order", list(self._rawdf.columns))
+        self._rawdf = self._rawdf.loc[:, feature_order].copy(deep=True)
 
     def _read_df(self, path: str) -> pd.DataFrame:
-        df = pd.read_csv(Path(path) / "compas_carla.csv")
+        df = pd.read_csv(Path(path) / self._csv_filename)
         return df.dropna().reset_index(drop=True)
 
 
@@ -293,15 +463,15 @@ def _load_config(config_path: Path) -> dict:
     return config
 
 
-def _resolve_device() -> str:
+def _resolve_device(preferred_device: str | None = None) -> str:
+    if preferred_device is not None:
+        preferred = preferred_device.lower()
+        if preferred == "cuda" and not torch.cuda.is_available():
+            raise RuntimeError("Requested device 'cuda' is not available")
+        if preferred not in {"cpu", "cuda"}:
+            raise ValueError(f"Unsupported device override: {preferred_device}")
+        return preferred
     return "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def _apply_device(config: dict, device: str) -> dict:
-    cfg = deepcopy(config)
-    cfg["model"]["device"] = device
-    cfg["method"]["device"] = device
-    return cfg
 
 
 def _normalize_config(config: dict) -> dict:
@@ -313,11 +483,69 @@ def _normalize_config(config: dict) -> dict:
     return cfg
 
 
+def _build_experiment_config(base_config: dict, dataset_name: str, device: str) -> dict:
+    if dataset_name not in PAPER_EXPERIMENT_SPECS:
+        raise KeyError(f"Unsupported ProPlace paper dataset: {dataset_name}")
+
+    spec = PAPER_EXPERIMENT_SPECS[dataset_name]
+    cfg = deepcopy(base_config)
+    cfg["name"] = f"proplace_{dataset_name}_reproduce"
+    cfg["dataset"] = {"name": dataset_name}
+    cfg["preprocess"] = deepcopy(spec["preprocess"])
+    cfg.setdefault("logger", {})
+    cfg["logger"]["path"] = f"./logs/proplace_{dataset_name}_reproduce.log"
+    cfg.setdefault("reproduction", {})
+    cfg["reproduction"]["dataset_label"] = spec["dataset_label"]
+    cfg["reproduction"]["reference_metrics"] = deepcopy(spec["reference_metrics"])
+    cfg["reproduction"]["experiment_id"] = f"proplace_{dataset_name}_reference"
+    cfg["model"]["device"] = device
+    cfg["method"]["device"] = device
+    config_overrides = deepcopy(spec.get("config_overrides", {}))
+    for section_name, section_overrides in config_overrides.items():
+        if section_name not in cfg:
+            cfg[section_name] = {}
+        if not isinstance(cfg[section_name], dict) or not isinstance(section_overrides, dict):
+            raise TypeError(
+                f"ProPlace dataset override for section '{section_name}' must be a dictionary"
+            )
+        cfg[section_name] = _deep_merge_dict(cfg[section_name], section_overrides)
+    return _normalize_config(cfg)
+
+
+def _deep_merge_dict(base: dict, override: dict) -> dict:
+    merged = deepcopy(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dict(merged[key], value)
+        else:
+            merged[key] = deepcopy(value)
+    return merged
+
+
+def _apply_runtime_overrides(config: dict, args: argparse.Namespace) -> dict:
+    cfg = deepcopy(config)
+    if args.ensemble_count is not None:
+        cfg["reproduction"]["ensemble"]["retrain_count"] = int(args.ensemble_count)
+        cfg["reproduction"]["ensemble"]["leave_out_count"] = int(args.ensemble_count)
+    if args.ensemble_epochs is not None:
+        cfg["reproduction"]["ensemble"]["epochs"] = int(args.ensemble_epochs)
+    if args.model_epochs is not None:
+        cfg["model"]["epochs"] = int(args.model_epochs)
+    if args.method_k is not None:
+        cfg["method"]["k"] = int(args.method_k)
+    return cfg
+
+
 def _build_dataset(config: dict):
     dataset_cfg = deepcopy(config["dataset"])
     dataset_name = dataset_cfg.pop("name")
-    if dataset_name == "compas_carla":
-        return ProplaceCompasCarlaDataset(**dataset_cfg)
+    if dataset_name in PAPER_EXPERIMENT_SPECS:
+        spec = PAPER_EXPERIMENT_SPECS[dataset_name]
+        return ProplacePaperDataset(
+            dataset_name=dataset_name,
+            csv_filename=spec["csv_filename"],
+            **dataset_cfg,
+        )
     dataset_class = get_registry("dataset")[dataset_name]
     return dataset_class(**dataset_cfg)
 
@@ -328,7 +556,10 @@ def _build_preprocess(config: dict) -> list:
     for preprocess_cfg in config.get("preprocess", []):
         item_cfg = deepcopy(preprocess_cfg)
         preprocess_name = item_cfg.pop("name")
-        if preprocess_name == "encode" and str(item_cfg.get("encoding", "")).lower() == "onehot_drop_binary":
+        if (
+            preprocess_name == "encode"
+            and str(item_cfg.get("encoding", "")).lower() == "onehot_drop_binary"
+        ):
             preprocess_objects.append(ProplaceEncodePreProcess(**item_cfg))
             continue
         preprocess_objects.append(preprocess_registry[preprocess_name](**item_cfg))
@@ -363,7 +594,7 @@ def _materialize_processed_dataset(raw_dataset, preprocess_steps):
 
     if len(datasets) != 1:
         raise ValueError(
-            "ProPlace Compas reproduction expects a single processed dataset before custom splitting"
+            "ProPlace paper reproduction expects a single processed dataset before custom splitting"
         )
     return datasets[0]
 
@@ -397,7 +628,7 @@ def _build_reference_splits(
     processed_dataset,
     config: dict,
     row_limit: int | None = None,
-) -> ReferenceCompasData:
+) -> ReferenceSplitData:
     reproduction_cfg = deepcopy(config["reproduction"])
     split_cfg = deepcopy(reproduction_cfg["split"])
     target_column = processed_dataset.target_column
@@ -446,9 +677,14 @@ def _build_reference_splits(
     x1_dataset = _build_dataset_clone(processed_dataset, X1, y1, "reference_x1")
     x1_trainset = _build_dataset_clone(processed_dataset, X1_train, y1_train, "trainset")
     x1_testset = _build_dataset_clone(processed_dataset, X1_test, y1_test, "testset")
-    x2_trainset = _build_dataset_clone(processed_dataset, X2_train, y2_train, "reference_x2_train")
+    x2_trainset = _build_dataset_clone(
+        processed_dataset,
+        X2_train,
+        y2_train,
+        "reference_x2_train",
+    )
 
-    return ReferenceCompasData(
+    return ReferenceSplitData(
         full_dataset=processed_dataset,
         x1_dataset=x1_dataset,
         x1_trainset=x1_trainset,
@@ -498,7 +734,7 @@ def _instantiate_model(config: dict, device: str, **overrides):
 
 
 def _train_retrained_models(
-    data: ReferenceCompasData,
+    data: ReferenceSplitData,
     config: dict,
     device: str,
 ) -> list:
@@ -581,7 +817,7 @@ def _train_retrained_models(
 def _select_reference_factuals(
     main_model,
     m2s: list,
-    data: ReferenceCompasData,
+    data: ReferenceSplitData,
     config: dict,
     override_count: int | None = None,
 ) -> tuple[pd.DataFrame, dict[str, int]]:
@@ -631,7 +867,7 @@ def _evaluate_proplace(
     counterfactuals: pd.DataFrame,
     factuals: pd.DataFrame,
     method_fit_dataset,
-    data: ReferenceCompasData,
+    data: ReferenceSplitData,
     config: dict,
 ) -> tuple[dict[str, float], pd.DataFrame]:
     reproduction_cfg = config["reproduction"]
@@ -660,7 +896,11 @@ def _evaluate_proplace(
     positive_class_points = data.X1.loc[
         data.y1.iloc[:, 0].astype(int).to_numpy() == target_index
     ].to_numpy(dtype=np.float64)
-    novelty_lof = LocalOutlierFactor(n_neighbors=10, novelty=True)
+    novelty_neighbor_count = min(10, max(1, positive_class_points.shape[0] - 1))
+    novelty_lof = LocalOutlierFactor(
+        n_neighbors=novelty_neighbor_count,
+        novelty=True,
+    )
     novelty_lof.fit(positive_class_points)
 
     valid_len = counterfactuals.shape[0]
@@ -679,6 +919,7 @@ def _evaluate_proplace(
         desc="proplace-eval",
         leave=False,
     )
+    lof_neighbor_count = min(10, max(1, positive_class_points.shape[0]))
     for row_index, counterfactual in evaluation_iterator:
         factual = factual_array[row_index]
         failed = bool(np.isnan(counterfactual).any())
@@ -726,7 +967,7 @@ def _evaluate_proplace(
             novelty_score = 1.0
         inlier_sum += novelty_score
 
-        lof = LocalOutlierFactor(n_neighbors=10)
+        lof = LocalOutlierFactor(n_neighbors=lof_neighbor_count)
         lof.fit(
             np.concatenate(
                 [counterfactual.reshape(1, -1), positive_class_points],
@@ -784,9 +1025,12 @@ def _evaluate_proplace(
     return metrics, detail_df
 
 
-def _build_reference_comparison(metrics: dict[str, float]) -> pd.DataFrame:
+def _build_reference_comparison(
+    metrics: dict[str, float],
+    reference_metrics: dict[str, float],
+) -> pd.DataFrame:
     rows = []
-    for key, target_value in REFERENCE_PROPLACE_ROW.items():
+    for key, target_value in reference_metrics.items():
         reproduced = metrics[key]
         rows.append(
             {
@@ -800,48 +1044,60 @@ def _build_reference_comparison(metrics: dict[str, float]) -> pd.DataFrame:
         )
     return pd.DataFrame(rows)
 
-@pytest.mark.slow
-def test_reproduce() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        default=str(Path(__file__).with_name("config.yaml")),
-    )
-    parser.add_argument("--max-factuals", type=int, default=None)
-    parser.add_argument("--row-limit", type=int, default=None)
-    args = parser.parse_args()
 
-    config_path = Path(args.config)
-    if not config_path.is_absolute():
-        config_path = (PROJECT_ROOT / config_path).resolve()
+def _resolve_requested_datasets(
+    args: argparse.Namespace,
+    base_config: dict,
+) -> list[str]:
+    if args.dataset:
+        if len(args.dataset) == 1 and args.dataset[0] == "all":
+            return list(PAPER_EXPERIMENT_SPECS)
+        return list(dict.fromkeys(args.dataset))
 
-    config = _normalize_config(_load_config(config_path))
-    device = _resolve_device()
-    config = _apply_device(config, device)
+    configured_datasets = base_config.get("reproduction", {}).get("datasets")
+    if configured_datasets:
+        return list(configured_datasets)
+
+    configured_dataset_name = base_config.get("dataset", {}).get("name")
+    if configured_dataset_name in PAPER_EXPERIMENT_SPECS:
+        return [configured_dataset_name]
+    return list(PAPER_EXPERIMENT_SPECS)
+
+
+def _run_single_dataset(
+    base_config: dict,
+    dataset_name: str,
+    device: str,
+    args: argparse.Namespace,
+) -> dict:
+    config = _build_experiment_config(base_config, dataset_name, device)
+    config = _apply_runtime_overrides(config, args)
     logger_cfg = config.get("logger", {})
     logger = setup_logger(
         level=logger_cfg.get("level", "INFO"),
         path=logger_cfg.get("path"),
-        name=config.get("name", "proplace_compas_reproduce"),
+        name=config.get("name", f"proplace_{dataset_name}_reproduce"),
     )
-    logger.info("Experiment config:\n%s", yaml.safe_dump(config, sort_keys=False))
-    set_cache_dir(config.get("caching", {}).get("path", "./cache/"))
+    logger.info("Experiment config for %s:\n%s", dataset_name, yaml.safe_dump(config, sort_keys=False))
+
+    dataset_label = config["reproduction"]["dataset_label"]
+    reference_metrics = config["reproduction"]["reference_metrics"]
 
     raw_dataset = _build_dataset(config)
     preprocess_steps = _build_preprocess(config)
-    print("Materializing processed COMPAS dataset...", flush=True)
+    print(f"Materializing processed {dataset_label} dataset...", flush=True)
     processed_dataset = _materialize_processed_dataset(raw_dataset, preprocess_steps)
     data = _build_reference_splits(processed_dataset, config, row_limit=args.row_limit)
 
-    print("Training main reference model...", flush=True)
+    print(f"Training main reference model for {dataset_label}...", flush=True)
     main_model = _build_model(config)
     main_model.fit(data.x1_trainset)
     main_model_metrics = _compute_model_metrics(main_model, data.x1_testset)
 
-    print("Training retrained M2 ensemble...", flush=True)
+    print(f"Training retrained M2 ensemble for {dataset_label}...", flush=True)
     m2s = _train_retrained_models(data, config, device)
-    print(f"Trained {len(m2s)} ensemble models.", flush=True)
-    print("Selecting reference factual pool...", flush=True)
+    print(f"Trained {len(m2s)} ensemble models for {dataset_label}.", flush=True)
+    print(f"Selecting reference factual pool for {dataset_label}...", flush=True)
     factuals, factual_metadata = _select_reference_factuals(
         main_model,
         m2s,
@@ -850,14 +1106,14 @@ def test_reproduce() -> None:
         override_count=args.max_factuals,
     )
 
-    print("Fitting ProplaceMethod on X1 reference pool...", flush=True)
+    print(f"Fitting ProPlaceMethod on {dataset_label} X1 reference pool...", flush=True)
     method = _build_method(config, main_model)
     method.fit(data.x1_dataset)
-    print("Generating ProPlace counterfactuals...", flush=True)
+    print(f"Generating ProPlace counterfactuals for {dataset_label}...", flush=True)
     counterfactuals = method.get_counterfactuals(factuals)
 
-    print("Evaluating reproduced ProPlace metrics...", flush=True)
-    metrics, detail_df = _evaluate_proplace(
+    print(f"Evaluating reproduced ProPlace metrics for {dataset_label}...", flush=True)
+    metrics, _detail_df = _evaluate_proplace(
         main_model,
         m2s,
         counterfactuals,
@@ -866,24 +1122,132 @@ def test_reproduce() -> None:
         data,
         config,
     )
-    comparison_df = _build_reference_comparison(metrics)
+    comparison_df = _build_reference_comparison(metrics, reference_metrics)
 
-    summary = {
-        "device": device,
-        "processed_feature_names": list(processed_dataset.get(target=False).columns),
-        "processed_row_count": int(processed_dataset.get(target=False).shape[0]),
-        "main_model_metrics": main_model_metrics,
-        "factual_selection": factual_metadata,
-        "metrics": metrics,
-        "reference_proplace_row": REFERENCE_PROPLACE_ROW,
+    print(f"\n[{dataset_label}] Main model metrics:")
+    print(pd.DataFrame([main_model_metrics]).to_string(index=False))
+    print(f"\n[{dataset_label}] ProPlace metrics:")
+    print(pd.DataFrame([metrics]).to_string(index=False))
+    print(f"\n[{dataset_label}] Reference comparison:")
+    print(comparison_df.to_string(index=False))
+
+    report_metrics = {
+        **{
+            f"main_model_{key}": {
+                "original": None,
+                "reproduced": value,
+            }
+            for key, value in main_model_metrics.items()
+        },
+        **{
+            key: {
+                "original": reference_metrics.get(key),
+                "reproduced": value,
+            }
+            for key, value in metrics.items()
+        },
     }
 
-    print("Main model metrics:")
-    print(pd.DataFrame([main_model_metrics]).to_string(index=False))
-    print("\nProPlace metrics:")
-    print(pd.DataFrame([metrics]).to_string(index=False))
-    print("\nReference comparison:")
-    print(comparison_df.to_string(index=False))
+    return {
+        "dataset_name": dataset_name,
+        "dataset_label": dataset_label,
+        "experiment_id": config["reproduction"]["experiment_id"],
+        "configuration": {
+            "dataset": dataset_name,
+            "dataset_label": dataset_label,
+            "method": str(config["method"]["name"]),
+            "processed_row_count": int(processed_dataset.get(target=False).shape[0]),
+            "processed_feature_names": list(processed_dataset.get(target=False).columns),
+            "max_factuals": args.max_factuals,
+            "row_limit": args.row_limit,
+            "ensemble_count": config["reproduction"]["ensemble"]["retrain_count"],
+            "ensemble_epochs": config["reproduction"]["ensemble"]["epochs"],
+            "method_k": config["method"]["k"],
+        },
+        "metrics": report_metrics,
+        "summary_row": {
+            "dataset": dataset_label,
+            "processed_rows": int(processed_dataset.get(target=False).shape[0]),
+            "test_accuracy": main_model_metrics["test_accuracy"],
+            "validity": metrics["validity"],
+            "m2_validity": metrics["m2_validity"],
+            "delta_validity": metrics["delta_validity"],
+            "l1": metrics["l1"],
+            "lof_class_1": metrics["lof_class_1"],
+        },
+    }
+
+
+@pytest.mark.slow
+def test_reproduce() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        default=str(Path(__file__).with_name("config.yaml")),
+    )
+    parser.add_argument(
+        "--dataset",
+        action="append",
+        choices=[*PAPER_EXPERIMENT_SPECS.keys(), "all"],
+        default=None,
+    )
+    parser.add_argument("--max-factuals", type=int, default=None)
+    parser.add_argument("--row-limit", type=int, default=None)
+    parser.add_argument("--ensemble-count", type=int, default=None)
+    parser.add_argument("--ensemble-epochs", type=int, default=None)
+    parser.add_argument("--model-epochs", type=int, default=None)
+    parser.add_argument("--method-k", type=int, default=None)
+    parser.add_argument("--device", choices=["cpu", "cuda"], default=None)
+    args = parser.parse_args()
+
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        config_path = (PROJECT_ROOT / config_path).resolve()
+
+    base_config = _load_config(config_path)
+    device = _resolve_device(args.device)
+    datasets_to_run = _resolve_requested_datasets(args, base_config)
+    set_cache_dir(base_config.get("caching", {}).get("path", "./cache/"))
+
+    experiments_data = {}
+    summary_rows = []
+    for dataset_name in datasets_to_run:
+        result = _run_single_dataset(
+            base_config=base_config,
+            dataset_name=dataset_name,
+            device=device,
+            args=args,
+        )
+        experiments_data[result["experiment_id"]] = {
+            "configuration": result["configuration"],
+            "metrics": result["metrics"],
+        }
+        summary_rows.append(result["summary_row"])
+
+    if summary_rows:
+        print("\n[Summary] ProPlace paper-scope reproduction metrics:")
+        print(pd.DataFrame(summary_rows).to_string(index=False))
+
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="proplace_table1",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "device": device,
+            "datasets": datasets_to_run,
+            "max_factuals": args.max_factuals,
+            "row_limit": args.row_limit,
+            "ensemble_count_override": args.ensemble_count,
+            "ensemble_epochs_override": args.ensemble_epochs,
+            "model_epochs_override": args.model_epochs,
+            "method_k_override": args.method_k,
+        },
+        experiments_data=experiments_data,
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-name: proplace_compas_reproduce
+name: proplace_table1_reproduce
 logger:
   level: INFO
-  path: ./logs/proplace_compas_reproduce.log
+  path: ./logs/proplace_table1_reproduce.log
 caching:
   path: ./cache/
 
@@ -60,6 +60,11 @@ method:
 evaluation: []
 
 reproduction:
+  datasets:
+    - adult_carla
+    - compas_carla
+    - gmc_carla
+    - heloc_carla
   split:
     half_selection_seed: 1
     train_test_split_seed: 0
