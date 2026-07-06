@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import sys
 from copy import deepcopy
@@ -24,11 +25,13 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
+from experiment.utils import write_reproduction_report
 from method.rbr.rbr import RbrMethod
 from model.mlp.mlp import MlpModel
 
 DEFAULT_CURRENT_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_current.yaml"
 DEFAULT_FUTURE_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_future.yaml"
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 PAPER_GERMAN_METRICS = {
     "present_accuracy": {"mean": 0.67, "std": 0.02},
     "present_auc": {"mean": 0.60, "std": 0.03},
@@ -868,7 +871,65 @@ def test_reproduce() -> None:
         current_config_path=args.current_config,
         future_config_path=args.future_config,
     )
+    classifier_metrics = summary["classifier_metrics"]
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="rbr_german",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "current_config_path": args.current_config,
+            "future_config_path": args.future_config,
+            "device": summary["device"],
+        },
+        experiments_data={
+            "classifier_metrics": {
+                "configuration": {
+                    "dataset": "german",
+                    "mode": summary["setup"]["reproduction_mode"],
+                },
+                "metrics": {
+                    "present_accuracy": {
+                        "original": PAPER_GERMAN_METRICS["present_accuracy"]["mean"],
+                        "reproduced": classifier_metrics["present_d1"]["accuracy"],
+                    },
+                    "present_auc": {
+                        "original": PAPER_GERMAN_METRICS["present_auc"]["mean"],
+                        "reproduced": classifier_metrics["present_d1"]["auc"],
+                    },
+                    "shift_accuracy": {
+                        "original": PAPER_GERMAN_METRICS["shift_accuracy"]["mean"],
+                        "reproduced": classifier_metrics["shift_d2"]["accuracy"],
+                    },
+                    "shift_auc": {
+                        "original": PAPER_GERMAN_METRICS["shift_auc"]["mean"],
+                        "reproduced": classifier_metrics["shift_d2"]["auc"],
+                    },
+                },
+            },
+            **{
+                f"variant_{item['variant_label']}": {
+                    "configuration": {
+                        "variant_label": item["variant_label"],
+                        "sweep_parameter": item["sweep_parameter"],
+                        "sweep_value": item["sweep_value"],
+                    },
+                    "metrics": {
+                        key: {
+                            "original": None,
+                            "reproduced": value,
+                        }
+                        for key, value in item.items()
+                        if isinstance(value, (int, float, np.floating, np.integer))
+                    },
+                }
+                for item in summary["results"]
+            },
+        },
+    )
     print(json.dumps(summary, indent=2, sort_keys=True))
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

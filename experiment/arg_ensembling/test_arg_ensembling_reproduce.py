@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import math
 import sys
 from dataclasses import dataclass
@@ -30,6 +31,7 @@ from method.arg_ensembling.support import (
     nearest_neighbor_counterfactual,
     solve_argumentative_extension,
 )
+from experiment.utils import write_reproduction_report
 from model.model_object import ModelObject
 
 
@@ -39,6 +41,9 @@ class PoolEntry:
     accuracy: float
     simplicity: float
     train_predictions: np.ndarray
+
+
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 class SklearnMlpModel(ModelObject):
@@ -565,6 +570,39 @@ def test_reproduce() -> None:
     config = _load_config(config_path)
 
     reproduced_table, diff_table = run_reproduction(config)
+    targets = _normalize_table_targets(config["reproduction"]["table4_targets"])
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="arg_ensembling_compas_table4",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "experiment_name": config["name"],
+        },
+        experiments_data={
+            f"{row['Method']}_M_{model_size}": {
+                "configuration": {
+                    "dataset": "compas_carla",
+                    "method": row["Method"],
+                    "model_pool_size": int(model_size),
+                },
+                "metrics": {
+                    "accuracy": {
+                        "original": targets.get(row["Method"], {}).get(int(model_size), {}).get("acc"),
+                        "reproduced": row[f"|M|={model_size} Acc"],
+                    },
+                    "simplicity": {
+                        "original": targets.get(row["Method"], {}).get(int(model_size), {}).get("simp"),
+                        "reproduced": row[f"|M|={model_size} Simp"],
+                    },
+                },
+            }
+            for row in reproduced_table.to_dict(orient="records")
+            for model_size in [int(value) for value in config["reproduction"]["model_sizes"]]
+        },
+    )
     print(f"Experiment: {config['name']}")
     print("Dataset: COMPAS (paper-faithful local variant)")
     print()
@@ -577,6 +615,7 @@ def test_reproduce() -> None:
     print()
     print("Absolute Differences vs Paper Table 4:")
     print(diff_table.to_string(index=False, float_format=lambda value: f"{value:.3f}"))
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

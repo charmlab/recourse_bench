@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+from datetime import datetime, timezone
 import sys
 import warnings
 from dataclasses import dataclass
@@ -32,11 +33,13 @@ from method.apas.support import (
     extract_binary_target_networks,
 )
 from model.mlp.mlp import MlpModel
+from experiment.utils import write_reproduction_report
 
 
 warnings.filterwarnings("ignore")
 
 REFERENCE_EXP_DIR = PROJECT_ROOT / "experiment" / "apas" / "dataset"
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 @dataclass(frozen=True)
@@ -1449,6 +1452,7 @@ def test_reproduce() -> None:
 
     config_path = (PROJECT_ROOT / args.config).resolve()
     config = _load_config(config_path)
+    report_experiments: dict[str, dict[str, object]] = {}
     for spec in _selected_specs(args.dataset):
         output = run_dataset_reproduction(
             spec=spec,
@@ -1456,6 +1460,44 @@ def test_reproduce() -> None:
             limit_sound=args.limit_sound,
         )
         _print_report(output)
+        results = output["results"]
+        target_lookup: dict[str, float] = {}
+        for metric_name, target, _reproduced, _diff in output["paper_comparison"]:
+            target_lookup[metric_name] = target
+        for metric_name, target, _reproduced, _diff in output["notebook_comparison"]:
+            target_lookup.setdefault(metric_name, target)
+        for metric_name, target, _reproduced, _diff in output["full_results_comparison"]:
+            target_lookup.setdefault(metric_name, target)
+        report_experiments[str(results["dataset"])] = {
+            "configuration": {
+                "dataset": results["dataset"],
+                "device": results["device"],
+                "d1_size": results["d1_size"],
+                "d2_size": results["d2_size"],
+                "evaluated_factuals": results["evaluated_factuals"],
+            },
+            "metrics": {
+                key: {
+                    "original": target_lookup.get(key),
+                    "reproduced": value,
+                }
+                for key, value in results.items()
+                if isinstance(value, (int, float, np.floating, np.integer))
+            },
+        }
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="apas_notebook_reproduction",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "limit_sound": args.limit_sound,
+        },
+        experiments_data=report_experiments,
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import math
 import sys
 import time
@@ -23,11 +24,13 @@ from sklearn.neighbors import LocalOutlierFactor
 from tqdm.auto import tqdm
 
 from dataset.dataset_object import DatasetObject
+from experiment.utils import write_reproduction_report
 from method.trex.trex import TrexMethod
 from model.mlp.mlp import MlpModel
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")
 DEFAULT_TAU_GRID = [0.70, 0.75, 0.80, 0.85]
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 class FrameDataset(DatasetObject):
@@ -1248,6 +1251,51 @@ def test_reproduce() -> None:
     }
 
     _print_summary(output=output)
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="trex_recourse_robustness",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(output["config_path"]),
+            "device": output["device"],
+            "elapsed_seconds": output["elapsed_seconds"],
+        },
+        experiments_data={
+            f"{output['data']['data_name']}_l1": {
+                "configuration": {
+                    "dataset": output["data"]["data_name"],
+                    "norm": "l1",
+                    "tau": output["l1"]["tau"],
+                },
+                "metrics": {
+                    key: {
+                        "original": output["l1"].get("paper_target", {}).get(key) if output["l1"].get("paper_target") else None,
+                        "reproduced": value,
+                    }
+                    for key, value in output["l1"].items()
+                    if isinstance(value, (int, float, np.floating, np.integer))
+                },
+            },
+            f"{output['data']['data_name']}_l2": {
+                "configuration": {
+                    "dataset": output["data"]["data_name"],
+                    "norm": "l2",
+                    "tau": output["l2"]["tau"],
+                },
+                "metrics": {
+                    key: {
+                        "original": output["l2"].get("paper_target", {}).get(key) if output["l2"].get("paper_target") else None,
+                        "reproduced": value,
+                    }
+                    for key, value in output["l2"].items()
+                    if isinstance(value, (int, float, np.floating, np.integer))
+                },
+            },
+        },
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":
