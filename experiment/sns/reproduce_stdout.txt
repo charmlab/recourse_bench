@@ -7,21 +7,26 @@ feature_count: 61
 class_count: 2
 train_rows: 800
 test_rows: 200
+paper_scope_match: 0
+paper_scope_expected: {'feature_count': 61, 'train_rows': 700, 'test_rows': 200}
+paper_scope_current: {'feature_count': 61, 'train_rows': 800, 'test_rows': 200}
+paper_scope_field_matches: {'feature_count': True, 'train_rows': False, 'test_rows': True}
+model_cfg: layers=[128, 64, 16] | epochs=100 | batch_size=32 | optimizer=adam | lr=0.001
 base_model_test_accuracy: 0.6950
 num_factuals_evaluated: 200
 rs_models_evaluated: 100
 loo_models_evaluated: 100
-baseline_model_cache_hit: 1
-rs_model_cache_hits: 100
-rs_model_cache_misses: 0
-loo_model_cache_hits: 100
-loo_model_cache_misses: 0
+baseline_model_cache_hit: 0
+rs_model_cache_hits: 0
+rs_model_cache_misses: 100
+loo_model_cache_hits: 0
+loo_model_cache_misses: 100
 base_valid_counterfactuals: 200
 sns_valid_counterfactuals: 200
 base_success_rate: 1.0000
 sns_success_rate: 1.0000
 base_avg_l2_cost: 4.1220
-sns_avg_l2_cost: 5.0474
+sns_avg_l2_cost: 5.0472
 base_loo_invalidation_rate: 0.4488
 base_loo_invalidation_rate_paper: 0.3600
 base_loo_invalidation_rate_abs_diff: 0.0888
@@ -40,7 +45,7 @@ sns_rs_invalidation_rate_abs_diff: 0.0504
 sns_rs_invalidation_rate_rel_diff: 0.8408
 base_avg_l2_cost_paper: 4.4900
 sns_avg_l2_cost_paper: 6.2300
-runtime_seconds: 402.485
+runtime_seconds: 1031.192
 
 SNS Seizure Reproduction
 paper_reference: reference/sns.pdf Table 1
@@ -50,40 +55,45 @@ feature_count: 178
 class_count: 2
 train_rows: 8050
 test_rows: 3450
-base_model_test_accuracy: 0.9759
+paper_scope_match: 0
+paper_scope_expected: {'feature_count': 178, 'train_rows': 7950, 'test_rows': 3550}
+paper_scope_current: {'feature_count': 178, 'train_rows': 8050, 'test_rows': 3450}
+paper_scope_field_matches: {'feature_count': True, 'train_rows': False, 'test_rows': False}
+model_cfg: layers=[128, 64, 16] | epochs=100 | batch_size=128 | optimizer=adam | lr=0.001
+base_model_test_accuracy: 0.9736
 num_factuals_evaluated: 3450
 rs_models_evaluated: 100
 loo_models_evaluated: 100
-baseline_model_cache_hit: 1
-rs_model_cache_hits: 100
-rs_model_cache_misses: 0
-loo_model_cache_hits: 100
-loo_model_cache_misses: 0
+baseline_model_cache_hit: 0
+rs_model_cache_hits: 0
+rs_model_cache_misses: 100
+loo_model_cache_hits: 0
+loo_model_cache_misses: 100
 base_valid_counterfactuals: 3450
 sns_valid_counterfactuals: 3450
 base_success_rate: 1.0000
 sns_success_rate: 1.0000
-base_avg_l2_cost: 7.5634
-sns_avg_l2_cost: 7.9957
-base_loo_invalidation_rate: 0.8458
+base_avg_l2_cost: 7.1751
+sns_avg_l2_cost: 7.5952
+base_loo_invalidation_rate: 0.7958
 base_loo_invalidation_rate_paper: 0.6400
-base_loo_invalidation_rate_abs_diff: 0.2058
-base_loo_invalidation_rate_rel_diff: 0.2434
-base_rs_invalidation_rate: 0.8834
+base_loo_invalidation_rate_abs_diff: 0.1558
+base_loo_invalidation_rate_rel_diff: 0.1958
+base_rs_invalidation_rate: 0.9013
 base_rs_invalidation_rate_paper: 0.7700
-base_rs_invalidation_rate_abs_diff: 0.1134
-base_rs_invalidation_rate_rel_diff: 0.1284
-sns_loo_invalidation_rate: 0.1983
+base_rs_invalidation_rate_abs_diff: 0.1313
+base_rs_invalidation_rate_rel_diff: 0.1457
+sns_loo_invalidation_rate: 0.0429
 sns_loo_invalidation_rate_paper: 0.0200
-sns_loo_invalidation_rate_abs_diff: 0.1783
-sns_loo_invalidation_rate_rel_diff: 0.8991
-sns_rs_invalidation_rate: 0.3172
+sns_loo_invalidation_rate_abs_diff: 0.0229
+sns_loo_invalidation_rate_rel_diff: 0.5343
+sns_rs_invalidation_rate: 0.2733
 sns_rs_invalidation_rate_paper: 0.1300
-sns_rs_invalidation_rate_abs_diff: 0.1872
-sns_rs_invalidation_rate_rel_diff: 0.5902
+sns_rs_invalidation_rate_abs_diff: 0.1433
+sns_rs_invalidation_rate_rel_diff: 0.5243
 base_avg_l2_cost_paper: 8.2300
 sns_avg_l2_cost_paper: 9.6000
-runtime_seconds: 18874.747
+runtime_seconds: 19543.268
 
 SNS CTG Reproduction
 paper_reference: reference/sns.pdf Table 1
@@ -93,40 +103,45 @@ feature_count: 21
 class_count: 2
 train_rows: 1700
 test_rows: 426
-base_model_test_accuracy: 0.9507
+paper_scope_match: 0
+paper_scope_expected: {'feature_count': 21, 'train_rows': 1700, 'test_rows': 425}
+paper_scope_current: {'feature_count': 21, 'train_rows': 1700, 'test_rows': 426}
+paper_scope_field_matches: {'feature_count': True, 'train_rows': True, 'test_rows': False}
+model_cfg: layers=[100, 32, 16] | epochs=100 | batch_size=16 | optimizer=adam | lr=0.001
+base_model_test_accuracy: 0.9531
 num_factuals_evaluated: 426
 rs_models_evaluated: 100
 loo_models_evaluated: 100
-baseline_model_cache_hit: 1
-rs_model_cache_hits: 100
-rs_model_cache_misses: 0
-loo_model_cache_hits: 100
-loo_model_cache_misses: 0
+baseline_model_cache_hit: 0
+rs_model_cache_hits: 0
+rs_model_cache_misses: 100
+loo_model_cache_hits: 0
+loo_model_cache_misses: 100
 base_valid_counterfactuals: 426
 sns_valid_counterfactuals: 426
 base_success_rate: 1.0000
 sns_success_rate: 1.0000
-base_avg_l2_cost: 2.1279
-sns_avg_l2_cost: 2.4042
-base_loo_invalidation_rate: 0.4399
+base_avg_l2_cost: 2.0616
+sns_avg_l2_cost: 2.3449
+base_loo_invalidation_rate: 0.5207
 base_loo_invalidation_rate_paper: 0.4800
-base_loo_invalidation_rate_abs_diff: 0.0401
-base_loo_invalidation_rate_rel_diff: 0.0836
-base_rs_invalidation_rate: 0.5904
+base_loo_invalidation_rate_abs_diff: 0.0407
+base_loo_invalidation_rate_rel_diff: 0.0781
+base_rs_invalidation_rate: 0.5459
 base_rs_invalidation_rate_paper: 0.4900
-base_rs_invalidation_rate_abs_diff: 0.1004
-base_rs_invalidation_rate_rel_diff: 0.1701
-sns_loo_invalidation_rate: 0.0058
+base_rs_invalidation_rate_abs_diff: 0.0559
+base_rs_invalidation_rate_rel_diff: 0.1023
+sns_loo_invalidation_rate: 0.0200
 sns_loo_invalidation_rate_paper: 0.0000
-sns_loo_invalidation_rate_abs_diff: 0.0058
+sns_loo_invalidation_rate_abs_diff: 0.0200
 sns_loo_invalidation_rate_rel_diff: 1.0000
-sns_rs_invalidation_rate: 0.0690
+sns_rs_invalidation_rate: 0.0437
 sns_rs_invalidation_rate_paper: 0.0000
-sns_rs_invalidation_rate_abs_diff: 0.0690
+sns_rs_invalidation_rate_abs_diff: 0.0437
 sns_rs_invalidation_rate_rel_diff: 1.0000
 base_avg_l2_cost_paper: 0.0600
 sns_avg_l2_cost_paper: 0.2100
-runtime_seconds: 796.302
+runtime_seconds: 2494.093
 
 SNS Warfarin Reproduction
 paper_reference: reference/sns.pdf Table 1
@@ -136,40 +151,45 @@ feature_count: 17
 class_count: 3
 train_rows: 3614
 test_rows: 1205
-base_model_test_accuracy: 0.6730
+paper_scope_match: 1
+paper_scope_expected: {'train_rows': 3614, 'test_rows': 1205}
+paper_scope_current: {'feature_count': 17, 'train_rows': 3614, 'test_rows': 1205}
+paper_scope_field_matches: {'train_rows': True, 'test_rows': True}
+model_cfg: layers=[100] | epochs=100 | batch_size=128 | optimizer=adam | lr=0.001
+base_model_test_accuracy: 0.6880
 num_factuals_evaluated: 1205
 rs_models_evaluated: 100
 loo_models_evaluated: 100
-baseline_model_cache_hit: 1
-rs_model_cache_hits: 100
-rs_model_cache_misses: 0
-loo_model_cache_hits: 100
-loo_model_cache_misses: 0
-base_valid_counterfactuals: 887
-sns_valid_counterfactuals: 887
-base_success_rate: 0.7361
-sns_success_rate: 0.7361
-base_avg_l2_cost: 0.7290
-sns_avg_l2_cost: 0.8970
-base_loo_invalidation_rate: 0.4505
+baseline_model_cache_hit: 0
+rs_model_cache_hits: 0
+rs_model_cache_misses: 100
+loo_model_cache_hits: 0
+loo_model_cache_misses: 100
+base_valid_counterfactuals: 902
+sns_valid_counterfactuals: 902
+base_success_rate: 0.7485
+sns_success_rate: 0.7485
+base_avg_l2_cost: 0.5668
+sns_avg_l2_cost: 0.7962
+base_loo_invalidation_rate: 0.4838
 base_loo_invalidation_rate_paper: 0.3500
-base_loo_invalidation_rate_abs_diff: 0.1005
-base_loo_invalidation_rate_rel_diff: 0.2230
-base_rs_invalidation_rate: 0.5112
+base_loo_invalidation_rate_abs_diff: 0.1338
+base_loo_invalidation_rate_rel_diff: 0.2765
+base_rs_invalidation_rate: 0.4907
 base_rs_invalidation_rate_paper: 0.3000
-base_rs_invalidation_rate_abs_diff: 0.2112
-base_rs_invalidation_rate_rel_diff: 0.4132
-sns_loo_invalidation_rate: 0.2349
+base_rs_invalidation_rate_abs_diff: 0.1907
+base_rs_invalidation_rate_rel_diff: 0.3886
+sns_loo_invalidation_rate: 0.0009
 sns_loo_invalidation_rate_paper: 0.0000
-sns_loo_invalidation_rate_abs_diff: 0.2349
+sns_loo_invalidation_rate_abs_diff: 0.0009
 sns_loo_invalidation_rate_rel_diff: 1.0000
-sns_rs_invalidation_rate: 0.3019
+sns_rs_invalidation_rate: 0.0061
 sns_rs_invalidation_rate_paper: 0.0000
-sns_rs_invalidation_rate_abs_diff: 0.3019
+sns_rs_invalidation_rate_abs_diff: 0.0061
 sns_rs_invalidation_rate_rel_diff: 1.0000
 base_avg_l2_cost_paper: 0.5400
 sns_avg_l2_cost_paper: 0.9000
-runtime_seconds: 2125.890
+runtime_seconds: 1941.596
 
 SNS HELOC Reproduction
 paper_reference: reference/sns.pdf Table 1
@@ -179,40 +199,45 @@ feature_count: 39
 class_count: 2
 train_rows: 7844
 test_rows: 2615
-base_model_test_accuracy: 0.7075
+paper_scope_match: 0
+paper_scope_expected: {'feature_count': 40, 'train_rows': 7844, 'test_rows': 2615}
+paper_scope_current: {'feature_count': 39, 'train_rows': 7844, 'test_rows': 2615}
+paper_scope_field_matches: {'feature_count': False, 'train_rows': True, 'test_rows': True}
+model_cfg: layers=[100, 32] | epochs=50 | batch_size=32 | optimizer=adam | lr=0.001
+base_model_test_accuracy: 0.7124
 num_factuals_evaluated: 2615
 rs_models_evaluated: 100
 loo_models_evaluated: 100
-baseline_model_cache_hit: 1
-rs_model_cache_hits: 100
-rs_model_cache_misses: 0
-loo_model_cache_hits: 100
-loo_model_cache_misses: 0
-base_valid_counterfactuals: 2615
-sns_valid_counterfactuals: 2615
-base_success_rate: 1.0000
-sns_success_rate: 1.0000
-base_avg_l2_cost: 0.0977
-sns_avg_l2_cost: 2.0074
-base_loo_invalidation_rate: 0.6026
+baseline_model_cache_hit: 0
+rs_model_cache_hits: 0
+rs_model_cache_misses: 100
+loo_model_cache_hits: 0
+loo_model_cache_misses: 100
+base_valid_counterfactuals: 2614
+sns_valid_counterfactuals: 2614
+base_success_rate: 0.9996
+sns_success_rate: 0.9996
+base_avg_l2_cost: 0.1087
+sns_avg_l2_cost: 1.9958
+base_loo_invalidation_rate: 0.6173
 base_loo_invalidation_rate_paper: 0.5500
-base_loo_invalidation_rate_abs_diff: 0.0526
-base_loo_invalidation_rate_rel_diff: 0.0873
-base_rs_invalidation_rate: 0.6608
+base_loo_invalidation_rate_abs_diff: 0.0673
+base_loo_invalidation_rate_rel_diff: 0.1091
+base_rs_invalidation_rate: 0.5885
 base_rs_invalidation_rate_paper: 0.6100
-base_rs_invalidation_rate_abs_diff: 0.0508
-base_rs_invalidation_rate_rel_diff: 0.0769
-sns_loo_invalidation_rate: 0.0719
+base_rs_invalidation_rate_abs_diff: 0.0215
+base_rs_invalidation_rate_rel_diff: 0.0352
+sns_loo_invalidation_rate: 0.0000
 sns_loo_invalidation_rate_paper: 0.0000
-sns_loo_invalidation_rate_abs_diff: 0.0719
-sns_loo_invalidation_rate_rel_diff: 1.0000
-sns_rs_invalidation_rate: 0.0989
+sns_loo_invalidation_rate_abs_diff: 0.0000
+sns_loo_invalidation_rate_rel_diff: 0.0000
+sns_rs_invalidation_rate: 0.0000
 sns_rs_invalidation_rate_paper: 0.0000
-sns_rs_invalidation_rate_abs_diff: 0.0989
+sns_rs_invalidation_rate_abs_diff: 0.0000
 sns_rs_invalidation_rate_rel_diff: 1.0000
 base_avg_l2_cost_paper: 0.1100
 sns_avg_l2_cost_paper: 1.7100
-runtime_seconds: 4498.142
+runtime_seconds: 5899.965
 
 SNS Taiwanese Credit Reproduction
 paper_reference: reference/sns.pdf Table 1
@@ -222,49 +247,54 @@ feature_count: 32
 class_count: 2
 train_rows: 22500
 test_rows: 7500
-base_model_test_accuracy: 0.7869
+paper_scope_match: 1
+paper_scope_expected: {'feature_count': 32, 'train_rows': 22500, 'test_rows': 7500}
+paper_scope_current: {'feature_count': 32, 'train_rows': 22500, 'test_rows': 7500}
+paper_scope_field_matches: {'feature_count': True, 'train_rows': True, 'test_rows': True}
+model_cfg: layers=[32, 16] | epochs=100 | batch_size=512 | optimizer=adam | lr=0.001
+base_model_test_accuracy: 0.8176
 num_factuals_evaluated: 7500
 rs_models_evaluated: 100
 loo_models_evaluated: 100
-baseline_model_cache_hit: 1
-rs_model_cache_hits: 100
-rs_model_cache_misses: 0
-loo_model_cache_hits: 100
-loo_model_cache_misses: 0
-base_valid_counterfactuals: 7432
-sns_valid_counterfactuals: 7432
-base_success_rate: 0.9909
-sns_success_rate: 0.9909
-base_avg_l2_cost: 2.6301
-sns_avg_l2_cost: 3.6237
-base_loo_invalidation_rate: 0.7493
+baseline_model_cache_hit: 0
+rs_model_cache_hits: 0
+rs_model_cache_misses: 100
+loo_model_cache_hits: 0
+loo_model_cache_misses: 100
+base_valid_counterfactuals: 7500
+sns_valid_counterfactuals: 7500
+base_success_rate: 1.0000
+sns_success_rate: 1.0000
+base_avg_l2_cost: 2.3815
+sns_avg_l2_cost: 3.1723
+base_loo_invalidation_rate: 0.5636
 base_loo_invalidation_rate_paper: 0.2700
-base_loo_invalidation_rate_abs_diff: 0.4793
-base_loo_invalidation_rate_rel_diff: 0.6397
-base_rs_invalidation_rate: 0.7506
+base_loo_invalidation_rate_abs_diff: 0.2936
+base_loo_invalidation_rate_rel_diff: 0.5209
+base_rs_invalidation_rate: 0.7927
 base_rs_invalidation_rate_paper: 0.7200
-base_rs_invalidation_rate_abs_diff: 0.0306
-base_rs_invalidation_rate_rel_diff: 0.0407
-sns_loo_invalidation_rate: 0.3367
+base_rs_invalidation_rate_abs_diff: 0.0727
+base_rs_invalidation_rate_rel_diff: 0.0917
+sns_loo_invalidation_rate: 0.0000
 sns_loo_invalidation_rate_paper: 0.0000
-sns_loo_invalidation_rate_abs_diff: 0.3367
-sns_loo_invalidation_rate_rel_diff: 1.0000
-sns_rs_invalidation_rate: 0.3581
+sns_loo_invalidation_rate_abs_diff: 0.0000
+sns_loo_invalidation_rate_rel_diff: 0.0000
+sns_rs_invalidation_rate: 0.0004
 sns_rs_invalidation_rate_paper: 0.0400
-sns_rs_invalidation_rate_abs_diff: 0.3181
-sns_rs_invalidation_rate_rel_diff: 0.8883
+sns_rs_invalidation_rate_abs_diff: 0.0396
+sns_rs_invalidation_rate_rel_diff: 0.9893
 base_avg_l2_cost_paper: 2.6500
 sns_avg_l2_cost_paper: 4.6800
-runtime_seconds: 12200.535
+runtime_seconds: 11323.309
 
 SNS Reproduction Summary
-         dataset  baseline_cache_hit  rs_cache_hits  rs_cache_misses  loo_cache_hits  loo_cache_misses  base_loo_iv  base_rs_iv  base_cost  sns_loo_iv  sns_rs_iv  sns_cost
-   german_credit                   1            100                0             100                 0       0.4488      0.5976     4.1220      0.0000     0.0096    5.0474
-         seizure                   1            100                0             100                 0       0.8458      0.8834     7.5634      0.1983     0.3172    7.9957
-             ctg                   1            100                0             100                 0       0.4399      0.5904     2.1279      0.0058     0.0690    2.4042
-        warfarin                   1            100                0             100                 0       0.4505      0.5112     0.7290      0.2349     0.3019    0.8970
-           heloc                   1            100                0             100                 0       0.6026      0.6608     0.0977      0.0719     0.0989    2.0074
-taiwanese_credit                   1            100                0             100                 0       0.7493      0.7506     2.6301      0.3367     0.3581    3.6237
+         dataset  paper_scope_match  baseline_cache_hit  rs_cache_hits  rs_cache_misses  loo_cache_hits  loo_cache_misses  base_loo_iv  base_rs_iv  base_cost  sns_loo_iv  sns_rs_iv  sns_cost
+   german_credit                  0                   0              0              100               0               100       0.4488      0.5976     4.1220      0.0000     0.0096    5.0472
+         seizure                  0                   0              0              100               0               100       0.7958      0.9013     7.1751      0.0429     0.2733    7.5952
+             ctg                  0                   0              0              100               0               100       0.5207      0.5459     2.0616      0.0200     0.0437    2.3449
+        warfarin                  1                   0              0              100               0               100       0.4838      0.4907     0.5668      0.0009     0.0061    0.7962
+           heloc                  0                   0              0              100               0               100       0.6173      0.5885     0.1087      0.0000     0.0000    1.9958
+taiwanese_credit                  1                   0              0              100               0               100       0.5636      0.7927     2.3815      0.0000     0.0004    3.1723
 
 SNS Table 1 Comparison
          dataset    variant           metric  reproduced  paper  abs_diff  rel_diff
@@ -273,36 +303,37 @@ SNS Table 1 Comparison
    german_credit     min_l2          l2_cost      4.1220 4.4900    0.3680    0.0820
    german_credit min_l2_sns loo_invalidation      0.0000 0.0000    0.0000    0.0000
    german_credit min_l2_sns  rs_invalidation      0.0096 0.0600    0.0504    0.8408
-   german_credit min_l2_sns          l2_cost      5.0474 6.2300    1.1826    0.1898
-         seizure     min_l2 loo_invalidation      0.8458 0.6400    0.2058    0.2434
-         seizure     min_l2  rs_invalidation      0.8834 0.7700    0.1134    0.1284
-         seizure     min_l2          l2_cost      7.5634 8.2300    0.6666    0.0810
-         seizure min_l2_sns loo_invalidation      0.1983 0.0200    0.1783    0.8991
-         seizure min_l2_sns  rs_invalidation      0.3172 0.1300    0.1872    0.5902
-         seizure min_l2_sns          l2_cost      7.9957 9.6000    1.6043    0.1671
-             ctg     min_l2 loo_invalidation      0.4399 0.4800    0.0401    0.0836
-             ctg     min_l2  rs_invalidation      0.5904 0.4900    0.1004    0.1701
-             ctg     min_l2          l2_cost      2.1279 0.0600    2.0679    0.9718
-             ctg min_l2_sns loo_invalidation      0.0058 0.0000    0.0058    1.0000
-             ctg min_l2_sns  rs_invalidation      0.0690 0.0000    0.0690    1.0000
-             ctg min_l2_sns          l2_cost      2.4042 0.2100    2.1942    0.9127
-        warfarin     min_l2 loo_invalidation      0.4505 0.3500    0.1005    0.2230
-        warfarin     min_l2  rs_invalidation      0.5112 0.3000    0.2112    0.4132
-        warfarin     min_l2          l2_cost      0.7290 0.5400    0.1890    0.2593
-        warfarin min_l2_sns loo_invalidation      0.2349 0.0000    0.2349    1.0000
-        warfarin min_l2_sns  rs_invalidation      0.3019 0.0000    0.3019    1.0000
-        warfarin min_l2_sns          l2_cost      0.8970 0.9000    0.0030    0.0033
-           heloc     min_l2 loo_invalidation      0.6026 0.5500    0.0526    0.0873
-           heloc     min_l2  rs_invalidation      0.6608 0.6100    0.0508    0.0769
-           heloc     min_l2          l2_cost      0.0977 0.1100    0.0123    0.1121
-           heloc min_l2_sns loo_invalidation      0.0719 0.0000    0.0719    1.0000
-           heloc min_l2_sns  rs_invalidation      0.0989 0.0000    0.0989    1.0000
-           heloc min_l2_sns          l2_cost      2.0074 1.7100    0.2974    0.1481
-taiwanese_credit     min_l2 loo_invalidation      0.7493 0.2700    0.4793    0.6397
-taiwanese_credit     min_l2  rs_invalidation      0.7506 0.7200    0.0306    0.0407
-taiwanese_credit     min_l2          l2_cost      2.6301 2.6500    0.0199    0.0075
-taiwanese_credit min_l2_sns loo_invalidation      0.3367 0.0000    0.3367    1.0000
-taiwanese_credit min_l2_sns  rs_invalidation      0.3581 0.0400    0.3181    0.8883
-taiwanese_credit min_l2_sns          l2_cost      3.6237 4.6800    1.0563    0.2257
+   german_credit min_l2_sns          l2_cost      5.0472 6.2300    1.1828    0.1898
+         seizure     min_l2 loo_invalidation      0.7958 0.6400    0.1558    0.1958
+         seizure     min_l2  rs_invalidation      0.9013 0.7700    0.1313    0.1457
+         seizure     min_l2          l2_cost      7.1751 8.2300    1.0549    0.1282
+         seizure min_l2_sns loo_invalidation      0.0429 0.0200    0.0229    0.5343
+         seizure min_l2_sns  rs_invalidation      0.2733 0.1300    0.1433    0.5243
+         seizure min_l2_sns          l2_cost      7.5952 9.6000    2.0048    0.2088
+             ctg     min_l2 loo_invalidation      0.5207 0.4800    0.0407    0.0781
+             ctg     min_l2  rs_invalidation      0.5459 0.4900    0.0559    0.1023
+             ctg     min_l2          l2_cost      2.0616 0.0600    2.0016    0.9709
+             ctg min_l2_sns loo_invalidation      0.0200 0.0000    0.0200    1.0000
+             ctg min_l2_sns  rs_invalidation      0.0437 0.0000    0.0437    1.0000
+             ctg min_l2_sns          l2_cost      2.3449 0.2100    2.1349    0.9104
+        warfarin     min_l2 loo_invalidation      0.4838 0.3500    0.1338    0.2765
+        warfarin     min_l2  rs_invalidation      0.4907 0.3000    0.1907    0.3886
+        warfarin     min_l2          l2_cost      0.5668 0.5400    0.0268    0.0473
+        warfarin min_l2_sns loo_invalidation      0.0009 0.0000    0.0009    1.0000
+        warfarin min_l2_sns  rs_invalidation      0.0061 0.0000    0.0061    1.0000
+        warfarin min_l2_sns          l2_cost      0.7962 0.9000    0.1038    0.1154
+           heloc     min_l2 loo_invalidation      0.6173 0.5500    0.0673    0.1091
+           heloc     min_l2  rs_invalidation      0.5885 0.6100    0.0215    0.0352
+           heloc     min_l2          l2_cost      0.1087 0.1100    0.0013    0.0118
+           heloc min_l2_sns loo_invalidation      0.0000 0.0000    0.0000    0.0000
+           heloc min_l2_sns  rs_invalidation      0.0000 0.0000    0.0000    1.0000
+           heloc min_l2_sns          l2_cost      1.9958 1.7100    0.2858    0.1432
+taiwanese_credit     min_l2 loo_invalidation      0.5636 0.2700    0.2936    0.5209
+taiwanese_credit     min_l2  rs_invalidation      0.7927 0.7200    0.0727    0.0917
+taiwanese_credit     min_l2          l2_cost      2.3815 2.6500    0.2685    0.1013
+taiwanese_credit min_l2_sns loo_invalidation      0.0000 0.0000    0.0000    0.0000
+taiwanese_credit min_l2_sns  rs_invalidation      0.0004 0.0400    0.0396    0.9893
+taiwanese_credit min_l2_sns          l2_cost      3.1723 4.6800    1.5077    0.3222
 
+reproduction_report_path: /mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/sns/reproduction_report.json
 stdout_log_path: /mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/sns/reproduce_stdout.txt

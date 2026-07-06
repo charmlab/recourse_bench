@@ -168,6 +168,24 @@ def validate_counterfactuals(
     return candidates
 
 
+def predict_label_indices(
+    target_model: ModelObject,
+    X: pd.DataFrame | np.ndarray | torch.Tensor,
+    feature_names: Sequence[str] | None = None,
+) -> np.ndarray:
+    if feature_names is None:
+        if isinstance(X, pd.DataFrame):
+            features = X.copy(deep=True)
+        else:
+            raise ValueError("feature_names are required for non-DataFrame inputs")
+    else:
+        features = to_feature_dataframe(X, feature_names)
+    probabilities = target_model.get_prediction(features, proba=True)
+    if isinstance(probabilities, torch.Tensor):
+        return probabilities.detach().cpu().numpy().argmax(axis=1)
+    return np.asarray(probabilities).argmax(axis=1)
+
+
 def _get_torch_model(target_model: ModelObject) -> torch.nn.Module:
     model = getattr(target_model, "_model", None)
     if model is None:
@@ -224,22 +242,21 @@ def build_art_classifier(
     )
 
 
-def differentiable_predict_proba(
+def differentiable_predict_logits(
     target_model: ModelObject,
     X: torch.Tensor,
 ) -> torch.Tensor:
-    ensure_supported_target_model(target_model, TorchModelTypes, "differentiable_predict_proba")
+    ensure_supported_target_model(target_model, TorchModelTypes, "differentiable_predict_logits")
     model = _get_torch_model(target_model)
     logits = model(X.to(target_model._device))
+    if logits.ndim == 1:
+        logits = logits.unsqueeze(0)
     output_activation = str(
         getattr(target_model, "_output_activation_name", "softmax")
     ).lower()
-    if logits.ndim == 1:
-        logits = logits.unsqueeze(0)
     if output_activation == "sigmoid":
-        positive_probability = torch.sigmoid(logits)
-        return torch.cat([1.0 - positive_probability, positive_probability], dim=1)
-    return torch.softmax(logits, dim=1)
+        return torch.cat([-logits, logits], dim=1)
+    return logits
 
 
 def project_l2_ball(
@@ -274,8 +291,8 @@ def linear_integral_probability(
     for step in range(1, steps + 1):
         t = torch.ones((x.shape[0], 1), dtype=x.dtype, device=x.device) * step
         x_in = baseline + (x - baseline) * t / steps
-        prob = differentiable_predict_proba(target_model, x_in)
-        gathered = prob.gather(1, target_indices.reshape(-1, 1)).squeeze(1)
+        logits = differentiable_predict_logits(target_model, x_in)
+        gathered = logits.gather(1, target_indices.reshape(-1, 1)).squeeze(1)
         output_scores.append(gathered)
     return torch.stack(output_scores, dim=0)
 
@@ -330,31 +347,111 @@ def min_l2_search(
     return candidate.reshape(-1).astype(np.float64, copy=False)
 
 
-def sns_search(
+def pgd_l2_search(
     target_model: ModelObject,
-    counterfactual: np.ndarray,
-    target_index: int,
+    factual: np.ndarray,
+    original_index: int,
+    target_index: int | None,
+    clamp: tuple[float, float],
+    *,
+    epsilon: float = 2.0,
+    steps: int = 100,
+    step_size: float | None = None,
+    interpolation_steps: int = 10,
+    targeted: bool = False,
+    feature_names: Sequence[str] | None = None,
+) -> np.ndarray | None:
+    x = torch.tensor(
+        np.asarray(factual, dtype=np.float32).reshape(1, -1),
+        dtype=torch.float32,
+        device=target_model._device,
+    )
+    if step_size is None:
+        step_size = 2.0 * float(epsilon) / max(int(steps), 1)
+
+    num_classes = len(target_model.get_class_to_index())
+    if targeted and target_index is None:
+        raise ValueError("target_index is required when targeted=True")
+
+    epsilon_schedule = np.linspace(
+        float(epsilon) / max(int(interpolation_steps), 1),
+        float(epsilon),
+        num=max(int(interpolation_steps), 1),
+        dtype=np.float32,
+    )
+    label_index = int(target_index if targeted else original_index)
+    label_tensor = torch.tensor([label_index], dtype=torch.long, device=target_model._device)
+
+    for current_epsilon in epsilon_schedule:
+        adv = x.clone().detach()
+        for _ in range(max(int(steps), 1)):
+            adv = adv.detach()
+            adv.requires_grad_(True)
+            logits = target_model.forward(adv)
+            loss = torch.nn.functional.cross_entropy(logits, label_tensor)
+            objective = -loss if targeted else loss
+            objective.backward()
+            grad = adv.grad
+            with torch.no_grad():
+                grad_flat = grad.reshape(grad.shape[0], -1)
+                grad_norm = torch.linalg.norm(grad_flat, ord=2, dim=1, keepdim=True) + 1e-12
+                normalized_grad = (grad_flat / grad_norm).reshape_as(adv)
+                direction = -normalized_grad if targeted else normalized_grad
+                adv = adv + float(step_size) * direction
+                adv = project_l2_ball(x, adv, float(current_epsilon))
+                adv = clamp_tensor(adv, clamp)
+
+        candidate = adv.detach().cpu().numpy().astype(np.float64, copy=False)
+        predicted = predict_label_indices(
+            target_model,
+            candidate,
+            feature_names=feature_names,
+        )
+        if targeted:
+            success = int(predicted[0]) == int(target_index)
+        else:
+            success = int(predicted[0]) != int(original_index)
+        if success:
+            return candidate.reshape(-1)
+    return None
+
+
+def sns_search_batch(
+    target_model: ModelObject,
+    counterfactuals: np.ndarray,
+    target_indices: np.ndarray,
     clamp: tuple[float, float],
     sns_eps: float = 0.1,
     sns_nb_iters: int = 200,
     sns_eps_iter: float = 1e-3,
     n_interpolations: int = 10,
 ) -> np.ndarray:
+    counterfactual_array = np.asarray(counterfactuals, dtype=np.float32)
+    if counterfactual_array.ndim == 1:
+        counterfactual_array = counterfactual_array.reshape(1, -1)
+    target_index_array = np.asarray(target_indices, dtype=np.int64).reshape(-1)
+    if counterfactual_array.shape[0] != target_index_array.shape[0]:
+        raise ValueError("counterfactuals and target_indices must align row-wise")
+
     x = torch.tensor(
-        np.asarray(counterfactual, dtype=np.float32).reshape(1, -1),
+        counterfactual_array,
         dtype=torch.float32,
         device=target_model._device,
     )
     delta = x.clone()
     optimal = x.clone()
-    target_indices = torch.tensor([target_index], dtype=torch.long, device=target_model._device)
+    target_index_tensor = torch.tensor(
+        target_index_array,
+        dtype=torch.long,
+        device=target_model._device,
+    )
 
     delta = delta + torch.randn_like(delta) * 1e-3
     for _ in range(int(sns_nb_iters)):
         delta = delta.detach()
         delta.requires_grad_(True)
         output_scores = linear_integral_probability(
-            target_model, delta, target_indices, n_interpolations
+            target_model, delta, target_index_tensor, n_interpolations
         )
         objective = output_scores.sum(dim=0).mean()
         objective.backward()
@@ -366,8 +463,30 @@ def sns_search(
             delta = delta + float(sns_eps_iter) * normalized_grad
             delta = project_l2_ball(x, delta, float(sns_eps))
             delta = clamp_tensor(delta, clamp)
-            predicted = differentiable_predict_proba(target_model, delta).argmax(dim=1)
-            keep = predicted == target_index
+            predicted = differentiable_predict_logits(target_model, delta).argmax(dim=1)
+            keep = predicted == target_index_tensor
             if bool(keep.any()):
                 optimal[keep] = delta[keep]
-    return optimal.detach().cpu().numpy().reshape(-1)
+    return optimal.detach().cpu().numpy().astype(np.float64, copy=False)
+
+
+def sns_search(
+    target_model: ModelObject,
+    counterfactual: np.ndarray,
+    target_index: int,
+    clamp: tuple[float, float],
+    sns_eps: float = 0.1,
+    sns_nb_iters: int = 200,
+    sns_eps_iter: float = 1e-3,
+    n_interpolations: int = 10,
+) -> np.ndarray:
+    return sns_search_batch(
+        target_model=target_model,
+        counterfactuals=np.asarray(counterfactual, dtype=np.float32).reshape(1, -1),
+        target_indices=np.asarray([target_index], dtype=np.int64),
+        clamp=clamp,
+        sns_eps=sns_eps,
+        sns_nb_iters=sns_nb_iters,
+        sns_eps_iter=sns_eps_iter,
+        n_interpolations=n_interpolations,
+    ).reshape(-1)
