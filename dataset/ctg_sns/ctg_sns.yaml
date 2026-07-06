@@ -1,0 +1,94 @@
+name: ctg_sns
+target_column: target
+feature_order:
+- f0
+- f1
+- f2
+- f3
+- f4
+- f5
+- f6
+- f7
+- f8
+- f9
+- f10
+- f11
+- f12
+- f13
+- f14
+- f15
+- f16
+- f17
+- f18
+- f19
+- f20
+- target
+raw_feature_type:
+  f0: numerical
+  f1: numerical
+  f2: numerical
+  f3: numerical
+  f4: numerical
+  f5: numerical
+  f6: numerical
+  f7: numerical
+  f8: numerical
+  f9: numerical
+  f10: numerical
+  f11: numerical
+  f12: numerical
+  f13: numerical
+  f14: numerical
+  f15: numerical
+  f16: numerical
+  f17: numerical
+  f18: numerical
+  f19: numerical
+  f20: numerical
+  target: binary
+raw_feature_mutability:
+  f0: true
+  f1: true
+  f2: true
+  f3: true
+  f4: true
+  f5: true
+  f6: true
+  f7: true
+  f8: true
+  f9: true
+  f10: true
+  f11: true
+  f12: true
+  f13: true
+  f14: true
+  f15: true
+  f16: true
+  f17: true
+  f18: true
+  f19: true
+  f20: true
+  target: false
+raw_feature_actionability:
+  f0: any
+  f1: any
+  f2: any
+  f3: any
+  f4: any
+  f5: any
+  f6: any
+  f7: any
+  f8: any
+  f9: any
+  f10: any
+  f11: any
+  f12: any
+  f13: any
+  f14: any
+  f15: any
+  f16: any
+  f17: any
+  f18: any
+  f19: any
+  f20: any
+  target: none

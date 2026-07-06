@@ -10,9 +10,10 @@ from method.sns.support import (
     build_art_classifier,
     ensure_supported_target_model,
     min_l2_search,
+    pgd_l2_search,
     resolve_feature_groups,
     resolve_target_indices,
-    sns_search,
+    sns_search_batch,
     validate_counterfactuals,
 )
 from model.model_object import ModelObject
@@ -29,8 +30,10 @@ class SnsMethod(MethodObject):
         device: str = "cpu",
         desired_class: int | str | None = None,
         base_search: str = "min_l2",
+        base_epsilon: float = 2.0,
         base_steps: int = 1000,
         base_step_size: float = 1e-2,
+        base_num_interpolations: int = 10,
         base_confidence: float = 0.5,
         base_beta: float = 0.0,
         base_lambda_start: float = 1e-2,
@@ -51,8 +54,10 @@ class SnsMethod(MethodObject):
         self._desired_class = desired_class
 
         self._base_search = str(base_search).lower()
+        self._base_epsilon = float(base_epsilon)
         self._base_steps = int(base_steps)
         self._base_step_size = float(base_step_size)
+        self._base_num_interpolations = int(base_num_interpolations)
         self._base_confidence = float(base_confidence)
         self._base_beta = float(base_beta)
         self._base_lambda_start = float(base_lambda_start)
@@ -65,12 +70,16 @@ class SnsMethod(MethodObject):
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
-        if self._base_search != "min_l2":
-            raise ValueError("Only base_search='min_l2' is currently supported")
+        if self._base_search not in {"min_l2", "pgd_l2"}:
+            raise ValueError("Only base_search in {'min_l2', 'pgd_l2'} is currently supported")
+        if self._base_epsilon <= 0:
+            raise ValueError("base_epsilon must be > 0")
         if self._base_steps < 1:
             raise ValueError("base_steps must be >= 1")
         if self._base_step_size <= 0:
             raise ValueError("base_step_size must be > 0")
+        if self._base_num_interpolations < 1:
+            raise ValueError("base_num_interpolations must be >= 1")
         if self._base_confidence < 0:
             raise ValueError("base_confidence must be >= 0")
         if self._base_beta < 0:
@@ -126,47 +135,90 @@ class SnsMethod(MethodObject):
                 .numpy()
                 .argmax(axis=1)
             )
-            target_indices = resolve_target_indices(
-                self._target_model,
-                original_prediction,
-                self._desired_class,
-            )
+            if self._desired_class is None and len(self._target_model.get_class_to_index()) > 2:
+                target_indices = original_prediction.astype(np.int64, copy=True)
+            else:
+                target_indices = resolve_target_indices(
+                    self._target_model,
+                    original_prediction,
+                    self._desired_class,
+                )
 
             rows: list[np.ndarray] = []
+            valid_row_positions: list[int] = []
+            valid_base_candidates: list[np.ndarray] = []
+            valid_target_indices: list[int] = []
             for row_position, (_, row) in enumerate(factuals.iterrows()):
                 factual = row.to_numpy(dtype=np.float64)
                 original_index = int(original_prediction[row_position])
                 target_index = int(target_indices[row_position])
-                base_candidate = min_l2_search(
-                    self._target_model,
-                    factual=factual,
-                    original_index=original_index,
-                    target_index=target_index,
-                    clamp=self._clamp,
-                    steps=self._base_steps,
-                    step_size=self._base_step_size,
-                    confidence=self._base_confidence,
-                    beta=self._base_beta,
-                    targeted=self._desired_class is not None,
-                    art_classifier=self._art_classifier,
-                    lambda_start=self._base_lambda_start,
-                    lambda_growth=self._base_lambda_growth,
-                    lambda_max=self._base_lambda_max,
-                )
+                if self._base_search == "pgd_l2":
+                    base_candidate = pgd_l2_search(
+                        self._target_model,
+                        factual=factual,
+                        original_index=original_index,
+                        target_index=(
+                            target_index if self._desired_class is not None else None
+                        ),
+                        clamp=self._clamp,
+                        epsilon=self._base_epsilon,
+                        steps=self._base_steps,
+                        step_size=self._base_step_size,
+                        interpolation_steps=self._base_num_interpolations,
+                        targeted=self._desired_class is not None,
+                        feature_names=self._feature_names,
+                    )
+                else:
+                    base_candidate = min_l2_search(
+                        self._target_model,
+                        factual=factual,
+                        original_index=original_index,
+                        target_index=target_index,
+                        clamp=self._clamp,
+                        steps=self._base_steps,
+                        step_size=self._base_step_size,
+                        confidence=self._base_confidence,
+                        beta=self._base_beta,
+                        targeted=self._desired_class is not None,
+                        art_classifier=self._art_classifier,
+                        lambda_start=self._base_lambda_start,
+                        lambda_growth=self._base_lambda_growth,
+                        lambda_max=self._base_lambda_max,
+                    )
                 if base_candidate is None:
                     rows.append(np.full(len(self._feature_names), np.nan, dtype=np.float64))
                     continue
-                refined = sns_search(
+                rows.append(base_candidate)
+                valid_row_positions.append(row_position)
+                valid_base_candidates.append(base_candidate)
+                if self._desired_class is not None:
+                    valid_target_indices.append(target_index)
+                else:
+                    base_prediction = (
+                        self._target_model.get_prediction(
+                            pd.DataFrame([base_candidate], columns=self._feature_names),
+                            proba=True,
+                        )
+                        .detach()
+                        .cpu()
+                        .numpy()
+                        .argmax(axis=1)
+                    )
+                    valid_target_indices.append(int(base_prediction[0]))
+
+            if valid_base_candidates:
+                refined_rows = sns_search_batch(
                     self._target_model,
-                    counterfactual=base_candidate,
-                    target_index=target_index,
+                    counterfactuals=np.asarray(valid_base_candidates, dtype=np.float64),
+                    target_indices=np.asarray(valid_target_indices, dtype=np.int64),
                     clamp=self._clamp,
                     sns_eps=self._sns_eps,
                     sns_nb_iters=self._sns_nb_iters,
                     sns_eps_iter=self._sns_eps_iter,
                     n_interpolations=self._n_interpolations,
                 )
-                rows.append(refined)
+                for row_position, refined in zip(valid_row_positions, refined_rows, strict=False):
+                    rows[row_position] = refined
 
         candidates = pd.DataFrame(rows, index=factuals.index, columns=self._feature_names)
         return validate_counterfactuals(

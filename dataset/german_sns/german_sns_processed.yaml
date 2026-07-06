@@ -1,0 +1,254 @@
+name: german_sns_processed
+target_column: target
+feature_order:
+- f0
+- f1
+- f2
+- f3
+- f4
+- f5
+- f6
+- f7
+- f8
+- f9
+- f10
+- f11
+- f12
+- f13
+- f14
+- f15
+- f16
+- f17
+- f18
+- f19
+- f20
+- f21
+- f22
+- f23
+- f24
+- f25
+- f26
+- f27
+- f28
+- f29
+- f30
+- f31
+- f32
+- f33
+- f34
+- f35
+- f36
+- f37
+- f38
+- f39
+- f40
+- f41
+- f42
+- f43
+- f44
+- f45
+- f46
+- f47
+- f48
+- f49
+- f50
+- f51
+- f52
+- f53
+- f54
+- f55
+- f56
+- f57
+- f58
+- f59
+- f60
+- target
+raw_feature_type:
+  f0: numerical
+  f1: numerical
+  f2: numerical
+  f3: numerical
+  f4: numerical
+  f5: numerical
+  f6: numerical
+  f7: numerical
+  f8: numerical
+  f9: numerical
+  f10: numerical
+  f11: numerical
+  f12: numerical
+  f13: numerical
+  f14: numerical
+  f15: numerical
+  f16: numerical
+  f17: numerical
+  f18: numerical
+  f19: numerical
+  f20: numerical
+  f21: numerical
+  f22: numerical
+  f23: numerical
+  f24: numerical
+  f25: numerical
+  f26: numerical
+  f27: numerical
+  f28: numerical
+  f29: numerical
+  f30: numerical
+  f31: numerical
+  f32: numerical
+  f33: numerical
+  f34: numerical
+  f35: numerical
+  f36: numerical
+  f37: numerical
+  f38: numerical
+  f39: numerical
+  f40: numerical
+  f41: numerical
+  f42: numerical
+  f43: numerical
+  f44: numerical
+  f45: numerical
+  f46: numerical
+  f47: numerical
+  f48: numerical
+  f49: numerical
+  f50: numerical
+  f51: numerical
+  f52: numerical
+  f53: numerical
+  f54: numerical
+  f55: numerical
+  f56: numerical
+  f57: numerical
+  f58: numerical
+  f59: numerical
+  f60: numerical
+  target: binary
+raw_feature_mutability:
+  f0: true
+  f1: true
+  f2: true
+  f3: true
+  f4: true
+  f5: true
+  f6: true
+  f7: true
+  f8: true
+  f9: true
+  f10: true
+  f11: true
+  f12: true
+  f13: true
+  f14: true
+  f15: true
+  f16: true
+  f17: true
+  f18: true
+  f19: true
+  f20: true
+  f21: true
+  f22: true
+  f23: true
+  f24: true
+  f25: true
+  f26: true
+  f27: true
+  f28: true
+  f29: true
+  f30: true
+  f31: true
+  f32: true
+  f33: true
+  f34: true
+  f35: true
+  f36: true
+  f37: true
+  f38: true
+  f39: true
+  f40: true
+  f41: true
+  f42: true
+  f43: true
+  f44: true
+  f45: true
+  f46: true
+  f47: true
+  f48: true
+  f49: true
+  f50: true
+  f51: true
+  f52: true
+  f53: true
+  f54: true
+  f55: true
+  f56: true
+  f57: true
+  f58: true
+  f59: true
+  f60: true
+  target: false
+raw_feature_actionability:
+  f0: any
+  f1: any
+  f2: any
+  f3: any
+  f4: any
+  f5: any
+  f6: any
+  f7: any
+  f8: any
+  f9: any
+  f10: any
+  f11: any
+  f12: any
+  f13: any
+  f14: any
+  f15: any
+  f16: any
+  f17: any
+  f18: any
+  f19: any
+  f20: any
+  f21: any
+  f22: any
+  f23: any
+  f24: any
+  f25: any
+  f26: any
+  f27: any
+  f28: any
+  f29: any
+  f30: any
+  f31: any
+  f32: any
+  f33: any
+  f34: any
+  f35: any
+  f36: any
+  f37: any
+  f38: any
+  f39: any
+  f40: any
+  f41: any
+  f42: any
+  f43: any
+  f44: any
+  f45: any
+  f46: any
+  f47: any
+  f48: any
+  f49: any
+  f50: any
+  f51: any
+  f52: any
+  f53: any
+  f54: any
+  f55: any
+  f56: any
+  f57: any
+  f58: any
+  f59: any
+  f60: any
+  target: none

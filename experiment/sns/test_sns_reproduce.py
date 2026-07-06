@@ -46,6 +46,17 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
         "train_csv": "german_sns_train.csv",
         "test_csv": "german_sns_test.csv",
         "affinity_set": [[0], [1]],
+        "paper_scope": {
+            "feature_count": 61,
+            "train_rows": 700,
+            "test_rows": 200,
+        },
+        "model_overrides": {
+            "layers": [128, 64, 16],
+            "epochs": 100,
+            "batch_size": 32,
+            "optimizer": "adam",
+        },
         "paper": {
             "min_l2": {"loo_invalidation": 0.36, "rs_invalidation": 0.56, "l2_cost": 4.49},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.06, "l2_cost": 6.23},
@@ -66,6 +77,17 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
         "train_csv": "seizure_sns_train.csv",
         "test_csv": "seizure_sns_test.csv",
         "affinity_set": [[0], [1]],
+        "paper_scope": {
+            "feature_count": 178,
+            "train_rows": 7950,
+            "test_rows": 3550,
+        },
+        "model_overrides": {
+            "layers": [128, 64, 16],
+            "epochs": 100,
+            "batch_size": 128,
+            "optimizer": "adam",
+        },
         "paper": {
             "min_l2": {"loo_invalidation": 0.64, "rs_invalidation": 0.77, "l2_cost": 8.23},
             "min_l2_sns": {"loo_invalidation": 0.02, "rs_invalidation": 0.13, "l2_cost": 9.60},
@@ -86,6 +108,17 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
         "train_csv": "ctg_sns_train.csv",
         "test_csv": "ctg_sns_test.csv",
         "affinity_set": [[0], [1]],
+        "paper_scope": {
+            "feature_count": 21,
+            "train_rows": 1700,
+            "test_rows": 425,
+        },
+        "model_overrides": {
+            "layers": [100, 32, 16],
+            "epochs": 100,
+            "batch_size": 16,
+            "optimizer": "adam",
+        },
         "paper": {
             "min_l2": {"loo_invalidation": 0.48, "rs_invalidation": 0.49, "l2_cost": 0.06},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.00, "l2_cost": 0.21},
@@ -106,6 +139,16 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
         "train_csv": "warfarin_sns_train.csv",
         "test_csv": "warfarin_sns_test.csv",
         "affinity_set": [[0], [1, 2]],
+        "paper_scope": {
+            "train_rows": 3614,
+            "test_rows": 1205,
+        },
+        "model_overrides": {
+            "layers": [100],
+            "epochs": 100,
+            "batch_size": 128,
+            "optimizer": "adam",
+        },
         "paper": {
             "min_l2": {"loo_invalidation": 0.35, "rs_invalidation": 0.30, "l2_cost": 0.54},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.00, "l2_cost": 0.90},
@@ -126,6 +169,16 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
         "train_csv": "heloc_sns_train.csv",
         "test_csv": "heloc_sns_test.csv",
         "affinity_set": [[0], [1]],
+        "paper_scope": {
+            "feature_count": 40,
+            "train_rows": 7844,
+            "test_rows": 2615,
+        },
+        "model_overrides": {
+            "layers": [100, 32],
+            "epochs": 50,
+            "optimizer": "adam",
+        },
         "paper": {
             "min_l2": {"loo_invalidation": 0.55, "rs_invalidation": 0.61, "l2_cost": 0.11},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.00, "l2_cost": 1.71},
@@ -146,6 +199,17 @@ DATASET_SPECS: dict[str, dict[str, Any]] = {
         "train_csv": "taiwanese_credit_sns_train.csv",
         "test_csv": "taiwanese_credit_sns_test.csv",
         "affinity_set": [[0], [1]],
+        "paper_scope": {
+            "feature_count": 32,
+            "train_rows": 22500,
+            "test_rows": 7500,
+        },
+        "model_overrides": {
+            "layers": [32, 16],
+            "epochs": 100,
+            "batch_size": 512,
+            "optimizer": "adam",
+        },
         "paper": {
             "min_l2": {"loo_invalidation": 0.27, "rs_invalidation": 0.72, "l2_cost": 2.65},
             "min_l2_sns": {"loo_invalidation": 0.00, "rs_invalidation": 0.04, "l2_cost": 4.68},
@@ -709,10 +773,33 @@ def _prepare_dataset_config(base_config: dict, dataset_key: str) -> dict:
     cfg["name"] = f"sns_{dataset_key}_reproduce"
     cfg.setdefault("dataset", {})
     cfg["dataset"]["name"] = dataset_key
+    model_overrides = dataset_spec.get("model_overrides", {})
+    for key, value in model_overrides.items():
+        cfg["model"][key] = deepcopy(value)
     method_overrides = dataset_spec.get("method_overrides", {})
     for key, value in method_overrides.items():
         cfg["method"][key] = deepcopy(value)
     return cfg
+
+
+def _paper_scope_status(spec: dict[str, Any], loaded: dict[str, Any]) -> dict[str, Any]:
+    paper_scope = spec.get("paper_scope", {})
+    current_scope = {
+        "feature_count": int(loaded["feature_count"]),
+        "train_rows": int(len(loaded["trainset"])),
+        "test_rows": int(len(loaded["testset"])),
+    }
+    matches = {
+        key: (current_scope[key] == int(expected))
+        for key, expected in paper_scope.items()
+        if key in current_scope
+    }
+    return {
+        "paper_scope": paper_scope,
+        "current_scope": current_scope,
+        "matches": matches,
+        "all_match": all(matches.values()) if matches else True,
+    }
 
 
 def _run_single_dataset(
@@ -726,6 +813,7 @@ def _run_single_dataset(
     spec = loaded["spec"]
     trainset = loaded["trainset"]
     testset = loaded["testset"]
+    paper_scope_status = _paper_scope_status(spec, loaded)
 
     base_model, baseline_cache_hit = _build_cached_model(
         config=config,
@@ -786,6 +874,19 @@ def _run_single_dataset(
     print(f"class_count: {loaded['class_count']}")
     print(f"train_rows: {len(trainset)}")
     print(f"test_rows: {len(testset)}")
+    print(f"paper_scope_match: {int(paper_scope_status['all_match'])}")
+    if paper_scope_status["paper_scope"]:
+        print(f"paper_scope_expected: {paper_scope_status['paper_scope']}")
+        print(f"paper_scope_current: {paper_scope_status['current_scope']}")
+        print(f"paper_scope_field_matches: {paper_scope_status['matches']}")
+    print(
+        "model_cfg: "
+        f"layers={config['model']['layers']} | "
+        f"epochs={config['model']['epochs']} | "
+        f"batch_size={config['model']['batch_size']} | "
+        f"optimizer={config['model']['optimizer']} | "
+        f"lr={config['model']['learning_rate']}"
+    )
     print(f"base_model_test_accuracy: {baseline_accuracy:.4f}")
     print(f"num_factuals_evaluated: {len(factuals)}")
     print(f"rs_models_evaluated: {len(rs_models)}")
@@ -830,6 +931,9 @@ def _run_single_dataset(
         "display_name": spec["display_name"],
         "feature_count": loaded["feature_count"],
         "class_count": loaded["class_count"],
+        "paper_scope_match": int(paper_scope_status["all_match"]),
+        "paper_scope_expected": paper_scope_status["paper_scope"],
+        "paper_scope_current": paper_scope_status["current_scope"],
         "baseline_accuracy": baseline_accuracy,
         "baseline_cache_hit": int(baseline_cache_hit),
         "rs_cache_hits": rs_cache_stats["hits"],
@@ -853,6 +957,7 @@ def _print_summary_table(results: list[dict[str, Any]]) -> None:
         [
             {
                 "dataset": item["dataset_key"],
+                "paper_scope_match": item["paper_scope_match"],
                 "baseline_cache_hit": item["baseline_cache_hit"],
                 "rs_cache_hits": item["rs_cache_hits"],
                 "rs_cache_misses": item["rs_cache_misses"],

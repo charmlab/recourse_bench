@@ -8,7 +8,16 @@ Method
 SNS German Credit reproduction for the benchmark implementation under `method/sns/`, using `german_full`, 61 one-hot features, a paper-matched MLP architecture, and RS / LOO model families in `experiment/sns/`.
 
 Reproduction Summary
-No value available.
+The SNS reproduction is updated to more closely align with the model structure described.
+NOTES FOR IMPROVEMENT:
+- Certain reproduced values with certain datasets are much more closely aligned with paper reported values. 
+The dataset that struggles the most right now is CTG in terms of l2 cost. Likely a preprocessing problem.
+
+- Another common issue across nearly all the dataset experiments are the sns_*_invalidation metrics. 
+They are reported as 0 for most of the experiments, however the reproduced results we are getting are VERY SMALL close to 0 values, but not exactly 0. 
+This makes our calculated delta 1, which is not good. This could potentially be a result of rounding in the original paper, considering that if we also 
+perform rounding to ~2 decimal points, we would get more aligned results. Another comb through the paper may make this more apparent, since the original 
+codebase does not actually contain scripts with full experiment code, only the code defining the algorithm itself.
 
 Reference Scope
 - dataset: German Credit
