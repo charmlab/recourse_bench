@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+from datetime import datetime, timezone
 import sys
 import time
 from dataclasses import dataclass
@@ -22,12 +23,16 @@ from sklearn.model_selection import ShuffleSplit
 from tqdm.auto import tqdm
 
 from dataset.compas_carla.compas_carla import CompasCarlaDataset
+from experiment.utils import write_reproduction_report
 from method.cols.cols import ColsMethod
 from method.cols.support import decode_feature_dataframe
 from model.mlp.mlp import MlpModel
 from model.model_utils import build_optimizer
 from model.model_object import process_nan
 from utils.seed import seed_context
+
+
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 EPSILON = 1e-7
 
@@ -1690,6 +1695,38 @@ def test_reproduce() -> None:
     )
     print("\nComparison Table")
     print(comparison.to_string(index=False))
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="cols_compas_table",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "run_seeds": run_seeds,
+        },
+        experiments_data={
+            f"{row['method']}_{row['metric']}": {
+                "configuration": {
+                    "dataset": str(config["dataset"]["name"]),
+                    "method": row["method"],
+                    "metric": row["metric"],
+                },
+                "metrics": {
+                    "reproduced_mean": {
+                        "original": row["paper"],
+                        "reproduced": row["reproduced_mean"],
+                    },
+                    "reproduced_std": {
+                        "original": None,
+                        "reproduced": row["reproduced_std"],
+                    },
+                },
+            }
+            for row in comparison.to_dict(orient="records")
+        },
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

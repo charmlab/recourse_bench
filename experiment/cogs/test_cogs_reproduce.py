@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import sys
 import time
 from copy import deepcopy
@@ -20,9 +21,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from tqdm import tqdm
 
+from experiment.utils import write_reproduction_report
 from experiments import Experiment
 from method.cogs.support import compute_ranges_numerical_features, gower_distance
 from utils.registry import get_registry
+
+
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 def _load_config(config_path: Path) -> dict:
@@ -368,6 +373,46 @@ def test_reproduce() -> None:
         )
     if selected_runtimes:
         print(f"avg_selected_run_time: {float(np.nanmean(selected_runtimes)):.3f}")
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="cogs_adult",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "max_factuals": args.max_factuals,
+            "n_reps": n_reps,
+        },
+        experiments_data={
+            "adult_cogs": {
+                "configuration": {
+                    "dataset": str(config["dataset"]["name"]),
+                    "method": str(config["method"]["name"]),
+                    "device": device,
+                },
+                "metrics": {
+                    **{
+                        key: {"original": None, "reproduced": value}
+                        for key, value in model_metrics.items()
+                    },
+                    **{
+                        key: {"original": None, "reproduced": value}
+                        for key, value in cf_metrics.items()
+                    },
+                    "runtime_seconds": {
+                        "original": None,
+                        "reproduced": runtime_seconds,
+                    },
+                    "avg_selected_run_time": {
+                        "original": None,
+                        "reproduced": float(np.nanmean(selected_runtimes)) if selected_runtimes else None,
+                    },
+                },
+            }
+        },
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

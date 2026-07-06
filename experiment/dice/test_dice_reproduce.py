@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import math
 import sys
@@ -18,6 +19,8 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
+
+from experiment.utils import write_reproduction_report
 from lime.lime_tabular import LimeTabularExplainer
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.neighbors import KNeighborsClassifier
@@ -1141,6 +1144,38 @@ def _run_candidate(
         _write_json(output_dir / "metadata.json", metadata)
         if report is not None:
             _write_json(output_dir / "assertion_report.json", report)
+        write_reproduction_report(
+            output_path=output_dir / "reproduction_report.json",
+            paper_id="dice_adult",
+            reproduction_metadata={
+                "timestamp": datetime.now(timezone.utc),
+                "framework_version": "1.0.0",
+                "source_script": Path(__file__).name,
+                "config_name": config["name"],
+                "device": device,
+                "num_factuals": num_factuals,
+                "num_boundary_samples": num_boundary_samples,
+                "lime_num_samples": lime_num_samples,
+                "ks": list(ks),
+                "radii": list(radii),
+                "assertion_report": report,
+            },
+            experiments_data={
+                str(row.get("setting_name", f"setting_{index}")): {
+                    "configuration": {
+                        key: value
+                        for key, value in row.items()
+                        if isinstance(value, str)
+                    },
+                    "metrics": {
+                        key: {"original": None, "reproduced": value}
+                        for key, value in row.items()
+                        if isinstance(value, (int, float))
+                    },
+                }
+                for index, row in enumerate(summary_df.to_dict(orient="records"))
+            },
+        )
 
     return {
         "summary_df": summary_df,

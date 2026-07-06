@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import os
 import sys
 from pathlib import Path
@@ -18,6 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from evaluation.evaluation_object import EvaluationObject
 from evaluation.evaluation_utils import resolve_evaluation_inputs
+from experiment.utils import write_reproduction_report
 from experiments import Experiment
 from model.model_object import ModelObject, process_nan
 from model.model_utils import resolve_device
@@ -28,6 +30,7 @@ SAMPLE_SIZES = [1, 2, 3]
 SAMPLING_TRIALS = 10
 MAD_FEATURE_WEIGHTS = {"age": 10.0, "hours_per_week": 3.0}
 TARGET_MODEL_FILENAME = "adult-target-model.pth"
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 METHOD_GROUPS = {
     "adult-age": {
@@ -728,10 +731,49 @@ def test_reproduce() -> None:
         help="Allowed absolute difference when comparing against reference.",
     )
     args = parser.parse_args()
-    _assert_cfvae_reproduce(
-        weights_dir=Path(args.weights_dir),
+    weights_dir = Path(args.weights_dir)
+    results = run_cfvae_reproduce(weights_dir=weights_dir)
+    compare_results(
+        results,
+        REFERENCE_RESULTS,
         tolerance=float(args.tolerance),
+        raise_on_fail=True,
     )
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="cfvae_adult_constraints",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "weights_dir": str(weights_dir.resolve()),
+            "tolerance": float(args.tolerance),
+        },
+        experiments_data={
+            f"{dataset_name}_{method_name}": {
+                "configuration": {
+                    "dataset": dataset_name,
+                    "method": method_name,
+                },
+                "metrics": {
+                    metric_name: {
+                        "original": (
+                            REFERENCE_RESULTS.get(dataset_name, {})
+                            .get(method_name, {})
+                            .get(metric_name, [None] * len(metric_values))[0]
+                            if metric_values
+                            else None
+                        ),
+                        "reproduced": metric_values[0] if metric_values else None,
+                    }
+                    for metric_name, metric_values in metric_map.items()
+                },
+            }
+            for dataset_name, method_results in results.items()
+            for method_name, metric_map in method_results.items()
+        },
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":

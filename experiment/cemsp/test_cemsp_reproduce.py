@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -29,10 +30,14 @@ import method  # noqa: F401
 import model  # noqa: F401
 import preprocess  # noqa: F401
 from dataset.dataset_object import DatasetObject
+from experiment.utils import write_reproduction_report
 from model.model_object import ModelObject, process_nan
 from model.model_utils import build_optimizer, logits_to_prediction, resolve_device
 from utils.registry import get_registry
 from utils.seed import seed_context
+
+
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 
 
 class _CemspReferenceMlp(ModelObject):
@@ -721,6 +726,54 @@ def test_reproduce() -> None:
             float(aggregated[key]),
             float(reference_metrics.get(key, float("nan"))),
         )
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="cemsp_hepatitis_figure4",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "device": device,
+            "split_seed": split_seed,
+            "model_seeds": model_seeds,
+            "max_factuals": args.max_factuals,
+        },
+        experiments_data={
+            "hepatitis_figure4": {
+                "configuration": {
+                    "dataset": str(config["dataset"]["name"]),
+                    "method": str(config["method"]["name"]),
+                    "num_abnormal_factuals": int(aggregated["num_factuals"]),
+                },
+                "metrics": {
+                    "model_a_test_accuracy": {
+                        "original": reference_model.get("test_accuracy"),
+                        "reproduced": metrics_a["test_accuracy"],
+                    },
+                    "model_a_test_f1": {
+                        "original": reference_model.get("test_f1"),
+                        "reproduced": metrics_a["test_f1"],
+                    },
+                    "model_b_test_accuracy": {
+                        "original": reference_model.get("test_accuracy"),
+                        "reproduced": metrics_b["test_accuracy"],
+                    },
+                    "model_b_test_f1": {
+                        "original": reference_model.get("test_f1"),
+                        "reproduced": metrics_b["test_f1"],
+                    },
+                    **{
+                        key: {
+                            "original": reference_metrics.get(key),
+                            "reproduced": float(value),
+                        }
+                        for key, value in aggregated.items()
+                    },
+                },
+            }
+        },
+    )
+    print(f"reproduction_report_path: {report_path}")
 
 
 if __name__ == "__main__":
