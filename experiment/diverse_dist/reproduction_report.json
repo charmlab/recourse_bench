@@ -1,0 +1,1013 @@
+{
+  "paper_id": "diverse_dist_paper_reproduction",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-03T16:30:45.404970Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_diverse_dist_reproduce.py",
+    "config_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/diverse_dist/config.yaml",
+    "datasets": [
+      "diabetes",
+      "no2",
+      "news"
+    ],
+    "local_data_root": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/diverse_dist/data"
+  },
+  "experiments": {
+    "diabetes_norm_1_opt_1": {
+      "configuration": {
+        "dataset": "diabetes",
+        "feature_count": 8,
+        "norm": 1,
+        "opt": true,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 1.1356122951450993,
+          "reproduced": 0.8649971091647942,
+          "delta": 0.23829892220894638
+        },
+        "k_distance_std": {
+          "original": 0.4345114915961585,
+          "reproduced": 0.31976473908589226,
+          "delta": 0.26408220433652785
+        },
+        "k_diversity_mean": {
+          "original": 1.3891334020759285,
+          "reproduced": 1.021514725069205,
+          "delta": 0.2646388579076367
+        },
+        "k_diversity_std": {
+          "original": 0.46404387689018917,
+          "reproduced": 0.34439219817143973,
+          "delta": 0.25784561477375917
+        },
+        "set_distance_sum_mean": {
+          "original": 0.21001440954026088,
+          "reproduced": 0.2674551821753072,
+          "delta": 0.21476784322464912
+        },
+        "set_distance_sum_std": {
+          "original": 0.20520751186424946,
+          "reproduced": 0.20008669151752578,
+          "delta": 0.024954351330526547
+        },
+        "set_distance_max_mean": {
+          "original": 0.5193340607256643,
+          "reproduced": 0.5800753920401136,
+          "delta": 0.10471282207097805
+        },
+        "set_distance_max_std": {
+          "original": 0.438927379640319,
+          "reproduced": 0.34590032705586,
+          "delta": 0.21194178558806348
+        },
+        "time_mean": {
+          "original": 0.02246472391031556,
+          "reproduced": 0.006238730994518846,
+          "delta": 0.722287662228776
+        },
+        "time_std": {
+          "original": 0.004527869777919189,
+          "reproduced": 0.003552348439478414,
+          "delta": 0.21544818784277883
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null
+        }
+      }
+    },
+    "diabetes_norm_2_opt_1": {
+      "configuration": {
+        "dataset": "diabetes",
+        "feature_count": 8,
+        "norm": 2,
+        "opt": true,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.521379531942026,
+          "reproduced": 0.3980923073217273,
+          "delta": 0.2364634916930484
+        },
+        "k_distance_std": {
+          "original": 0.2013895759724448,
+          "reproduced": 0.14772851861082875,
+          "delta": 0.26645399645192286
+        },
+        "k_diversity_mean": {
+          "original": 0.6299450517127192,
+          "reproduced": 0.47575544193635383,
+          "delta": 0.24476676077881498
+        },
+        "k_diversity_std": {
+          "original": 0.21781486904831945,
+          "reproduced": 0.16004512396539208,
+          "delta": 0.26522406544298816
+        },
+        "set_distance_sum_mean": {
+          "original": 0.0966081962615141,
+          "reproduced": 0.12346105311314266,
+          "delta": 0.21750063015435295
+        },
+        "set_distance_sum_std": {
+          "original": 0.09563006446337553,
+          "reproduced": 0.09325870734027024,
+          "delta": 0.02479719256085494
+        },
+        "set_distance_max_mean": {
+          "original": 0.23849450500831512,
+          "reproduced": 0.2701733871207883,
+          "delta": 0.11725389554490165
+        },
+        "set_distance_max_std": {
+          "original": 0.20251878656648942,
+          "reproduced": 0.1665708633832614,
+          "delta": 0.1775041406907989
+        },
+        "time_mean": {
+          "original": 0.02061738806255793,
+          "reproduced": 0.00560783137800172,
+          "delta": 0.7280047617580723
+        },
+        "time_std": {
+          "original": 0.004091528813477416,
+          "reproduced": 0.0011932972555770964,
+          "delta": 0.7083492968089584
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null
+        }
+      }
+    },
+    "diabetes_norm_1_opt_0": {
+      "configuration": {
+        "dataset": "diabetes",
+        "feature_count": 8,
+        "norm": 1,
+        "opt": false,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 1.389182553084757,
+          "reproduced": 0.9900790017843246,
+          "delta": 0.2872938120437813
+        },
+        "k_distance_std": {
+          "original": 0.291344368462992,
+          "reproduced": 0.21689118787418948,
+          "delta": 0.25555043669313254
+        },
+        "k_diversity_mean": {
+          "original": 1.7118196467708162,
+          "reproduced": 1.1676280266046524,
+          "delta": 0.31790242692489784
+        },
+        "k_diversity_std": {
+          "original": 0.30187489393115613,
+          "reproduced": 0.2274412218583683,
+          "delta": 0.24657125706440086
+        },
+        "set_distance_sum_mean": {
+          "original": 0.22359984183146248,
+          "reproduced": 0.2844860547218057,
+          "delta": 0.21402178377384043
+        },
+        "set_distance_sum_std": {
+          "original": 0.244943426702313,
+          "reproduced": 0.2288558970421214,
+          "delta": 0.06567855229584611
+        },
+        "set_distance_max_mean": {
+          "original": 0.6324752906912724,
+          "reproduced": 0.644445684949557,
+          "delta": 0.018574713956260838
+        },
+        "set_distance_max_std": {
+          "original": 0.5683733757450508,
+          "reproduced": 0.3870789302332826,
+          "delta": 0.31897068590540295
+        },
+        "time_mean": {
+          "original": 0.010467921273183014,
+          "reproduced": 0.004620135332612942,
+          "delta": 0.5586387008422655
+        },
+        "time_std": {
+          "original": 0.001495682777856654,
+          "reproduced": 0.0008427688293672044,
+          "delta": 0.43653237047035437
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null
+        }
+      }
+    },
+    "diabetes_norm_2_opt_0": {
+      "configuration": {
+        "dataset": "diabetes",
+        "feature_count": 8,
+        "norm": 2,
+        "opt": false,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.6431523377632499,
+          "reproduced": 0.4560530030926068,
+          "delta": 0.2909098260006885
+        },
+        "k_distance_std": {
+          "original": 0.14193282557234704,
+          "reproduced": 0.10180689340527053,
+          "delta": 0.282710726044295
+        },
+        "k_diversity_mean": {
+          "original": 0.7818753589678238,
+          "reproduced": 0.5441608024934929,
+          "delta": 0.3040312675771555
+        },
+        "k_diversity_std": {
+          "original": 0.15164176344982927,
+          "reproduced": 0.10801751432229449,
+          "delta": 0.28767964797486595
+        },
+        "set_distance_sum_mean": {
+          "original": 0.10433898230740925,
+          "reproduced": 0.13086820628742377,
+          "delta": 0.2027171054958055
+        },
+        "set_distance_sum_std": {
+          "original": 0.11493570931665867,
+          "reproduced": 0.10507593872122938,
+          "delta": 0.08578509371934791
+        },
+        "set_distance_max_mean": {
+          "original": 0.2958539824632799,
+          "reproduced": 0.299422924220562,
+          "delta": 0.01191940051541662
+        },
+        "set_distance_max_std": {
+          "original": 0.26735974736193696,
+          "reproduced": 0.18391266627779093,
+          "delta": 0.31211534985174844
+        },
+        "time_mean": {
+          "original": 0.010600069821891139,
+          "reproduced": 0.004608379619506498,
+          "delta": 0.5652500693920594
+        },
+        "time_std": {
+          "original": 0.001600492824113005,
+          "reproduced": 0.0008052528862996178,
+          "delta": 0.49687191709472994
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 150,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null
+        }
+      }
+    },
+    "no2_norm_1_opt_1": {
+      "configuration": {
+        "dataset": "no2",
+        "feature_count": 7,
+        "norm": 1,
+        "opt": true,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.6195697341733506,
+          "reproduced": 0.9063454756742878,
+          "delta": 0.3164088630635979
+        },
+        "k_distance_std": {
+          "original": 0.23376784661693936,
+          "reproduced": 0.44992860569098814,
+          "delta": 0.48043346508736634
+        },
+        "k_diversity_mean": {
+          "original": 0.7877654376535028,
+          "reproduced": 0.6040575864312312,
+          "delta": 0.23320120741711847
+        },
+        "k_diversity_std": {
+          "original": 0.2842564609400587,
+          "reproduced": 0.48102518531583205,
+          "delta": 0.40906116848451235
+        },
+        "set_distance_sum_mean": {
+          "original": 0.16236953732885087,
+          "reproduced": 0.16374665696267465,
+          "delta": 0.008410062589172063
+        },
+        "set_distance_sum_std": {
+          "original": 0.1250212304713393,
+          "reproduced": 0.17553913624903134,
+          "delta": 0.2877871388521817
+        },
+        "set_distance_max_mean": {
+          "original": 0.335030530077427,
+          "reproduced": 0.33951576691988394,
+          "delta": 0.013210687925180598
+        },
+        "set_distance_max_std": {
+          "original": 0.23795109461626193,
+          "reproduced": 0.32843133868070495,
+          "delta": 0.2754921148143122
+        },
+        "time_mean": {
+          "original": 0.018551729343555593,
+          "reproduced": 0.005110336030667571,
+          "delta": 0.7245358674638721
+        },
+        "time_std": {
+          "original": 0.014841148530193417,
+          "reproduced": 0.0008193118057553373,
+          "delta": 0.9447945821653562
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 4,
+          "delta": null
+        }
+      }
+    },
+    "no2_norm_2_opt_1": {
+      "configuration": {
+        "dataset": "no2",
+        "feature_count": 7,
+        "norm": 2,
+        "opt": true,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.3048553725583726,
+          "reproduced": 0.43683977123247847,
+          "delta": 0.30213457511373454
+        },
+        "k_distance_std": {
+          "original": 0.11443811074656235,
+          "reproduced": 0.21539310558013536,
+          "delta": 0.46870114324997963
+        },
+        "k_diversity_mean": {
+          "original": 0.38542409662069654,
+          "reproduced": 0.28812232473737576,
+          "delta": 0.25245378463992973
+        },
+        "k_diversity_std": {
+          "original": 0.1401568646680589,
+          "reproduced": 0.23015471536842197,
+          "delta": 0.3910319654163865
+        },
+        "set_distance_sum_mean": {
+          "original": 0.07740982157846708,
+          "reproduced": 0.07830150795384995,
+          "delta": 0.011387856998979082
+        },
+        "set_distance_sum_std": {
+          "original": 0.05945554812100612,
+          "reproduced": 0.08429143511886958,
+          "delta": 0.2946430673868509
+        },
+        "set_distance_max_mean": {
+          "original": 0.16005675948724732,
+          "reproduced": 0.16262636720904544,
+          "delta": 0.015800683283388246
+        },
+        "set_distance_max_std": {
+          "original": 0.11401052639165324,
+          "reproduced": 0.1575034462793218,
+          "delta": 0.27613948085006845
+        },
+        "time_mean": {
+          "original": 0.018258037390532316,
+          "reproduced": 0.0052461319360626885,
+          "delta": 0.7126672585968596
+        },
+        "time_std": {
+          "original": 0.014400465978400282,
+          "reproduced": 0.0008843996469555436,
+          "delta": 0.9385853452046563
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 4,
+          "delta": null
+        }
+      }
+    },
+    "no2_norm_1_opt_0": {
+      "configuration": {
+        "dataset": "no2",
+        "feature_count": 7,
+        "norm": 1,
+        "opt": false,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.867544349972541,
+          "reproduced": 1.0614287460095262,
+          "delta": 0.18266360013886893
+        },
+        "k_distance_std": {
+          "original": 0.2069646610069502,
+          "reproduced": 0.3365198055851506,
+          "delta": 0.3849851997653632
+        },
+        "k_diversity_mean": {
+          "original": 1.1078796183253683,
+          "reproduced": 0.7793791637777194,
+          "delta": 0.2965127700825461
+        },
+        "k_diversity_std": {
+          "original": 0.23683152035958221,
+          "reproduced": 0.529919481432153,
+          "delta": 0.5530801779177382
+        },
+        "set_distance_sum_mean": {
+          "original": 0.15070948545722446,
+          "reproduced": 0.16437817439266808,
+          "delta": 0.08315391618106023
+        },
+        "set_distance_sum_std": {
+          "original": 0.1636990764999631,
+          "reproduced": 0.19421523048722522,
+          "delta": 0.1571254422771409
+        },
+        "set_distance_max_mean": {
+          "original": 0.389747858146783,
+          "reproduced": 0.40332334121204405,
+          "delta": 0.03365905634041614
+        },
+        "set_distance_max_std": {
+          "original": 0.3532081463443451,
+          "reproduced": 0.3861382088758581,
+          "delta": 0.08528050779377772
+        },
+        "time_mean": {
+          "original": 0.009372600802668819,
+          "reproduced": 0.005229327036705735,
+          "delta": 0.44206233181117655
+        },
+        "time_std": {
+          "original": 0.0014526652762984562,
+          "reproduced": 0.001478734505031479,
+          "delta": 0.017629418022180994
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 4,
+          "delta": null
+        }
+      }
+    },
+    "no2_norm_2_opt_0": {
+      "configuration": {
+        "dataset": "no2",
+        "feature_count": 7,
+        "norm": 2,
+        "opt": false,
+        "method_alpha": 50,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.4259955778213827,
+          "reproduced": 0.5095394169835195,
+          "delta": 0.16395952182996454
+        },
+        "k_distance_std": {
+          "original": 0.09472083734072355,
+          "reproduced": 0.15964933612727464,
+          "delta": 0.4066944489815429
+        },
+        "k_diversity_mean": {
+          "original": 0.5351792592515182,
+          "reproduced": 0.37078666361091345,
+          "delta": 0.30717295709575543
+        },
+        "k_diversity_std": {
+          "original": 0.1091282589192789,
+          "reproduced": 0.251342774282344,
+          "delta": 0.565818992684904
+        },
+        "set_distance_sum_mean": {
+          "original": 0.07375574688240437,
+          "reproduced": 0.07990756856371142,
+          "delta": 0.07698672093122344
+        },
+        "set_distance_sum_std": {
+          "original": 0.08024609148471444,
+          "reproduced": 0.09372283118249033,
+          "delta": 0.14379356158730372
+        },
+        "set_distance_max_mean": {
+          "original": 0.18741673907707035,
+          "reproduced": 0.19669321549367413,
+          "delta": 0.04716215754224693
+        },
+        "set_distance_max_std": {
+          "original": 0.1690608353521021,
+          "reproduced": 0.18635137166000343,
+          "delta": 0.09278459371604617
+        },
+        "time_mean": {
+          "original": 0.009374009238349067,
+          "reproduced": 0.005504922776272495,
+          "delta": 0.4127461754836065
+        },
+        "time_std": {
+          "original": 0.0014850562213812887,
+          "reproduced": 0.0014907138549415107,
+          "delta": 0.003795251208987994
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 146,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 4,
+          "delta": null
+        }
+      }
+    },
+    "news_norm_1_opt_1": {
+      "configuration": {
+        "dataset": "news",
+        "feature_count": 58,
+        "norm": 1,
+        "opt": true,
+        "method_alpha": 1000,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 2.7082812984139935,
+          "reproduced": 2.3870303601026537,
+          "delta": 0.11861801006397257
+        },
+        "k_distance_std": {
+          "original": 0.9792371909063994,
+          "reproduced": 0.9915627289155191,
+          "delta": 0.012430416805399976
+        },
+        "k_diversity_mean": {
+          "original": 3.4528531924520034,
+          "reproduced": 3.081816953442235,
+          "delta": 0.10745786696661769
+        },
+        "k_diversity_std": {
+          "original": 1.2457051074035783,
+          "reproduced": 1.2941855516514862,
+          "delta": 0.03746019586298339
+        },
+        "set_distance_sum_mean": {
+          "original": 0.8827430525206145,
+          "reproduced": 0.7515418069302171,
+          "delta": 0.14862903221470944
+        },
+        "set_distance_sum_std": {
+          "original": 0.7854665964315622,
+          "reproduced": 0.4914663097878787,
+          "delta": 0.37430017772792684
+        },
+        "set_distance_max_mean": {
+          "original": 1.9481909303121976,
+          "reproduced": 1.7610585332132769,
+          "delta": 0.09605444424737813
+        },
+        "set_distance_max_std": {
+          "original": 1.4079245606743451,
+          "reproduced": 1.2216227977655718,
+          "delta": 0.13232368275438103
+        },
+        "time_mean": {
+          "original": 0.30924982844658616,
+          "reproduced": 0.05893846907470699,
+          "delta": 0.8094147072909794
+        },
+        "time_std": {
+          "original": 0.008624294788833095,
+          "reproduced": 0.021789466273085617,
+          "delta": 0.6041988968088752
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 12,
+          "delta": null
+        }
+      }
+    },
+    "news_norm_2_opt_1": {
+      "configuration": {
+        "dataset": "news",
+        "feature_count": 58,
+        "norm": 2,
+        "opt": true,
+        "method_alpha": 1000,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.753167686377201,
+          "reproduced": 0.6681875939764407,
+          "delta": 0.11283024210653754
+        },
+        "k_distance_std": {
+          "original": 0.2773105381613848,
+          "reproduced": 0.2849072691614331,
+          "delta": 0.026663872151832975
+        },
+        "k_diversity_mean": {
+          "original": 0.9455304743790431,
+          "reproduced": 0.8455547763952527,
+          "delta": 0.10573503519222621
+        },
+        "k_diversity_std": {
+          "original": 0.35630206825583965,
+          "reproduced": 0.3523652312752962,
+          "delta": 0.011049155565711358
+        },
+        "set_distance_sum_mean": {
+          "original": 0.21922616960121646,
+          "reproduced": 0.18208042551169468,
+          "delta": 0.1694402824128697
+        },
+        "set_distance_sum_std": {
+          "original": 0.21329538887315122,
+          "reproduced": 0.12887393043252868,
+          "delta": 0.3957959845574945
+        },
+        "set_distance_max_mean": {
+          "original": 0.5230442320759029,
+          "reproduced": 0.4578115034551508,
+          "delta": 0.12471742277292844
+        },
+        "set_distance_max_std": {
+          "original": 0.43612427243410695,
+          "reproduced": 0.35422075933772823,
+          "delta": 0.1877985663105998
+        },
+        "time_mean": {
+          "original": 0.29450775542349183,
+          "reproduced": 0.06777779125453283,
+          "delta": 0.7698607591604142
+        },
+        "time_std": {
+          "original": 0.004744213758779755,
+          "reproduced": 0.02596455679163383,
+          "delta": 0.8172811576622632
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 12,
+          "delta": null
+        }
+      }
+    },
+    "news_norm_1_opt_0": {
+      "configuration": {
+        "dataset": "news",
+        "feature_count": 58,
+        "norm": 1,
+        "opt": false,
+        "method_alpha": 1000,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 3.530076156957467,
+          "reproduced": 3.295206133697344,
+          "delta": 0.0665339819361162
+        },
+        "k_distance_std": {
+          "original": 0.9028430904918028,
+          "reproduced": 0.8468063363191286,
+          "delta": 0.062066991222305815
+        },
+        "k_diversity_mean": {
+          "original": 4.355430504464352,
+          "reproduced": 4.106766381298287,
+          "delta": 0.05709289194516656
+        },
+        "k_diversity_std": {
+          "original": 1.179512381009224,
+          "reproduced": 1.1634437910591973,
+          "delta": 0.013623078662623331
+        },
+        "set_distance_sum_mean": {
+          "original": 0.7947714878410156,
+          "reproduced": 0.6240237752596537,
+          "delta": 0.21483874949414128
+        },
+        "set_distance_sum_std": {
+          "original": 0.9701452060470587,
+          "reproduced": 0.6537455036167152,
+          "delta": 0.3261364386054554
+        },
+        "set_distance_max_mean": {
+          "original": 2.1449439565635027,
+          "reproduced": 1.9253296044425687,
+          "delta": 0.10238698845669915
+        },
+        "set_distance_max_std": {
+          "original": 1.8755567437282197,
+          "reproduced": 1.7465001161668154,
+          "delta": 0.0688097696819699
+        },
+        "time_mean": {
+          "original": 0.2825630655828512,
+          "reproduced": 0.010052677447253001,
+          "delta": 0.9644232432624658
+        },
+        "time_std": {
+          "original": 0.010090933446743526,
+          "reproduced": 0.0027486342669978078,
+          "delta": 0.7276134778309507
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 12,
+          "delta": null
+        }
+      }
+    },
+    "news_norm_2_opt_0": {
+      "configuration": {
+        "dataset": "news",
+        "feature_count": 58,
+        "norm": 2,
+        "opt": false,
+        "method_alpha": 1000,
+        "method_beta": 0.5,
+        "method_gamma": 0.1
+      },
+      "metrics": {
+        "validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "k_distance_mean": {
+          "original": 0.9826232194767097,
+          "reproduced": 0.9236155994128489,
+          "delta": 0.060051115111329254
+        },
+        "k_distance_std": {
+          "original": 0.26502041297129036,
+          "reproduced": 0.25244959798258804,
+          "delta": 0.04743338389584399
+        },
+        "k_diversity_mean": {
+          "original": 1.199459429323792,
+          "reproduced": 1.1422848736894302,
+          "delta": 0.04766693581840818
+        },
+        "k_diversity_std": {
+          "original": 0.3440401847367622,
+          "reproduced": 0.3235677623915165,
+          "delta": 0.05950590440738735
+        },
+        "set_distance_sum_mean": {
+          "original": 0.2206396335817396,
+          "reproduced": 0.1747515580576399,
+          "delta": 0.207977482463955
+        },
+        "set_distance_sum_std": {
+          "original": 0.26820636713781054,
+          "reproduced": 0.17981606321550644,
+          "delta": 0.3295607962837331
+        },
+        "set_distance_max_mean": {
+          "original": 0.6147140340813039,
+          "reproduced": 0.5469203513601552,
+          "delta": 0.11028491129613957
+        },
+        "set_distance_max_std": {
+          "original": 0.5619741369655994,
+          "reproduced": 0.5041543933323376,
+          "delta": 0.10288684092378646
+        },
+        "time_mean": {
+          "original": 0.27688173977833874,
+          "reproduced": 0.009101194855959518,
+          "delta": 0.9671296674773656
+        },
+        "time_std": {
+          "original": 0.004744227960527341,
+          "reproduced": 0.002287197881018705,
+          "delta": 0.5178988235707642
+        },
+        "successful_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "eligible_runs": {
+          "original": null,
+          "reproduced": 138,
+          "delta": null
+        },
+        "skipped_noise_label_mismatch": {
+          "original": null,
+          "reproduced": 12,
+          "delta": null
+        }
+      }
+    }
+  }
+}
