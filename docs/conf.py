@@ -88,6 +88,9 @@ intersphinx_mapping = {
 html_theme = "pydata_sphinx_theme"
 html_title = f"RecourseBench {version}"
 html_static_path = ["_static"]
+html_sidebars = {
+    "**": [],
+}
 html_theme_options = {
     "navigation_with_keys": True,
     "show_toc_level": 2,
