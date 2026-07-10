@@ -2,48 +2,36 @@
 
 ## Install
 
+Install from TestPyPI:
+
 ```bash
-conda create -n recoursebench python=3.12
-conda activate recoursebench
+pip install -i https://test.pypi.org/simple/ \
+    --extra-index-url https://pypi.org/simple \
+    recourse-bench
+```
+
+Or install from a source checkout:
+
+```bash
 pip install -r requirements.txt
-# Optional: only needed for some methods (e.g. diverse_dist). Downgrades numpy.
-pip install alibi==0.9.6
 ```
 
-## Run an experiment from the CLI
+## Minimal config
 
-After installation the `recourse-bench` entry point runs any experiment config:
-
-```bash
-recourse-bench -p experiment/toy/smoke_config.yaml
-```
-
-From a source checkout, `python experiments.py -p <config>` is equivalent.
-
-## A minimal config
-
-An experiment is fully described by a config dictionary (usually YAML). A single
-top-level `seed` is propagated to every component that does not set its own.
+RecourseBench experiments are configured as data. A config chooses a dataset,
+preprocessing, target model, recourse method, and evaluation metrics.
 
 ```yaml
-name: credit_linear_wachter_smoke
-seed: 7                       # propagated to dataset/model/method/preprocess
-logger:
-  level: INFO
-  path: ./logs/credit_linear_wachter_smoke.log
-caching:
-  path: ./cache/
+name: toy_linear_wachter
+seed: 7
 dataset:
-  name: credit
+  name: toydata
 preprocess:
-  - name: balance
-    strategy: downsample
-  - name: encode
-    encoding: onehot
   - name: scale
-    scaling: normalize
+    scaling: standardize
+    range: true
   - name: split
-    split: 0.3
+    split: 0.25
 model:
   name: linear
   device: cpu
@@ -56,12 +44,15 @@ evaluation:
   - name: distance
 ```
 
-`finalize` is appended automatically if omitted, and must be the last
-preprocessing step. `model.device` and `method.device` must match.
+## Run
 
-## The Python API
+From the command line:
 
-Import the package as `rb`. The quickest path is `rb.run(config)`:
+```bash
+recourse-bench -p experiment/toy/smoke_config.yaml
+```
+
+From Python:
 
 ```python
 import yaml
@@ -71,45 +62,16 @@ import recourse_bench as rb
 config = yaml.safe_load(Path("experiment/toy/smoke_config.yaml").read_text())
 metrics = rb.run(config)
 print(metrics.to_string(index=False))
-print(metrics.attrs["provenance"])     # library version, config hash, seed, ...
 ```
 
-### Construct components by name
-
-Each registered component is reachable through a named namespace; the attribute
-*is* the class, so call it to construct an instance:
+Use the registry helpers to discover valid component names:
 
 ```python
-model  = rb.models.linear(seed=7)
-method = rb.methods.wachter(target_model=model, seed=7, desired_class=1)
-data   = rb.datasets.credit()
-
-rb.list_methods()      # discover what's available
+rb.list_datasets()
+rb.list_models()
+rb.list_methods()
+rb.list_evaluations()
 ```
 
-See {doc}`reference/using` for the full list of namespaces.
-
-### Full control with `Experiment`
-
-When you also want the trained model, the counterfactuals, or provenance, use
-the {class}`~experiments.Experiment` class:
-
-```python
-experiment = rb.Experiment(config)
-metrics = experiment.run()
-
-model = experiment.target_model()       # the trained classifier
-cfs   = experiment.counterfactuals()    # the generated counterfactuals
-train = experiment.trainset()
-```
-
-Configuration problems raise {class}`~utils.exceptions.ConfigError` (a subclass
-of {class}`~utils.exceptions.RecourseBenchError`) instead of exiting the
-process, so they can be caught programmatically.
-
-## What `run()` does
-
-`Experiment.run()` performs preprocessing, resolves the train/test datasets,
-trains the target model, fits the recourse method, generates counterfactuals,
-and concatenates evaluation outputs into one metrics dataframe. Failed
-counterfactual rows are represented with `NaN` feature values and target `-1`.
+`rb.run(config)` trains the target model, fits the recourse method, generates
+counterfactuals, and returns a one-row metrics dataframe.
