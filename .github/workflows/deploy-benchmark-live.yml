@@ -1,4 +1,4 @@
-name: Deploy Benchmark Live Site
+name: Deploy GitHub Pages (benchmark-live + docs)
 
 on:
   workflow_dispatch:
@@ -8,6 +8,14 @@ on:
       - feat/live-benchmark-site
     paths:
       - webapp/benchmark-live/**
+      - docs/**
+      - dataset/**
+      - model/**
+      - method/**
+      - evaluation/**
+      - preprocess/**
+      - utils/**
+      - experiments.py
       - .github/workflows/deploy-benchmark-live.yml
 
 permissions:
@@ -29,13 +37,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install docs dependencies
+        # The base-class docstrings render without the heavy runtime/solver
+        # deps (those are mocked in docs/conf.py), so only the light imports
+        # plus the Sphinx toolchain are needed.
+        run: pip install numpy pandas pyyaml -r docs/requirements.txt
+
+      - name: Build Sphinx docs
+        run: sphinx-build -b html docs docs/_build/html
+
+      - name: Assemble Pages site
+        # benchmark-live at the root, API docs under /docs on the same site.
+        run: |
+          mkdir -p _site/docs
+          cp -r webapp/benchmark-live/. _site/
+          cp -r docs/_build/html/. _site/docs/
+          touch _site/docs/.nojekyll
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: webapp/benchmark-live
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
