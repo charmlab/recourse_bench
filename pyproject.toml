@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recourse_bench"
+version = "0.1.0"
+description = "A benchmark for algorithmic recourse methods."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+dependencies = [
+    "dice-ml==0.12",
+    "lime==0.2.0.1",
+    "matplotlib==3.10.8",
+    "numpy==2.4.2",
+    "pandas==3.0.0",
+    "PySMT==0.9.6",
+    "PyYAML==6.0.3",
+    "scikit-learn==1.8.0",
+    "scipy==1.17.0",
+    # CPU/default builds from PyPI. For CUDA, install torch separately:
+    #   pip install torch==2.10.0+cu126 torchvision==0.25.0+cu126 \
+    #     --extra-index-url https://download.pytorch.org/whl/cu126
+    "torch==2.10.0",
+    "torchvision==0.25.0",
+    "tqdm==4.67.2",
+    "z3-solver==4.16.0.0",
+    "gurobipy==13.0.1",
+    "adversarial-robustness-toolbox==1.20.1",
+    "clingo==5.8.0",
+    "cvxpy==1.8.2",
+]
+
+[project.optional-dependencies]
+# alibi pins an older numpy that conflicts with numpy==2.4.2 required above.
+# Installing this extra will downgrade numpy; only needed for certain methods
+# (e.g. diverse_dist). See requirements.txt.
+alibi = ["alibi==0.9.6"]
+docs = [
+    "sphinx>=7",
+    "pydata-sphinx-theme>=0.15",
+    "myst-parser>=2",
+    "sphinx-copybutton>=0.5",
+    "sphinx-design>=0.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/charmlab/recourse_bench"
+Repository = "https://github.com/charmlab/recourse_bench"
+
+[project.scripts]
+recourse-bench = "experiments:run_experiment"
+
+[tool.setuptools]
+py-modules = ["experiments", "main"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = [
+    "recourse_bench",
+    "method*",
+    "model*",
+    "dataset*",
+    "preprocess*",
+    "evaluation*",
+    "utils*",
+    "benchmark*",
+]
