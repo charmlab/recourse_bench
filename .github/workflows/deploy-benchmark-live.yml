@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feat/live-benchmark-site
+      - docs/website-to-main
     paths:
       - webapp/benchmark-live/**
       - docs/**
