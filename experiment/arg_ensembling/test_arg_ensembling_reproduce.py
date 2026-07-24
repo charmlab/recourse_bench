@@ -2,20 +2,14 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
-import math
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
-
-import pytest
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 import yaml
 from sklearn.metrics import accuracy_score
@@ -23,16 +17,29 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from tqdm import tqdm
 
-from dataset.compas_carla.compas_carla import CompasCarlaDataset
-from dataset.dataset_object import DatasetObject
-from preprocess.common import EncodePreProcess, ScalePreProcess
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from experiment.utils import write_reproduction_report
 from method.arg_ensembling.support import (
     build_baf_program,
     nearest_neighbor_counterfactual,
     solve_argumentative_extension,
 )
-from experiment.utils import write_reproduction_report
 from model.model_object import ModelObject
+
+
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+
+
+@dataclass(frozen=True)
+class DatasetSpec:
+    name: str
+    feature_path: Path
+    target_path: Path
+    target_column: str
 
 
 @dataclass(frozen=True)
@@ -43,7 +50,13 @@ class PoolEntry:
     train_predictions: np.ndarray
 
 
-REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+@dataclass(frozen=True)
+class RunOverrides:
+    datasets: list[str] | None
+    model_sizes: list[int] | None
+    max_test_points: int | None
+    pool_target_size: int | None
+    repeats: int | None
 
 
 class SklearnMlpModel(ModelObject):
@@ -72,14 +85,10 @@ class SklearnMlpModel(ModelObject):
         self._is_trained = False
         self._class_to_index = None
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for SklearnMlpModel.fit()")
-        X = trainset.get(target=False)
-        y = trainset.get(target=True).iloc[:, 0]
-        self.fit_frames(X, y)
+    def fit(self, trainset):
+        raise TypeError("SklearnMlpModel.fit() is not used in this reproduction script")
 
-    def fit_frames(self, X: pd.DataFrame, y: pd.Series | np.ndarray):
+    def fit_frames(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> None:
         labels = pd.Series(np.asarray(y).reshape(-1))
         self._model.fit(X.to_numpy(dtype=np.float64), labels.to_numpy())
         classes = list(self._model.classes_)
@@ -117,9 +126,12 @@ class SklearnMlpModel(ModelObject):
         return self.get_prediction(X, proba=True).argmax(dim=1).detach().cpu().numpy()
 
 
-def _load_config(config_path: Path) -> dict:
+def _load_config(config_path: Path) -> dict[str, Any]:
     with config_path.open("r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+        config = yaml.safe_load(file)
+    if not isinstance(config, dict):
+        raise TypeError("Reproduction config must parse to a dictionary")
+    return config
 
 
 def _normalize_hidden_layers(raw_sizes: list[list[int]]) -> list[tuple[int, ...]]:
@@ -127,48 +139,56 @@ def _normalize_hidden_layers(raw_sizes: list[list[int]]) -> list[tuple[int, ...]
 
 
 def _normalize_table_targets(
-    raw_targets: dict,
-) -> dict[str, dict[int, dict[str, float]]]:
-    normalized: dict[str, dict[int, dict[str, float]]] = {}
-    for method_name, size_map in raw_targets.items():
-        normalized[method_name] = {}
-        for size, values in size_map.items():
-            normalized[method_name][int(size)] = {
-                "acc": float(values["acc"]),
-                "simp": float(values["simp"]),
-            }
+    raw_targets: dict[str, dict[str, dict[int | str, dict[str, float]]]],
+) -> dict[str, dict[str, dict[int, dict[str, float]]]]:
+    normalized: dict[str, dict[str, dict[int, dict[str, float]]]] = {}
+    for dataset_name, method_map in raw_targets.items():
+        normalized[dataset_name] = {}
+        for method_name, size_map in method_map.items():
+            normalized[dataset_name][method_name] = {}
+            for model_size, values in size_map.items():
+                normalized[dataset_name][method_name][int(model_size)] = {
+                    "acc": float(values["acc"]),
+                    "simp": float(values["simp"]),
+                }
     return normalized
 
 
-def _load_compas_dataset(config: dict) -> tuple[pd.DataFrame, pd.Series]:
-    dataset_cfg = config["dataset"]
-    dataset = CompasCarlaDataset(path=dataset_cfg["path"])
-    scaled = ScalePreProcess(seed=3333, scaling="normalize", range=True).transform(
-        dataset
-    )
-    encoded = EncodePreProcess(seed=3333, encoding="onehot").transform(scaled)
-    encoded.freeze()
-    feature_frame = encoded.get(target=False).copy(deep=True)
-    feature_frame = feature_frame.loc[
-        :,
-        [
-            "age",
-            "two_year_recid",
-            "priors_count",
-            "length_of_stay",
-            "c_charge_degree_cat_M",
-            "race_cat_Other",
-            "sex_cat_Male",
-        ],
-    ].copy(deep=True)
-    feature_frame = feature_frame.rename(
-        columns={
-            "c_charge_degree_cat_M": "c_charge_degree_M",
-            "race_cat_Other": "race_Other",
-            "sex_cat_Male": "sex_Male",
-        }
-    )
-    target_series = encoded.get(target=True).iloc[:, 0].astype(int)
+def _resolve_dataset_specs(
+    config: dict[str, Any],
+    selected_datasets: Sequence[str] | None = None,
+) -> list[DatasetSpec]:
+    dataset_map = config["reproduction"]["datasets"]
+    requested = list(selected_datasets) if selected_datasets is not None else list(dataset_map.keys())
+    specs: list[DatasetSpec] = []
+    for dataset_name in requested:
+        if dataset_name not in dataset_map:
+            raise KeyError(f"Unknown reproduction dataset: {dataset_name}")
+        dataset_cfg = dataset_map[dataset_name]
+        specs.append(
+            DatasetSpec(
+                name=str(dataset_name),
+                feature_path=(PROJECT_ROOT / dataset_cfg["feature_path"]).resolve(),
+                target_path=(PROJECT_ROOT / dataset_cfg["target_path"]).resolve(),
+                target_column=str(dataset_cfg["target_column"]),
+            )
+        )
+    return specs
+
+
+def _load_dataset(spec: DatasetSpec) -> tuple[pd.DataFrame, pd.Series]:
+    feature_frame = pd.read_csv(spec.feature_path)
+    target_frame = pd.read_csv(spec.target_path)
+    if spec.target_column not in target_frame.columns:
+        raise KeyError(
+            f"Target column '{spec.target_column}' is missing from {spec.target_path}"
+        )
+    target_series = target_frame[spec.target_column].astype(int).reset_index(drop=True)
+    feature_frame = feature_frame.reset_index(drop=True)
+    if len(feature_frame) != len(target_series):
+        raise ValueError(
+            f"Feature and target row counts differ for dataset '{spec.name}'"
+        )
     return feature_frame, target_series
 
 
@@ -198,7 +218,7 @@ def _train_model_pool(
     simplicity_scores: list[float],
     pool_target_size: int,
     inner_split: float,
-    sklearn_cfg: dict,
+    sklearn_cfg: dict[str, Any],
     seed: int,
 ) -> list[PoolEntry]:
     pool: list[PoolEntry] = []
@@ -216,9 +236,8 @@ def _train_model_pool(
         )
 
         size_index = int(rng.integers(0, len(hidden_layer_sizes)))
-        hidden_size = hidden_layer_sizes[size_index]
         model = SklearnMlpModel(
-            hidden_layer_sizes=hidden_size,
+            hidden_layer_sizes=hidden_layer_sizes[size_index],
             random_state=3 * candidate_seed + 21,
             learning_rate=str(sklearn_cfg["learning_rate"]),
             batch_size=int(sklearn_cfg["batch_size"]),
@@ -259,7 +278,6 @@ def _build_candidate_frame(
     train_features: pd.DataFrame,
     pool_entries: Sequence[PoolEntry],
     factual_predictions: np.ndarray,
-    desired_prediction: int | None = None,
 ) -> pd.DataFrame | None:
     candidate_rows: list[pd.Series] = []
     for model_index, entry in enumerate(pool_entries):
@@ -268,7 +286,7 @@ def _build_candidate_frame(
             train_features=train_features,
             train_predictions=entry.train_predictions,
             original_prediction=int(factual_predictions[model_index]),
-            desired_prediction=desired_prediction,
+            desired_prediction=None,
         )
         if candidate is None:
             return None
@@ -337,8 +355,7 @@ def _evaluate_argumentative_method(
         [entry.accuracy for entry in pool_entries], dtype=np.float64
     )
     simplicity_scores = np.asarray(
-        [entry.simplicity for entry in pool_entries],
-        dtype=np.float64,
+        [entry.simplicity for entry in pool_entries], dtype=np.float64
     )
 
     for row_index, (_, row) in enumerate(X_eval.iterrows()):
@@ -350,16 +367,13 @@ def _evaluate_argumentative_method(
             ],
             dtype=np.int64,
         )
-        majority_label, _ = _majority_vote(factual_predictions)
         candidate_frame = _build_candidate_frame(
             factual=row,
             train_features=train_features,
             pool_entries=pool_entries,
             factual_predictions=factual_predictions,
-            desired_prediction=None,
         )
         if candidate_frame is None:
-            predictions[row_index] = 0
             continue
 
         candidate_predictions = _predict_candidate_matrix(pool_entries, candidate_frame)
@@ -375,7 +389,6 @@ def _evaluate_argumentative_method(
             factual_predictions=factual_predictions,
         )
         if extension is None or not extension.model_indices:
-            predictions[row_index] = 0
             continue
 
         selected_predictions = factual_predictions[extension.model_indices]
@@ -411,11 +424,11 @@ def _method_specs() -> list[tuple[str, str | None, str | None]]:
 
 
 def _initialize_results(
-    table_targets: dict[str, dict[int, dict[str, float]]],
+    method_targets: dict[str, dict[int, dict[str, float]]],
     model_sizes: Sequence[int],
 ) -> dict[str, dict[int, list[dict[str, float]]]]:
     results: dict[str, dict[int, list[dict[str, float]]]] = {}
-    for method_name, size_map in table_targets.items():
+    for method_name in method_targets:
         results[method_name] = {int(size): [] for size in model_sizes}
     return results
 
@@ -434,13 +447,14 @@ def _aggregate_results(
     return aggregated
 
 
-def _build_reproduced_table(
+def _build_dataset_table(
+    dataset_name: str,
     aggregated: dict[str, dict[int, dict[str, float]]],
-    model_sizes: list[int],
+    model_sizes: Sequence[int],
 ) -> pd.DataFrame:
     rows = []
     for method_name, size_map in aggregated.items():
-        row: dict[str, object] = {"Method": method_name}
+        row: dict[str, object] = {"Dataset": dataset_name, "Method": method_name}
         for model_size in model_sizes:
             row[f"|M|={model_size} Acc"] = size_map[model_size]["acc"]
             row[f"|M|={model_size} Simp"] = size_map[model_size]["simp"]
@@ -448,19 +462,16 @@ def _build_reproduced_table(
     return pd.DataFrame(rows)
 
 
-def _build_diff_table(
+def _build_dataset_diff_table(
+    dataset_name: str,
     aggregated: dict[str, dict[int, dict[str, float]]],
     targets: dict[str, dict[int, dict[str, float]]],
-    model_sizes: list[int],
+    model_sizes: Sequence[int],
 ) -> pd.DataFrame:
     rows = []
     for method_name, size_map in aggregated.items():
-        row: dict[str, object] = {"Method": method_name}
+        row: dict[str, object] = {"Dataset": dataset_name, "Method": method_name}
         for model_size in model_sizes:
-            if model_size not in targets.get(method_name, {}):
-                row[f"|M|={model_size} Acc"] = float("nan")
-                row[f"|M|={model_size} Simp"] = float("nan")
-                continue
             row[f"|M|={model_size} Acc"] = abs(
                 size_map[model_size]["acc"] - targets[method_name][model_size]["acc"]
             )
@@ -471,152 +482,240 @@ def _build_diff_table(
     return pd.DataFrame(rows)
 
 
-def run_reproduction(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
-    features, target = _load_compas_dataset(config)
-    # _validate_against_reference(features, target)
+def _resolve_model_sizes(
+    config: dict[str, Any],
+    overrides: RunOverrides,
+) -> list[int]:
+    return (
+        [int(value) for value in overrides.model_sizes]
+        if overrides.model_sizes is not None
+        else [int(value) for value in config["reproduction"]["model_sizes"]]
+    )
 
+
+def run_reproduction(
+    config: dict[str, Any],
+    overrides: RunOverrides,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     reproduction_cfg = config["reproduction"]
+    table_targets = _normalize_table_targets(reproduction_cfg["table4_targets"])
+    dataset_specs = _resolve_dataset_specs(config, selected_datasets=overrides.datasets)
     hidden_layer_sizes = _normalize_hidden_layers(
         reproduction_cfg["hidden_layer_sizes"]
     )
-    table_targets = _normalize_table_targets(reproduction_cfg["table4_targets"])
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        features,
-        target,
-        test_size=float(reproduction_cfg["outer_test_size"]),
-        random_state=int(reproduction_cfg["outer_split_random_state"]),
+    model_sizes = _resolve_model_sizes(config, overrides)
+    max_test_points = (
+        int(overrides.max_test_points)
+        if overrides.max_test_points is not None
+        else int(reproduction_cfg["max_test_points"])
     )
-    X_eval, y_eval = _select_eval_subset(
-        X_test,
-        y_test,
-        max_test_points=int(reproduction_cfg["max_test_points"]),
-        seed=int(reproduction_cfg["seed"]),
+    pool_target_size = (
+        int(overrides.pool_target_size)
+        if overrides.pool_target_size is not None
+        else int(reproduction_cfg["pool_target_size"])
     )
-
-    pool = _train_model_pool(
-        X_train=X_train.reset_index(drop=True),
-        y_train=y_train.reset_index(drop=True),
-        X_test=X_test.reset_index(drop=True),
-        y_test=y_test.reset_index(drop=True),
-        hidden_layer_sizes=hidden_layer_sizes,
-        simplicity_scores=[
-            float(value) for value in reproduction_cfg["simplicity_scores"]
-        ],
-        pool_target_size=int(reproduction_cfg["pool_target_size"]),
-        inner_split=float(reproduction_cfg["inner_split"]),
-        sklearn_cfg=dict(reproduction_cfg["sklearn"]),
-        seed=int(reproduction_cfg["seed"]),
+    repeats = (
+        int(overrides.repeats)
+        if overrides.repeats is not None
+        else int(reproduction_cfg["repeats"])
     )
+    sample_with_replacement = bool(reproduction_cfg.get("sample_with_replacement", True))
 
-    configured_model_sizes = [int(value) for value in reproduction_cfg["model_sizes"]]
-    results = _initialize_results(table_targets, configured_model_sizes)
-    for model_size in configured_model_sizes:
-        repeat_progress = tqdm(
-            range(int(reproduction_cfg["repeats"])),
-            desc=f"evaluate-|M|={model_size}",
-            leave=False,
+    dataset_tables: list[pd.DataFrame] = []
+    diff_tables: list[pd.DataFrame] = []
+
+    for dataset_spec in dataset_specs:
+        features, target = _load_dataset(dataset_spec)
+        X_train, X_test, y_train, y_test = train_test_split(
+            features,
+            target,
+            test_size=float(reproduction_cfg["outer_test_size"]),
+            random_state=int(reproduction_cfg["outer_split_random_state"]),
         )
-        for repeat_index in repeat_progress:
-            repeat_seed = int(reproduction_cfg["seed"]) * (repeat_index + 3) + 4321
-            rng = np.random.default_rng(repeat_seed)
-            selected_indices = rng.choice(len(pool), size=model_size, replace=False)
-            selected_entries = [pool[int(index)] for index in selected_indices]
+        X_train = X_train.reset_index(drop=True)
+        y_train = y_train.reset_index(drop=True)
+        X_test = X_test.reset_index(drop=True)
+        y_test = y_test.reset_index(drop=True)
+        X_eval, y_eval = _select_eval_subset(
+            X_test,
+            y_test,
+            max_test_points=max_test_points,
+            seed=int(reproduction_cfg["seed"]),
+        )
 
-            results["avg"][model_size].append(_evaluate_avg_row(selected_entries))
-            majority_metrics = _evaluate_majority_baseline(
-                X_eval=X_eval,
-                y_eval=y_eval,
-                pool_entries=selected_entries,
+        pool = _train_model_pool(
+            X_train=X_train,
+            y_train=y_train,
+            X_test=X_test,
+            y_test=y_test,
+            hidden_layer_sizes=hidden_layer_sizes,
+            simplicity_scores=[
+                float(value) for value in reproduction_cfg["simplicity_scores"]
+            ],
+            pool_target_size=pool_target_size,
+            inner_split=float(reproduction_cfg["inner_split"]),
+            sklearn_cfg=dict(reproduction_cfg["sklearn"]),
+            seed=int(reproduction_cfg["seed"]),
+        )
+
+        method_targets = table_targets[dataset_spec.name]
+        results = _initialize_results(method_targets, model_sizes)
+        for model_size in model_sizes:
+            repeat_progress = tqdm(
+                range(repeats),
+                desc=f"{dataset_spec.name}-|M|={model_size}",
+                leave=False,
             )
-            results["Sn"][model_size].append(dict(majority_metrics))
-            results["Sv"][model_size].append(dict(majority_metrics))
-
-            for method_name, semantics, preference_mode in _method_specs():
-                if method_name in {"avg", "Sn", "Sv"}:
-                    continue
-                results[method_name][model_size].append(
-                    _evaluate_argumentative_method(
-                        X_eval=X_eval,
-                        y_eval=y_eval,
-                        train_features=X_train,
-                        pool_entries=selected_entries,
-                        semantics=str(semantics),
-                        preference_mode=str(preference_mode),
-                    )
+            for repeat_index in repeat_progress:
+                repeat_seed = int(reproduction_cfg["seed"]) * (repeat_index + 3) + 4321
+                rng = np.random.default_rng(repeat_seed)
+                selected_indices = (
+                    rng.integers(0, len(pool), size=model_size)
+                    if sample_with_replacement
+                    else rng.choice(len(pool), size=model_size, replace=False)
                 )
+                selected_entries = [pool[int(index)] for index in selected_indices]
 
-    aggregated = _aggregate_results(results)
+                results["avg"][model_size].append(_evaluate_avg_row(selected_entries))
+                majority_metrics = _evaluate_majority_baseline(
+                    X_eval=X_eval,
+                    y_eval=y_eval,
+                    pool_entries=selected_entries,
+                )
+                results["Sn"][model_size].append(dict(majority_metrics))
+                results["Sv"][model_size].append(dict(majority_metrics))
+
+                for method_name, semantics, preference_mode in _method_specs():
+                    if method_name in {"avg", "Sn", "Sv"}:
+                        continue
+                    results[method_name][model_size].append(
+                        _evaluate_argumentative_method(
+                            X_eval=X_eval,
+                            y_eval=y_eval,
+                            train_features=X_train,
+                            pool_entries=selected_entries,
+                            semantics=str(semantics),
+                            preference_mode=str(preference_mode),
+                        )
+                    )
+
+        aggregated = _aggregate_results(results)
+        dataset_tables.append(
+            _build_dataset_table(dataset_spec.name, aggregated, model_sizes)
+        )
+        diff_tables.append(
+            _build_dataset_diff_table(
+                dataset_spec.name,
+                aggregated,
+                method_targets,
+                model_sizes,
+            )
+        )
+
     return (
-        _build_reproduced_table(aggregated, configured_model_sizes),
-        _build_diff_table(
-            aggregated,
-            table_targets,
-            configured_model_sizes,
-        ),
+        pd.concat(dataset_tables, ignore_index=True),
+        pd.concat(diff_tables, ignore_index=True),
     )
 
 
-@pytest.mark.slow
-def test_reproduce() -> None:
+def _build_report_experiments(
+    reproduced_table: pd.DataFrame,
+    targets: dict[str, dict[str, dict[int, dict[str, float]]]],
+    model_sizes: Sequence[int],
+) -> dict[str, dict[str, Any]]:
+    experiments: dict[str, dict[str, Any]] = {}
+    for row in reproduced_table.to_dict(orient="records"):
+        dataset_name = str(row["Dataset"])
+        method_name = str(row["Method"])
+        for model_size in model_sizes:
+            experiments[f"{dataset_name}_{method_name}_M_{model_size}"] = {
+                "configuration": {
+                    "dataset": dataset_name,
+                    "method": method_name,
+                    "model_pool_size": int(model_size),
+                },
+                "metrics": {
+                    "accuracy": {
+                        "original": targets[dataset_name][method_name][int(model_size)]["acc"],
+                        "reproduced": row[f"|M|={model_size} Acc"],
+                    },
+                    "simplicity": {
+                        "original": targets[dataset_name][method_name][int(model_size)]["simp"],
+                        "reproduced": row[f"|M|={model_size} Simp"],
+                    },
+                },
+            }
+    return experiments
+
+
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default="./experiment/arg_ensembling/config.yaml",
+        default=DEFAULT_CONFIG_PATH.as_posix(),
     )
-    args = parser.parse_args()
+    parser.add_argument("--datasets", nargs="+")
+    parser.add_argument("--model-sizes", nargs="+", type=int)
+    parser.add_argument("--max-test-points", type=int)
+    parser.add_argument("--pool-target-size", type=int)
+    parser.add_argument("--repeats", type=int)
+    return parser.parse_args(argv)
 
+
+def main(argv: Sequence[str] | None = None) -> None:
+    args = _parse_args(argv)
     config_path = (PROJECT_ROOT / args.config).resolve()
     config = _load_config(config_path)
+    overrides = RunOverrides(
+        datasets=args.datasets,
+        model_sizes=args.model_sizes,
+        max_test_points=args.max_test_points,
+        pool_target_size=args.pool_target_size,
+        repeats=args.repeats,
+    )
 
-    reproduced_table, diff_table = run_reproduction(config)
+    reproduced_table, diff_table = run_reproduction(config, overrides)
     targets = _normalize_table_targets(config["reproduction"]["table4_targets"])
+    model_sizes = _resolve_model_sizes(config, overrides)
     report_path = write_reproduction_report(
         output_path=REPORT_PATH,
-        paper_id="arg_ensembling_compas_table4",
+        paper_id="arg_ensembling_table4",
         reproduction_metadata={
             "timestamp": datetime.now(timezone.utc),
             "framework_version": "1.0.0",
             "source_script": Path(__file__).name,
             "config_path": str(config_path),
             "experiment_name": config["name"],
+            "datasets": (
+                list(args.datasets)
+                if args.datasets is not None
+                else list(config["reproduction"]["datasets"].keys())
+            ),
         },
-        experiments_data={
-            f"{row['Method']}_M_{model_size}": {
-                "configuration": {
-                    "dataset": "compas_carla",
-                    "method": row["Method"],
-                    "model_pool_size": int(model_size),
-                },
-                "metrics": {
-                    "accuracy": {
-                        "original": targets.get(row["Method"], {}).get(int(model_size), {}).get("acc"),
-                        "reproduced": row[f"|M|={model_size} Acc"],
-                    },
-                    "simplicity": {
-                        "original": targets.get(row["Method"], {}).get(int(model_size), {}).get("simp"),
-                        "reproduced": row[f"|M|={model_size} Simp"],
-                    },
-                },
-            }
-            for row in reproduced_table.to_dict(orient="records")
-            for model_size in [int(value) for value in config["reproduction"]["model_sizes"]]
-        },
+        experiments_data=_build_report_experiments(
+            reproduced_table=reproduced_table,
+            targets=targets,
+            model_sizes=model_sizes,
+        ),
     )
+
     print(f"Experiment: {config['name']}")
-    print("Dataset: COMPAS (paper-faithful local variant)")
+    print("Paper target: Table 4")
     print()
-    print("Reproduced COMPAS Table 4:")
-    print(
-        reproduced_table.to_string(
-            index=False, float_format=lambda value: f"{value:.3f}"
-        )
-    )
+    print("Reproduced Table 4:")
+    print(reproduced_table.to_string(index=False, float_format=lambda value: f"{value:.3f}"))
     print()
     print("Absolute Differences vs Paper Table 4:")
     print(diff_table.to_string(index=False, float_format=lambda value: f"{value:.3f}"))
     print(f"reproduction_report_path: {report_path}")
 
 
+@pytest.mark.slow
+def test_reproduce() -> None:
+    pytest.skip(
+        "Run this module as a script for bounded reproduction probes."
+    )
+
+
 if __name__ == "__main__":
-    test_reproduce()
+    main()
