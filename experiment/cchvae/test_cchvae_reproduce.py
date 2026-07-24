@@ -318,8 +318,6 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
     )
 
     results = {
-        "dataset": str(config["dataset"]["name"]),
-        "device": device,
         "n_train": len(trainset),
         "n_test": len(testset),
         "n_search_candidates_total": int(search_mask.sum()),
