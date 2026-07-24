@@ -16,6 +16,7 @@ gurobipy==13.0.1
 adversarial-robustness-toolbox==1.20.1
 clingo==5.8.0
 cvxpy==1.8.2
+pytest==9.1.1
 # NOTE: the alibi package will not work with the version of numpy above. However, cvspy requires the newer version.
 # therefore, when utulizing certain methods (i.e. diverse_dist) you will need to downgrade numpy manually as pip will fail.
 alibi==0.9.6
