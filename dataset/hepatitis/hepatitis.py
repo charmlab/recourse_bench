@@ -30,11 +30,17 @@ class HepatitisDataset(DatasetObject):
         data = data.drop(["Unnamed: 0", "Sex", "Age"], axis=1).copy(deep=True)
 
         category = data["Category"].astype(str)
-        positive = category.isin(["0=Blood Donor", "0s=suspect Blood Donor"])
-        negative = category.isin(["1=Hepatitis", "2=Fibrosis", "3=Cirrhosis"])
-        data.loc[negative, "Category"] = 0
-        data.loc[positive, "Category"] = 1
-        data["Category"] = data["Category"].astype("int64")
+        positive = {"0=Blood Donor", "0s=suspect Blood Donor"}
+        negative = {"1=Hepatitis", "2=Fibrosis", "3=Cirrhosis"}
+        encoded_category = category.map(
+            lambda value: 1 if value in positive else 0 if value in negative else pd.NA
+        )
+        if encoded_category.isna().any():
+            unknown_categories = sorted(category[encoded_category.isna()].unique().tolist())
+            raise ValueError(
+                f"Unexpected Hepatitis category values: {unknown_categories}"
+            )
+        data["Category"] = encoded_category.astype("int64")
 
         for column in data.columns.tolist()[1:]:
             data[column] = pd.to_numeric(data[column], errors="coerce")
