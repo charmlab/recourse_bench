@@ -8,14 +8,11 @@ import pandas as pd
 import torch
 
 from dataset.dataset_object import DatasetObject
-from model.linear.linear import LinearModel
-from model.mlp.mlp import MlpModel
 from model.model_object import ModelObject
-from model.randomforest.randomforest import RandomForestModel
 from preprocess.preprocess_utils import resolve_feature_metadata
 
-TorchModelTypes = (LinearModel, MlpModel)
-BlackBoxModelTypes = (LinearModel, MlpModel, RandomForestModel)
+TorchModelTypes = (ModelObject,)
+BlackBoxModelTypes = (ModelObject,)
 
 
 def ensure_supported_target_model(
@@ -413,6 +410,329 @@ def gower_fitness_function(
     return fitness_values
 
 
+def is_same_point(
+    z_1: np.ndarray,
+    z_2: np.ndarray,
+    x: np.ndarray,
+    feature_intervals: np.ndarray,
+    indices_categorical_features: Sequence[int] | None = None,
+    tol: float = 5e-2,
+) -> bool:
+    categorical_indices = set(indices_categorical_features or [])
+    acted_upon_1 = z_1 != x
+    acted_upon_2 = z_2 != x
+    if bool((acted_upon_1 != acted_upon_2).any()):
+        return False
+
+    for feature_index in range(len(x)):
+        if feature_index in categorical_indices:
+            if z_1[feature_index] != z_2[feature_index]:
+                return False
+            continue
+        range_i = float(
+            feature_intervals[feature_index][1] - feature_intervals[feature_index][0]
+        )
+        if np.isclose(range_i, 0.0):
+            range_i = 1.0
+        abs_norm_diff_i = np.abs(z_1[feature_index] - z_2[feature_index]) / range_i
+        if abs_norm_diff_i > tol:
+            return False
+    return True
+
+
+def generate_k_neighborhood(
+    candidates: np.ndarray,
+    x: np.ndarray,
+    perturbations: Sequence[dict[str, object] | None],
+    feature_intervals: np.ndarray,
+    indices_categorical_features: Sequence[int] | None,
+    n_samples: int,
+    numerical_random_distrib=np.random.uniform,
+    normal_std: float = 0.1,
+) -> np.ndarray:
+    is_single_candidate = candidates.ndim == 1
+    if is_single_candidate:
+        candidates = candidates.reshape((1, -1))
+
+    neighbors = np.repeat(candidates, repeats=n_samples, axis=0)
+    feature_to_consider_mask = neighbors == x
+    categorical_indices = set(indices_categorical_features or [])
+
+    for feature_index in range(candidates.shape[1]):
+        perturbation = perturbations[feature_index]
+        if perturbation is None:
+            continue
+        if feature_index in categorical_indices:
+            categories = np.asarray(perturbation["categories"], dtype=np.float64)
+            random_categories = np.random.choice(categories, size=len(neighbors))
+            neighbors[:, feature_index] = np.where(
+                feature_to_consider_mask[:, feature_index],
+                random_categories,
+                neighbors[:, feature_index],
+            )
+            continue
+
+        perturb_range = float(perturbation["increase"]) - (
+            -float(perturbation["decrease"])
+        )
+        random_draws = numerical_random_distrib(size=len(neighbors))
+        perturb_values = random_draws * perturb_range - float(perturbation["decrease"])
+        if numerical_random_distrib == np.random.normal:
+            perturb_values = perturb_values * normal_std
+
+        if perturbation["type"] == "absolute":
+            lower_clip = -float(perturbation["decrease"])
+            upper_clip = float(perturbation["increase"])
+            perturbed = neighbors[:, feature_index] + perturb_values.clip(
+                lower_clip, upper_clip
+            )
+        else:
+            lower_clip = -neighbors[:, feature_index] * float(perturbation["decrease"])
+            upper_clip = neighbors[:, feature_index] * float(perturbation["increase"])
+            perturbed = neighbors[:, feature_index] + perturb_values.clip(
+                lower_clip, upper_clip
+            )
+
+        perturbed = np.where(
+            perturbed < float(feature_intervals[feature_index][0]),
+            float(feature_intervals[feature_index][0]),
+            perturbed,
+        )
+        perturbed = np.where(
+            perturbed > float(feature_intervals[feature_index][1]),
+            float(feature_intervals[feature_index][1]),
+            perturbed,
+        )
+        neighbors[:, feature_index] = np.where(
+            feature_to_consider_mask[:, feature_index],
+            perturbed,
+            neighbors[:, feature_index],
+        )
+
+    return neighbors
+
+
+def compute_k_robustness_score(
+    candidates: np.ndarray,
+    x: np.ndarray,
+    perturbations: Sequence[dict[str, object] | None],
+    blackbox: RecourseModelAdapter,
+    feature_intervals: np.ndarray,
+    indices_categorical_features: Sequence[int] | None,
+    n_samples: int = 1000,
+    numerical_random_distrib=np.random.uniform,
+    normal_std: float = 0.1,
+) -> np.ndarray:
+    is_single_candidate = candidates.ndim == 1
+    if is_single_candidate:
+        candidates = candidates.reshape((1, -1))
+
+    neighbors = generate_k_neighborhood(
+        candidates=candidates,
+        x=x,
+        perturbations=perturbations,
+        feature_intervals=feature_intervals,
+        indices_categorical_features=indices_categorical_features,
+        n_samples=n_samples,
+        numerical_random_distrib=numerical_random_distrib,
+        normal_std=normal_std,
+    )
+    pred_candidates = blackbox.predict(candidates)
+    pred_neighbors = blackbox.predict(neighbors)
+    pred_neighbors = pred_neighbors.reshape((len(candidates), n_samples)).T
+    scores = np.sum(np.equal(pred_candidates, pred_neighbors), axis=0) / n_samples
+    if is_single_candidate:
+        return scores[0]
+    return scores
+
+
+def compute_worst_c_setbacks(
+    candidates: np.ndarray,
+    x: np.ndarray,
+    perturbations: Sequence[dict[str, object] | None],
+    indices_categorical_features: Sequence[int] | None = None,
+) -> np.ndarray:
+    is_single_candidate = candidates.ndim == 1
+    if is_single_candidate:
+        candidates = candidates.reshape((1, -1))
+
+    setbacks = np.zeros_like(candidates, dtype=np.float64)
+    signs = np.sign(candidates - x)
+    categorical_indices = set(indices_categorical_features or [])
+
+    for feature_index in range(len(x)):
+        perturbation = perturbations[feature_index]
+        if perturbation is None:
+            continue
+        if feature_index in categorical_indices:
+            setbacks[:, feature_index] = np.where(
+                signs[:, feature_index] != 0,
+                1.0,
+                setbacks[:, feature_index],
+            )
+            continue
+
+        opposite_sign_diff = -(candidates[:, feature_index] - x[feature_index])
+        if perturbation["type"] == "absolute":
+            neg_perturb = -float(perturbation["decrease"])
+            pos_perturb = float(perturbation["increase"])
+        else:
+            neg_perturb = -float(perturbation["decrease"]) * candidates[:, feature_index]
+            pos_perturb = float(perturbation["increase"]) * candidates[:, feature_index]
+
+        min_neg = np.where(neg_perturb > opposite_sign_diff, neg_perturb, opposite_sign_diff)
+        max_pos = np.where(pos_perturb < opposite_sign_diff, pos_perturb, opposite_sign_diff)
+        setbacks[:, feature_index] = np.where(signs[:, feature_index] > 0, min_neg, setbacks[:, feature_index])
+        setbacks[:, feature_index] = np.where(signs[:, feature_index] < 0, max_pos, setbacks[:, feature_index])
+
+    if is_single_candidate:
+        return setbacks[0]
+    return setbacks
+
+
+def compute_fitness_contribution_c_setbacks(
+    candidates: np.ndarray,
+    x: np.ndarray,
+    perturbations: Sequence[dict[str, object] | None],
+    indices_categorical_features: Sequence[int] | None = None,
+) -> np.ndarray:
+    setbacks = compute_worst_c_setbacks(
+        candidates=candidates,
+        x=x,
+        perturbations=perturbations,
+        indices_categorical_features=indices_categorical_features,
+    )
+    if setbacks.ndim > 1:
+        return np.sum(np.abs(setbacks), axis=1)
+    return np.sum(np.abs(setbacks))
+
+
+def compute_fitness_contribution_k_scores(
+    candidates: np.ndarray,
+    x: np.ndarray,
+    blackbox: RecourseModelAdapter,
+    perturbations: Sequence[dict[str, object] | None],
+    feature_intervals: np.ndarray,
+    indices_categorical_features: Sequence[int] | None = None,
+    n_samples_k_robust: int = 100,
+) -> np.ndarray:
+    robustness = compute_k_robustness_score(
+        candidates=candidates,
+        x=x,
+        perturbations=perturbations,
+        blackbox=blackbox,
+        feature_intervals=feature_intervals,
+        indices_categorical_features=indices_categorical_features,
+        n_samples=n_samples_k_robust,
+    )
+    return 1.0 - robustness
+
+
+def gower_fitness_function_with_worst_c_setbacks(
+    genes: np.ndarray,
+    x: np.ndarray,
+    blackbox: RecourseModelAdapter,
+    desired_class: int | str,
+    perturbations: Sequence[dict[str, object] | None],
+    feature_intervals: np.ndarray,
+    indices_categorical_features: Sequence[int] | None = None,
+    plausibility_constraints: Sequence[str | None] | None = None,
+    apply_fixes: bool = False,
+) -> np.ndarray:
+    fitness_values = gower_fitness_function(
+        genes=genes,
+        x=x,
+        blackbox=blackbox,
+        desired_class=desired_class,
+        feature_intervals=feature_intervals,
+        indices_categorical_features=indices_categorical_features,
+        plausibility_constraints=plausibility_constraints,
+        apply_fixes=apply_fixes,
+    )
+    contribution = compute_fitness_contribution_c_setbacks(
+        candidates=genes,
+        x=x,
+        perturbations=perturbations,
+        indices_categorical_features=indices_categorical_features,
+    )
+    result = fitness_values - 0.5 * contribution / len(x)
+    return result
+
+
+def gower_fitness_function_with_k_robustness_scores(
+    genes: np.ndarray,
+    x: np.ndarray,
+    blackbox: RecourseModelAdapter,
+    desired_class: int | str,
+    perturbations: Sequence[dict[str, object] | None],
+    feature_intervals: np.ndarray,
+    indices_categorical_features: Sequence[int] | None = None,
+    plausibility_constraints: Sequence[str | None] | None = None,
+    n_samples_k_robust: int = 100,
+    apply_fixes: bool = False,
+) -> np.ndarray:
+    fitness_values = gower_fitness_function(
+        genes=genes,
+        x=x,
+        blackbox=blackbox,
+        desired_class=desired_class,
+        feature_intervals=feature_intervals,
+        indices_categorical_features=indices_categorical_features,
+        plausibility_constraints=plausibility_constraints,
+        apply_fixes=apply_fixes,
+    )
+    contribution = compute_fitness_contribution_k_scores(
+        candidates=genes,
+        x=x,
+        blackbox=blackbox,
+        perturbations=perturbations,
+        feature_intervals=feature_intervals,
+        indices_categorical_features=indices_categorical_features,
+        n_samples_k_robust=n_samples_k_robust,
+    )
+    return fitness_values - 0.5 * contribution
+
+
+def gower_fitness_function_with_ck_robustness(
+    genes: np.ndarray,
+    x: np.ndarray,
+    blackbox: RecourseModelAdapter,
+    desired_class: int | str,
+    perturbations: Sequence[dict[str, object] | None],
+    feature_intervals: np.ndarray,
+    indices_categorical_features: Sequence[int] | None = None,
+    plausibility_constraints: Sequence[str | None] | None = None,
+    n_samples_k_robust: int = 100,
+    apply_fixes: bool = False,
+) -> np.ndarray:
+    fitness_values = gower_fitness_function(
+        genes=genes,
+        x=x,
+        blackbox=blackbox,
+        desired_class=desired_class,
+        feature_intervals=feature_intervals,
+        indices_categorical_features=indices_categorical_features,
+        plausibility_constraints=plausibility_constraints,
+        apply_fixes=apply_fixes,
+    )
+    contribution_c = compute_fitness_contribution_c_setbacks(
+        candidates=genes,
+        x=x,
+        perturbations=perturbations,
+        indices_categorical_features=indices_categorical_features,
+    )
+    contribution_k = compute_fitness_contribution_k_scores(
+        candidates=genes,
+        x=x,
+        blackbox=blackbox,
+        perturbations=perturbations,
+        feature_intervals=feature_intervals,
+        indices_categorical_features=indices_categorical_features,
+        n_samples_k_robust=n_samples_k_robust,
+    )
+    return fitness_values - 0.5 * contribution_c / len(x) - 0.5 * contribution_k
+
+
 class Population:
     def __init__(self, population_size: int, genotype_length: int):
         self.genes = np.empty(shape=(population_size, genotype_length), dtype=np.float64)
@@ -424,7 +744,7 @@ class Population:
         feature_intervals: np.ndarray,
         indices_categorical_features: Sequence[int] | None,
         plausibility_constraints: Sequence[str | None] | None = None,
-        temperature: float = 0.8,
+        temperature: float | None = None,
     ) -> None:
         n = self.genes.shape[0]
         mask_categorical = get_mask_categorical_features(
@@ -459,10 +779,12 @@ class Population:
                     init_feature = np.random.uniform(low=low, high=high, size=n)
             self.genes[:, feature_index] = init_feature
 
+        if temperature is None:
+            temperature = min(max(2.0 / self.genes.shape[1], 0.0), 1.0)
         which_from_x = np.random.choice(
             (True, False),
             size=self.genes.shape,
-            p=[1.0 - temperature, temperature],
+            p=[temperature, 1.0 - temperature],
         )
         self.genes = np.where(which_from_x, x, self.genes)
 
@@ -656,7 +978,7 @@ class Evolution:
         num_features_mutation_strength: float = 0.25,
         num_features_mutation_strength_decay: float | None = None,
         num_features_mutation_strength_decay_generations: Sequence[int] | None = None,
-        init_temperature: float = 0.8,
+        init_temperature: float | None = None,
         selection_name: str = "tournament_2",
         noisy_evaluations: bool = False,
         verbose: bool = False,
@@ -688,7 +1010,9 @@ class Evolution:
             if num_features_mutation_strength_decay_generations is None
             else list(num_features_mutation_strength_decay_generations)
         )
-        self.init_temperature = float(init_temperature)
+        self.init_temperature = (
+            None if init_temperature is None else float(init_temperature)
+        )
         self.selection_name = str(selection_name)
         self.noisy_evaluations = bool(noisy_evaluations)
         self.verbose = bool(verbose)
@@ -699,7 +1023,7 @@ class Evolution:
             raise ValueError("population_size must be even")
         if self.n_generations < 1:
             raise ValueError("n_generations must be >= 1")
-        if not (0.0 <= self.init_temperature <= 1.0):
+        if self.init_temperature is not None and not (0.0 <= self.init_temperature <= 1.0):
             raise ValueError("init_temperature must be between 0 and 1")
         if self.num_features_mutation_strength <= 0.0:
             raise ValueError("num_features_mutation_strength must be > 0")
