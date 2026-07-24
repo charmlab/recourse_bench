@@ -1,0 +1,1898 @@
+{
+  "paper_id": "arg_ensembling_table4",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-13T20:58:30.494211Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_arg_ensembling_reproduce.py",
+    "config_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/arg_ensembling/config.yaml",
+    "experiment_name": "arg_ensembling_table4_reproduction",
+    "datasets": [
+      "heloc",
+      "compas",
+      "credit"
+    ]
+  },
+  "experiments": {
+    "heloc_avg_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "avg",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.7362531645569621,
+          "delta": 0.03565779519978008
+        },
+        "simplicity": {
+          "original": 0.485,
+          "reproduced": 0.425,
+          "delta": 0.12371134020618557
+        }
+      }
+    },
+    "heloc_avg_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "avg",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.7337468354430381,
+          "delta": 0.03236379946865424
+        },
+        "simplicity": {
+          "original": 0.5,
+          "reproduced": 0.5,
+          "delta": 0.0
+        }
+      }
+    },
+    "heloc_avg_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "avg",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.734210970464135,
+          "delta": 0.03297549537952276
+        },
+        "simplicity": {
+          "original": 0.51,
+          "reproduced": 0.5166666666666667,
+          "delta": 0.012903225806451694
+        }
+      }
+    },
+    "heloc_Sn_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sn",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.76,
+          "delta": 0.06052631578947374
+        },
+        "simplicity": {
+          "original": 0.503,
+          "reproduced": 0.42254682539683147,
+          "delta": 0.1599466691911899
+        }
+      }
+    },
+    "heloc_Sn_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sn",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.496180337193766,
+          "delta": 0.02326705276817723
+        }
+      }
+    },
+    "heloc_Sn_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sn",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.514011374350289,
+          "delta": 0.011695022036987728
+        }
+      }
+    },
+    "heloc_Sv_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sv",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.76,
+          "delta": 0.06052631578947374
+        },
+        "simplicity": {
+          "original": 0.503,
+          "reproduced": 0.42254682539683147,
+          "delta": 0.1599466691911899
+        }
+      }
+    },
+    "heloc_Sv_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sv",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.496180337193766,
+          "delta": 0.02326705276817723
+        }
+      }
+    },
+    "heloc_Sv_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sv",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.514011374350289,
+          "delta": 0.011695022036987728
+        }
+      }
+    },
+    "heloc_Sa,d_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.762,
+          "delta": 0.06299212598425202
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.4118215277777787,
+          "delta": 0.18772874205566334
+        }
+      }
+    },
+    "heloc_Sa,d_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.763,
+          "delta": 0.07077326343381396
+        },
+        "simplicity": {
+          "original": 0.505,
+          "reproduced": 0.47323798858305394,
+          "delta": 0.06289507211276449
+        }
+      }
+    },
+    "heloc_Sa,d_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.76,
+          "delta": 0.06578947368421058
+        },
+        "simplicity": {
+          "original": 0.501,
+          "reproduced": 0.4941710321752474,
+          "delta": 0.013630674300903431
+        }
+      }
+    },
+    "heloc_Sa,d-A_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.72,
+          "reproduced": 0.778,
+          "delta": 0.07455012853470444
+        },
+        "simplicity": {
+          "original": 0.478,
+          "reproduced": 0.3007221230158733,
+          "delta": 0.3708742196320642
+        }
+      }
+    },
+    "heloc_Sa,d-A_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.726,
+          "reproduced": 0.778,
+          "delta": 0.06683804627249364
+        },
+        "simplicity": {
+          "original": 0.547,
+          "reproduced": 0.37834223896910596,
+          "delta": 0.3083322870765888
+        }
+      }
+    },
+    "heloc_Sa,d-A_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.728,
+          "reproduced": 0.778,
+          "delta": 0.06426735218509003
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.41479406108344524,
+          "delta": 0.18186575723186343
+        }
+      }
+    },
+    "heloc_Sa,d-S_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.769,
+          "delta": 0.07672301690507159
+        },
+        "simplicity": {
+          "original": 0.606,
+          "reproduced": 0.6284870039682545,
+          "delta": 0.03577958466328188
+        }
+      }
+    },
+    "heloc_Sa,d-S_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.712,
+          "reproduced": 0.761,
+          "delta": 0.0643889618922471
+        },
+        "simplicity": {
+          "original": 0.542,
+          "reproduced": 0.5317564139077295,
+          "delta": 0.018899605336292428
+        }
+      }
+    },
+    "heloc_Sa,d-S_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.759,
+          "delta": 0.06324110671936764
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.5299690733701633,
+          "delta": 0.01881067003923126
+        }
+      }
+    },
+    "heloc_Sa,d-AS_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.764,
+          "delta": 0.0628272251308901
+        },
+        "simplicity": {
+          "original": 0.529,
+          "reproduced": 0.4245923611111121,
+          "delta": 0.1973679374081057
+        }
+      }
+    },
+    "heloc_Sa,d-AS_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.764,
+          "delta": 0.06937172774869116
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.4754867981068635,
+          "delta": 0.08560231133295483
+        }
+      }
+    },
+    "heloc_Sa,d-AS_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.76,
+          "delta": 0.06710526315789479
+        },
+        "simplicity": {
+          "original": 0.506,
+          "reproduced": 0.49543214328635854,
+          "delta": 0.020885092319449537
+        }
+      }
+    },
+    "heloc_Sa,s_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.762,
+          "delta": 0.06299212598425202
+        },
+        "simplicity": {
+          "original": 0.511,
+          "reproduced": 0.41450902777777865,
+          "delta": 0.18882773429006136
+        }
+      }
+    },
+    "heloc_Sa,s_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.763,
+          "delta": 0.07077326343381396
+        },
+        "simplicity": {
+          "original": 0.5,
+          "reproduced": 0.4660460242973397,
+          "delta": 0.06790795140532058
+        }
+      }
+    },
+    "heloc_Sa,s_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.76,
+          "delta": 0.06578947368421058
+        },
+        "simplicity": {
+          "original": 0.502,
+          "reproduced": 0.48987562272358776,
+          "delta": 0.024152145968948695
+        }
+      }
+    },
+    "heloc_Sa,s-A_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.72,
+          "reproduced": 0.778,
+          "delta": 0.07455012853470444
+        },
+        "simplicity": {
+          "original": 0.478,
+          "reproduced": 0.3007221230158733,
+          "delta": 0.3708742196320642
+        }
+      }
+    },
+    "heloc_Sa,s-A_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.726,
+          "reproduced": 0.778,
+          "delta": 0.06683804627249364
+        },
+        "simplicity": {
+          "original": 0.547,
+          "reproduced": 0.37834223896910596,
+          "delta": 0.3083322870765888
+        }
+      }
+    },
+    "heloc_Sa,s-A_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.728,
+          "reproduced": 0.778,
+          "delta": 0.06426735218509003
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.41479406108344524,
+          "delta": 0.18186575723186343
+        }
+      }
+    },
+    "heloc_Sa,s-S_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.769,
+          "delta": 0.07672301690507159
+        },
+        "simplicity": {
+          "original": 0.607,
+          "reproduced": 0.6284870039682545,
+          "delta": 0.03418846186569653
+        }
+      }
+    },
+    "heloc_Sa,s-S_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.712,
+          "reproduced": 0.761,
+          "delta": 0.0643889618922471
+        },
+        "simplicity": {
+          "original": 0.541,
+          "reproduced": 0.5297885567648724,
+          "delta": 0.020723554963267433
+        }
+      }
+    },
+    "heloc_Sa,s-S_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.759,
+          "delta": 0.06324110671936764
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.5289779027352428,
+          "delta": 0.016972169704669682
+        }
+      }
+    },
+    "heloc_Sa,s-AS_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.765,
+          "delta": 0.0640522875816994
+        },
+        "simplicity": {
+          "original": 0.529,
+          "reproduced": 0.43009236111111215,
+          "delta": 0.1869709619827748
+        }
+      }
+    },
+    "heloc_Sa,s-AS_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.764,
+          "delta": 0.06937172774869116
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.47281001239257786,
+          "delta": 0.09074997616811953
+        }
+      }
+    },
+    "heloc_Sa,s-AS_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.76,
+          "delta": 0.06710526315789479
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.4942598218577871,
+          "delta": 0.025128556493516564
+        }
+      }
+    },
+    "compas_avg_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "avg",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.855,
+          "reproduced": 0.8445344129554655,
+          "delta": 0.012240452683666065
+        },
+        "simplicity": {
+          "original": 0.57,
+          "reproduced": 0.425,
+          "delta": 0.25438596491228066
+        }
+      }
+    },
+    "compas_avg_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "avg",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.855,
+          "reproduced": 0.8450607287449394,
+          "delta": 0.01162487866088954
+        },
+        "simplicity": {
+          "original": 0.558,
+          "reproduced": 0.5,
+          "delta": 0.10394265232974918
+        }
+      }
+    },
+    "compas_avg_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "avg",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.855,
+          "reproduced": 0.8456680161943321,
+          "delta": 0.010914600942301648
+        },
+        "simplicity": {
+          "original": 0.533,
+          "reproduced": 0.5166666666666667,
+          "delta": 0.030644152595372065
+        }
+      }
+    },
+    "compas_Sn_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sn",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745
+        },
+        "simplicity": {
+          "original": 0.495,
+          "reproduced": 0.4251773809523876,
+          "delta": 0.1410557960557826
+        }
+      }
+    },
+    "compas_Sn_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sn",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.836,
+          "delta": 0.025641025641025664
+        },
+        "simplicity": {
+          "original": 0.49,
+          "reproduced": 0.5010972974232939,
+          "delta": 0.022145993363679315
+        }
+      }
+    },
+    "compas_Sn_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sn",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.859,
+          "reproduced": 0.839,
+          "delta": 0.023282887077997694
+        },
+        "simplicity": {
+          "original": 0.493,
+          "reproduced": 0.5167088978408677,
+          "delta": 0.045884438878328375
+        }
+      }
+    },
+    "compas_Sv_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sv",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745
+        },
+        "simplicity": {
+          "original": 0.495,
+          "reproduced": 0.4251773809523876,
+          "delta": 0.1410557960557826
+        }
+      }
+    },
+    "compas_Sv_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sv",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.836,
+          "delta": 0.025641025641025664
+        },
+        "simplicity": {
+          "original": 0.49,
+          "reproduced": 0.5010972974232939,
+          "delta": 0.022145993363679315
+        }
+      }
+    },
+    "compas_Sv_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sv",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.859,
+          "reproduced": 0.839,
+          "delta": 0.023282887077997694
+        },
+        "simplicity": {
+          "original": 0.493,
+          "reproduced": 0.5167088978408677,
+          "delta": 0.045884438878328375
+        }
+      }
+    },
+    "compas_Sa,d_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.86,
+          "reproduced": 0.839,
+          "delta": 0.02441860465116281
+        },
+        "simplicity": {
+          "original": 0.492,
+          "reproduced": 0.4031435515873022,
+          "delta": 0.18060253742418253
+        }
+      }
+    },
+    "compas_Sa,d_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.839,
+          "delta": 0.022144522144522165
+        },
+        "simplicity": {
+          "original": 0.479,
+          "reproduced": 0.5009012879481638,
+          "delta": 0.043723760499554336
+        }
+      }
+    },
+    "compas_Sa,d_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.838,
+          "delta": 0.023310023310023333
+        },
+        "simplicity": {
+          "original": 0.48,
+          "reproduced": 0.5124156172513407,
+          "delta": 0.06326040065917969
+        }
+      }
+    },
+    "compas_Sa,d-A_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.863,
+          "reproduced": 0.843,
+          "delta": 0.023174971031286233
+        },
+        "simplicity": {
+          "original": 0.436,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.4307428988580614
+        }
+      }
+    },
+    "compas_Sa,d-A_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.866,
+          "reproduced": 0.846,
+          "delta": 0.023094688221709028
+        },
+        "simplicity": {
+          "original": 0.619,
+          "reproduced": 0.5461074942418704,
+          "delta": 0.11775849072395728
+        }
+      }
+    },
+    "compas_Sa,d-A_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.869,
+          "reproduced": 0.852,
+          "delta": 0.01956271576524743
+        },
+        "simplicity": {
+          "original": 0.583,
+          "reproduced": 0.4083658011300597,
+          "delta": 0.29954408039440866
+        }
+      }
+    },
+    "compas_Sa,d-S_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.861,
+          "reproduced": 0.843,
+          "delta": 0.020905923344947754
+        },
+        "simplicity": {
+          "original": 0.699,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.08736074839858932
+        }
+      }
+    },
+    "compas_Sa,d-S_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.857,
+          "reproduced": 0.842,
+          "delta": 0.017502917152858826
+        },
+        "simplicity": {
+          "original": 0.586,
+          "reproduced": 0.5502431530275288,
+          "delta": 0.061018510191930324
+        }
+      }
+    },
+    "compas_Sa,d-S_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745
+        },
+        "simplicity": {
+          "original": 0.551,
+          "reproduced": 0.5545759888242119,
+          "delta": 0.006448149390299961
+        }
+      }
+    },
+    "compas_Sa,d-AS_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.864,
+          "reproduced": 0.843,
+          "delta": 0.024305555555555577
+        },
+        "simplicity": {
+          "original": 0.567,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.2597046414048643
+        }
+      }
+    },
+    "compas_Sa,d-AS_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745
+        },
+        "simplicity": {
+          "original": 0.519,
+          "reproduced": 0.5395381927100686,
+          "delta": 0.03806624440599189
+        }
+      }
+    },
+    "compas_Sa,d-AS_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.838,
+          "delta": 0.02102803738317759
+        },
+        "simplicity": {
+          "original": 0.518,
+          "reproduced": 0.5194471197765931,
+          "delta": 0.0027858846868097954
+        }
+      }
+    },
+    "compas_Sa,s_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.86,
+          "reproduced": 0.839,
+          "delta": 0.02441860465116281
+        },
+        "simplicity": {
+          "original": 0.492,
+          "reproduced": 0.4061643849206356,
+          "delta": 0.17446263227513087
+        }
+      }
+    },
+    "compas_Sa,s_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.839,
+          "delta": 0.022144522144522165
+        },
+        "simplicity": {
+          "original": 0.476,
+          "reproduced": 0.4927908712814972,
+          "delta": 0.03407301608049826
+        }
+      }
+    },
+    "compas_Sa,s_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.838,
+          "delta": 0.023310023310023333
+        },
+        "simplicity": {
+          "original": 0.479,
+          "reproduced": 0.5120093672513407,
+          "delta": 0.06447024090310587
+        }
+      }
+    },
+    "compas_Sa,s-A_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.863,
+          "reproduced": 0.843,
+          "delta": 0.023174971031286233
+        },
+        "simplicity": {
+          "original": 0.436,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.4307428988580614
+        }
+      }
+    },
+    "compas_Sa,s-A_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.866,
+          "reproduced": 0.846,
+          "delta": 0.023094688221709028
+        },
+        "simplicity": {
+          "original": 0.619,
+          "reproduced": 0.5461074942418704,
+          "delta": 0.11775849072395728
+        }
+      }
+    },
+    "compas_Sa,s-A_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.869,
+          "reproduced": 0.852,
+          "delta": 0.01956271576524743
+        },
+        "simplicity": {
+          "original": 0.583,
+          "reproduced": 0.4083658011300597,
+          "delta": 0.29954408039440866
+        }
+      }
+    },
+    "compas_Sa,s-S_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.861,
+          "reproduced": 0.843,
+          "delta": 0.020905923344947754
+        },
+        "simplicity": {
+          "original": 0.698,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.08866638395166716
+        }
+      }
+    },
+    "compas_Sa,s-S_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.857,
+          "reproduced": 0.842,
+          "delta": 0.017502917152858826
+        },
+        "simplicity": {
+          "original": 0.587,
+          "reproduced": 0.5534889863608622,
+          "delta": 0.05708860926599281
+        }
+      }
+    },
+    "compas_Sa,s-S_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745
+        },
+        "simplicity": {
+          "original": 0.545,
+          "reproduced": 0.552692357871831,
+          "delta": 0.013917974008996217
+        }
+      }
+    },
+    "compas_Sa,s-AS_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.864,
+          "reproduced": 0.843,
+          "delta": 0.024305555555555577
+        },
+        "simplicity": {
+          "original": 0.585,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.23620320144946316
+        }
+      }
+    },
+    "compas_Sa,s-AS_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.842,
+          "delta": 0.016355140186915904
+        },
+        "simplicity": {
+          "original": 0.529,
+          "reproduced": 0.5470276768370528,
+          "delta": 0.03295569420050165
+        }
+      }
+    },
+    "compas_Sa,s-AS_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.839,
+          "delta": 0.01985981308411217
+        },
+        "simplicity": {
+          "original": 0.532,
+          "reproduced": 0.5258089253321485,
+          "delta": 0.011637358398217133
+        }
+      }
+    },
+    "credit_avg_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "avg",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.66,
+          "reproduced": 0.663913043478261,
+          "delta": 0.005893909626719156
+        },
+        "simplicity": {
+          "original": 0.505,
+          "reproduced": 0.425,
+          "delta": 0.15841584158415845
+        }
+      }
+    },
+    "credit_avg_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "avg",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.66,
+          "reproduced": 0.6663043478260869,
+          "delta": 0.009461663947797645
+        },
+        "simplicity": {
+          "original": 0.51,
+          "reproduced": 0.5,
+          "delta": 0.01960784313725492
+        }
+      }
+    },
+    "credit_avg_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "avg",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.66,
+          "reproduced": 0.6615942028985509,
+          "delta": 0.002409638554217032
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.5166666666666667,
+          "delta": 0.006410256410256345
+        }
+      }
+    },
+    "credit_Sn_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sn",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.696,
+          "reproduced": 0.717391304347826,
+          "delta": 0.02981818181818184
+        },
+        "simplicity": {
+          "original": 0.509,
+          "reproduced": 0.4125646997929602,
+          "delta": 0.18946031474860478
+        }
+      }
+    },
+    "credit_Sn_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sn",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.705,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.005214723926380447
+        },
+        "simplicity": {
+          "original": 0.533,
+          "reproduced": 0.5014325442508913,
+          "delta": 0.05922599577693937
+        }
+      }
+    },
+    "credit_Sn_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sn",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.0004292635064695398
+        },
+        "simplicity": {
+          "original": 0.545,
+          "reproduced": 0.5171509607029746,
+          "delta": 0.051099154673441144
+        }
+      }
+    },
+    "credit_Sv_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sv",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.696,
+          "reproduced": 0.717391304347826,
+          "delta": 0.02981818181818184
+        },
+        "simplicity": {
+          "original": 0.509,
+          "reproduced": 0.4125646997929602,
+          "delta": 0.18946031474860478
+        }
+      }
+    },
+    "credit_Sv_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sv",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.705,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.005214723926380447
+        },
+        "simplicity": {
+          "original": 0.533,
+          "reproduced": 0.5014325442508913,
+          "delta": 0.05922599577693937
+        }
+      }
+    },
+    "credit_Sv_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sv",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.0004292635064695398
+        },
+        "simplicity": {
+          "original": 0.545,
+          "reproduced": 0.5171509607029746,
+          "delta": 0.051099154673441144
+        }
+      }
+    },
+    "credit_Sa,d_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523
+        },
+        "simplicity": {
+          "original": 0.525,
+          "reproduced": 0.41990596963423044,
+          "delta": 0.20017910545860873
+        }
+      }
+    },
+    "credit_Sa,d_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7,
+          "delta": 0.02428571428571415
+        },
+        "simplicity": {
+          "original": 0.556,
+          "reproduced": 0.525704629403142,
+          "delta": 0.05448807661305404
+        }
+      }
+    },
+    "credit_Sa,d_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.682,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.0196249999999999
+        },
+        "simplicity": {
+          "original": 0.563,
+          "reproduced": 0.5314770952810949,
+          "delta": 0.05599094976714932
+        }
+      }
+    },
+    "credit_Sa,d-A_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.7,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.01829268292682932
+        },
+        "simplicity": {
+          "original": 0.457,
+          "reproduced": 0.621583850931677,
+          "delta": 0.2647814139395453
+        }
+      }
+    },
+    "credit_Sa,d-A_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.706,
+          "reproduced": 0.7,
+          "delta": 0.008498583569405107
+        },
+        "simplicity": {
+          "original": 0.522,
+          "reproduced": 0.5570022568964218,
+          "delta": 0.0628404220324922
+        }
+      }
+    },
+    "credit_Sa,d-A_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.02020820575627677
+        },
+        "simplicity": {
+          "original": 0.554,
+          "reproduced": 0.5495210309327587,
+          "delta": 0.008084781709821881
+        }
+      }
+    },
+    "credit_Sa,d-S_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.67,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.06036585365853652
+        },
+        "simplicity": {
+          "original": 0.61,
+          "reproduced": 0.621583850931677,
+          "delta": 0.01863602298276293
+        }
+      }
+    },
+    "credit_Sa,d-S_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.686,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0013924050632911052
+        },
+        "simplicity": {
+          "original": 0.564,
+          "reproduced": 0.5410225210525554,
+          "delta": 0.04074021089972431
+        }
+      }
+    },
+    "credit_Sa,d-S_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523
+        },
+        "simplicity": {
+          "original": 0.568,
+          "reproduced": 0.5365208558683338,
+          "delta": 0.05542102840082077
+        }
+      }
+    },
+    "credit_Sa,d-AS_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.042134146341463334
+        },
+        "simplicity": {
+          "original": 0.537,
+          "reproduced": 0.621583850931677,
+          "delta": 0.13607794154384206
+        }
+      }
+    },
+    "credit_Sa,d-AS_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6782608695652174,
+          "delta": 0.009838146620120718
+        },
+        "simplicity": {
+          "original": 0.559,
+          "reproduced": 0.540297883371396,
+          "delta": 0.03345638037317371
+        }
+      }
+    },
+    "credit_Sa,d-AS_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.684,
+          "reproduced": 0.6782608695652174,
+          "delta": 0.008390541571319724
+        },
+        "simplicity": {
+          "original": 0.566,
+          "reproduced": 0.5358324500712324,
+          "delta": 0.0532995581780346
+        }
+      }
+    },
+    "credit_Sa,s_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523
+        },
+        "simplicity": {
+          "original": 0.522,
+          "reproduced": 0.4222610420979985,
+          "delta": 0.19107080057854703
+        }
+      }
+    },
+    "credit_Sa,s_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7,
+          "delta": 0.02428571428571415
+        },
+        "simplicity": {
+          "original": 0.555,
+          "reproduced": 0.5280234699828521,
+          "delta": 0.04860636039125756
+        }
+      }
+    },
+    "credit_Sa,s_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.682,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.0196249999999999
+        },
+        "simplicity": {
+          "original": 0.563,
+          "reproduced": 0.5329052353777132,
+          "delta": 0.05345428884953246
+        }
+      }
+    },
+    "credit_Sa,s-A_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.7,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.01829268292682932
+        },
+        "simplicity": {
+          "original": 0.437,
+          "reproduced": 0.621583850931677,
+          "delta": 0.29695728203847116
+        }
+      }
+    },
+    "credit_Sa,s-A_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.706,
+          "reproduced": 0.7,
+          "delta": 0.008498583569405107
+        },
+        "simplicity": {
+          "original": 0.521,
+          "reproduced": 0.5566399380558422,
+          "delta": 0.06402691510120641
+        }
+      }
+    },
+    "credit_Sa,s-A_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.02020820575627677
+        },
+        "simplicity": {
+          "original": 0.552,
+          "reproduced": 0.5495210309327587,
+          "delta": 0.0044908859913792044
+        }
+      }
+    },
+    "credit_Sa,s-S_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.67,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.06036585365853652
+        },
+        "simplicity": {
+          "original": 0.611,
+          "reproduced": 0.621583850931677,
+          "delta": 0.01702722957781664
+        }
+      }
+    },
+    "credit_Sa,s-S_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.686,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0013924050632911052
+        },
+        "simplicity": {
+          "original": 0.563,
+          "reproduced": 0.5408413616322656,
+          "delta": 0.039358149853879844
+        }
+      }
+    },
+    "credit_Sa,s-S_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523
+        },
+        "simplicity": {
+          "original": 0.568,
+          "reproduced": 0.5357962181871743,
+          "delta": 0.056696798966242405
+        }
+      }
+    },
+    "credit_Sa,s-AS_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.042134146341463334
+        },
+        "simplicity": {
+          "original": 0.535,
+          "reproduced": 0.621583850931677,
+          "delta": 0.13929552835373463
+        }
+      }
+    },
+    "credit_Sa,s-AS_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523
+        },
+        "simplicity": {
+          "original": 0.559,
+          "reproduced": 0.5408413616322656,
+          "delta": 0.03248414734836218
+        }
+      }
+    },
+    "credit_Sa,s-AS_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.684,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0043037974683543985
+        },
+        "simplicity": {
+          "original": 0.566,
+          "reproduced": 0.5365208558683338,
+          "delta": 0.052083293518844866
+        }
+      }
+    }
+  }
+}

@@ -501,39 +501,66 @@ def solve_argumentative_extension(
     if not candidate_extensions:
         return None
 
-    max_size = max(len(models) + len(ces) for models, ces, _ in candidate_extensions)
+    max_model_size = max(len(models) for models, _, _ in candidate_extensions)
     max_extensions = [
         extension
         for extension in candidate_extensions
-        if len(extension[0]) + len(extension[1]) == max_size
+        if len(extension[0]) == max_model_size
     ]
-    max_extensions.sort(key=lambda item: (tuple(item[0]), tuple(item[1]), tuple(item[2])))
 
     majority_prediction = _extension_prediction(
         factual_predictions=factual_predictions,
         model_indices=list(range(len(factual_predictions))),
     )
-    non_empty_extensions = [
-        extension for extension in max_extensions if len(extension[0]) > 0 and len(extension[1]) > 0
-    ]
-    if not non_empty_extensions:
+    if len(max_extensions) == 1:
+        model_indices, ce_indices, all_arguments = max_extensions[0]
+        if not model_indices:
+            return ExtensionResult([], [], [], 3, False)
+        extension_prediction = _extension_prediction(factual_predictions, model_indices)
+        return ExtensionResult(
+            model_indices=model_indices,
+            ce_indices=ce_indices,
+            all_indices=[
+                int(argument[1:])
+                for argument in all_arguments
+                if argument.startswith(("m", "c"))
+            ],
+            answer_status=0,
+            same_as_majority=extension_prediction == majority_prediction,
+        )
+
+    chosen_extension: tuple[list[int], list[int], list[str]] | None = None
+    first_prediction: int | None = None
+    different_prediction_count = 0
+    same_as_majority = False
+    model_empty = True
+
+    for extension in max_extensions:
+        model_indices, _, _ = extension
+        if not model_indices:
+            continue
+        model_empty = False
+        extension_prediction = _extension_prediction(factual_predictions, model_indices)
+        if first_prediction is None:
+            first_prediction = extension_prediction
+        if extension_prediction == majority_prediction:
+            chosen_extension = extension
+            same_as_majority = True
+        if first_prediction is not None and extension_prediction != first_prediction:
+            different_prediction_count += 1
+
+    if model_empty:
         return ExtensionResult([], [], [], 3, False)
 
-    for model_indices, ce_indices, all_arguments in non_empty_extensions:
-        if _extension_prediction(factual_predictions, model_indices) == majority_prediction:
-            return ExtensionResult(
-                model_indices=model_indices,
-                ce_indices=ce_indices,
-                all_indices=[
-                    int(argument[1:])
-                    for argument in all_arguments
-                    if argument.startswith(("m", "c"))
-                ],
-                answer_status=0,
-                same_as_majority=True,
-            )
+    if chosen_extension is None:
+        for extension in max_extensions:
+            if extension[0]:
+                chosen_extension = extension
+                break
+    if chosen_extension is None:
+        return ExtensionResult([], [], [], 3, False)
 
-    model_indices, ce_indices, all_arguments = non_empty_extensions[0]
+    model_indices, ce_indices, all_arguments = chosen_extension
     return ExtensionResult(
         model_indices=model_indices,
         ce_indices=ce_indices,
@@ -542,8 +569,8 @@ def solve_argumentative_extension(
             for argument in all_arguments
             if argument.startswith(("m", "c"))
         ],
-        answer_status=2,
-        same_as_majority=False,
+        answer_status=2 if different_prediction_count == 0 else 1,
+        same_as_majority=same_as_majority,
     )
 
 

@@ -1,21 +1,18 @@
-name: compas_arg_ensembling_table4_reproduction
+name: arg_ensembling_table4_reproduction
 logger:
   level: INFO
   path: null
 caching:
   path: ./cache/
 
-dataset:
-  name: compas_carla
-  path: ./dataset/compas_carla/
-
 reproduction:
   seed: 3333
   outer_split_random_state: 10
-  max_test_points: 500
   outer_test_size: 0.2
+  max_test_points: 1000
   pool_target_size: 150
-  repeats: 5
+  repeats: 1
+  sample_with_replacement: true
   model_sizes:
     - 10
     - 20
@@ -38,48 +35,152 @@ reproduction:
     batch_size: 64
     learning_rate_init: 0.02
     max_iter: 200
+  datasets:
+    heloc:
+      feature_path: ./experiment/arg_ensembling/data/heloc_x.csv
+      target_path: ./experiment/arg_ensembling/data/heloc_y.csv
+      target_column: RiskPerformance
+    compas:
+      feature_path: ./experiment/arg_ensembling/data/compas_x.csv
+      target_path: ./experiment/arg_ensembling/data/compas_y.csv
+      target_column: score
+    credit:
+      feature_path: ./experiment/arg_ensembling/data/credit_x.csv
+      target_path: ./experiment/arg_ensembling/data/credit_y.csv
+      target_column: good-credit
   table4_targets:
-    avg:
-      10: {acc: 0.855, simp: 0.570}
-      20: {acc: 0.855, simp: 0.558}
-      30: {acc: 0.855, simp: 0.533}
-    Sn:
-      10: {acc: 0.856, simp: 0.495}
-      20: {acc: 0.858, simp: 0.490}
-      30: {acc: 0.859, simp: 0.493}
-    Sv:
-      10: {acc: 0.856, simp: 0.495}
-      20: {acc: 0.858, simp: 0.490}
-      30: {acc: 0.859, simp: 0.493}
-    Sa,d:
-      10: {acc: 0.860, simp: 0.492}
-      20: {acc: 0.858, simp: 0.479}
-      30: {acc: 0.858, simp: 0.480}
-    Sa,d-A:
-      10: {acc: 0.863, simp: 0.436}
-      20: {acc: 0.866, simp: 0.619}
-      30: {acc: 0.869, simp: 0.583}
-    Sa,d-S:
-      10: {acc: 0.861, simp: 0.699}
-      20: {acc: 0.857, simp: 0.586}
-      30: {acc: 0.856, simp: 0.551}
-    Sa,d-AS:
-      10: {acc: 0.864, simp: 0.567}
-      20: {acc: 0.856, simp: 0.519}
-      30: {acc: 0.856, simp: 0.518}
-    Sa,s:
-      10: {acc: 0.860, simp: 0.492}
-      20: {acc: 0.858, simp: 0.476}
-      30: {acc: 0.858, simp: 0.479}
-    Sa,s-A:
-      10: {acc: 0.863, simp: 0.436}
-      20: {acc: 0.866, simp: 0.619}
-      30: {acc: 0.869, simp: 0.583}
-    Sa,s-S:
-      10: {acc: 0.861, simp: 0.698}
-      20: {acc: 0.857, simp: 0.587}
-      30: {acc: 0.856, simp: 0.545}
-    Sa,s-AS:
-      10: {acc: 0.864, simp: 0.585}
-      20: {acc: 0.856, simp: 0.529}
-      30: {acc: 0.856, simp: 0.532}
+    heloc:
+      avg:
+        10: {acc: 0.710, simp: 0.485}
+        20: {acc: 0.710, simp: 0.500}
+        30: {acc: 0.710, simp: 0.510}
+      Sn:
+        10: {acc: 0.714, simp: 0.503}
+        20: {acc: 0.716, simp: 0.508}
+        30: {acc: 0.716, simp: 0.508}
+      Sv:
+        10: {acc: 0.714, simp: 0.503}
+        20: {acc: 0.716, simp: 0.508}
+        30: {acc: 0.716, simp: 0.508}
+      Sa,d:
+        10: {acc: 0.714, simp: 0.507}
+        20: {acc: 0.709, simp: 0.505}
+        30: {acc: 0.710, simp: 0.501}
+      Sa,d-A:
+        10: {acc: 0.720, simp: 0.478}
+        20: {acc: 0.726, simp: 0.547}
+        30: {acc: 0.728, simp: 0.507}
+      Sa,d-S:
+        10: {acc: 0.710, simp: 0.606}
+        20: {acc: 0.712, simp: 0.542}
+        30: {acc: 0.711, simp: 0.520}
+      Sa,d-AS:
+        10: {acc: 0.716, simp: 0.529}
+        20: {acc: 0.711, simp: 0.520}
+        30: {acc: 0.709, simp: 0.506}
+      Sa,s:
+        10: {acc: 0.714, simp: 0.511}
+        20: {acc: 0.709, simp: 0.500}
+        30: {acc: 0.710, simp: 0.502}
+      Sa,s-A:
+        10: {acc: 0.720, simp: 0.478}
+        20: {acc: 0.726, simp: 0.547}
+        30: {acc: 0.728, simp: 0.507}
+      Sa,s-S:
+        10: {acc: 0.710, simp: 0.607}
+        20: {acc: 0.712, simp: 0.541}
+        30: {acc: 0.711, simp: 0.520}
+      Sa,s-AS:
+        10: {acc: 0.716, simp: 0.529}
+        20: {acc: 0.711, simp: 0.520}
+        30: {acc: 0.709, simp: 0.507}
+    compas:
+      avg:
+        10: {acc: 0.855, simp: 0.570}
+        20: {acc: 0.855, simp: 0.558}
+        30: {acc: 0.855, simp: 0.533}
+      Sn:
+        10: {acc: 0.856, simp: 0.495}
+        20: {acc: 0.858, simp: 0.490}
+        30: {acc: 0.859, simp: 0.493}
+      Sv:
+        10: {acc: 0.856, simp: 0.495}
+        20: {acc: 0.858, simp: 0.490}
+        30: {acc: 0.859, simp: 0.493}
+      Sa,d:
+        10: {acc: 0.860, simp: 0.492}
+        20: {acc: 0.858, simp: 0.479}
+        30: {acc: 0.858, simp: 0.480}
+      Sa,d-A:
+        10: {acc: 0.863, simp: 0.436}
+        20: {acc: 0.866, simp: 0.619}
+        30: {acc: 0.869, simp: 0.583}
+      Sa,d-S:
+        10: {acc: 0.861, simp: 0.699}
+        20: {acc: 0.857, simp: 0.586}
+        30: {acc: 0.856, simp: 0.551}
+      Sa,d-AS:
+        10: {acc: 0.864, simp: 0.567}
+        20: {acc: 0.856, simp: 0.519}
+        30: {acc: 0.856, simp: 0.518}
+      Sa,s:
+        10: {acc: 0.860, simp: 0.492}
+        20: {acc: 0.858, simp: 0.476}
+        30: {acc: 0.858, simp: 0.479}
+      Sa,s-A:
+        10: {acc: 0.863, simp: 0.436}
+        20: {acc: 0.866, simp: 0.619}
+        30: {acc: 0.869, simp: 0.583}
+      Sa,s-S:
+        10: {acc: 0.861, simp: 0.698}
+        20: {acc: 0.857, simp: 0.587}
+        30: {acc: 0.856, simp: 0.545}
+      Sa,s-AS:
+        10: {acc: 0.864, simp: 0.585}
+        20: {acc: 0.856, simp: 0.529}
+        30: {acc: 0.856, simp: 0.532}
+    credit:
+      avg:
+        10: {acc: 0.660, simp: 0.505}
+        20: {acc: 0.660, simp: 0.510}
+        30: {acc: 0.660, simp: 0.520}
+      Sn:
+        10: {acc: 0.696, simp: 0.509}
+        20: {acc: 0.705, simp: 0.533}
+        30: {acc: 0.709, simp: 0.545}
+      Sv:
+        10: {acc: 0.696, simp: 0.509}
+        20: {acc: 0.705, simp: 0.533}
+        30: {acc: 0.709, simp: 0.545}
+      Sa,d:
+        10: {acc: 0.685, simp: 0.525}
+        20: {acc: 0.683, simp: 0.556}
+        30: {acc: 0.682, simp: 0.563}
+      Sa,d-A:
+        10: {acc: 0.700, simp: 0.457}
+        20: {acc: 0.706, simp: 0.522}
+        30: {acc: 0.710, simp: 0.554}
+      Sa,d-S:
+        10: {acc: 0.670, simp: 0.610}
+        20: {acc: 0.686, simp: 0.564}
+        30: {acc: 0.685, simp: 0.568}
+      Sa,d-AS:
+        10: {acc: 0.683, simp: 0.537}
+        20: {acc: 0.685, simp: 0.559}
+        30: {acc: 0.684, simp: 0.566}
+      Sa,s:
+        10: {acc: 0.685, simp: 0.522}
+        20: {acc: 0.683, simp: 0.555}
+        30: {acc: 0.682, simp: 0.563}
+      Sa,s-A:
+        10: {acc: 0.700, simp: 0.437}
+        20: {acc: 0.706, simp: 0.521}
+        30: {acc: 0.710, simp: 0.552}
+      Sa,s-S:
+        10: {acc: 0.670, simp: 0.611}
+        20: {acc: 0.686, simp: 0.563}
+        30: {acc: 0.685, simp: 0.568}
+      Sa,s-AS:
+        10: {acc: 0.683, simp: 0.535}
+        20: {acc: 0.685, simp: 0.559}
+        30: {acc: 0.684, simp: 0.566}
