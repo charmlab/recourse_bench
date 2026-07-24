@@ -2,38 +2,46 @@ from __future__ import annotations
 
 import argparse
 import copy
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 import sys
 import time
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
-
-import pytest
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 import yaml
 from sklearn.model_selection import ShuffleSplit
 from tqdm.auto import tqdm
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from dataset.adult_carla.adult_carla import AdultCarlaDataset
 from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from experiment.utils import write_reproduction_report
 from method.cols.cols import ColsMethod
-from method.cols.support import decode_feature_dataframe
+from method.cols.support import (
+    RuntimeSearchContext,
+    build_runtime_context,
+    compute_candidate_cost_matrix,
+    compute_emc,
+    decode_feature_dataframe,
+    encode_state_dataframe,
+    resolve_target_index,
+)
 from model.mlp.mlp import MlpModel
-from model.model_utils import build_optimizer
 from model.model_object import process_nan
+from model.model_utils import build_optimizer
 from utils.seed import seed_context
 
 
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("reproduce_configs.yaml")
 REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
-
 EPSILON = 1e-7
 
 
@@ -106,7 +114,33 @@ class PaperMetricContext:
     variance: float
 
 
-class ReferenceCompasMlpModel(MlpModel):
+@dataclass(frozen=True)
+class PerFactualResult:
+    subgroup_values: dict[str, str]
+    final_cost: float
+    fs_at_1: float
+    cov: float
+
+
+@dataclass(frozen=True)
+class TableRunResult:
+    seed: int
+    dataset: str
+    methods: dict[str, dict[str, Any]]
+    val_accuracy: float
+    factual_rows: int
+
+
+@dataclass(frozen=True)
+class SearchRunArtifacts:
+    encoded_set: pd.DataFrame
+    pred_classes: np.ndarray
+    valid_mask: np.ndarray
+    score: float
+    num_queries: int
+
+
+class ReferenceBinaryMlpModel(MlpModel):
     def __init__(
         self,
         *args,
@@ -176,9 +210,9 @@ class ReferenceCompasMlpModel(MlpModel):
         heartbeat_seconds: int = 60,
     ):
         if trainset is None:
-            raise ValueError("trainset is required for ReferenceCompasMlpModel.fit()")
+            raise ValueError("trainset is required")
         if valset is None:
-            raise ValueError("valset is required for ReferenceCompasMlpModel.fit()")
+            raise ValueError("valset is required")
 
         with seed_context(self._seed):
             X_train, labels_train, output_dim = self.extract_training_data(trainset)
@@ -289,6 +323,7 @@ class ReferenceCompasMlpModel(MlpModel):
                     best_state = copy.deepcopy(self._model.state_dict())
                     best_val_accuracy = val_accuracy
                     best_val_loss = val_loss
+
                 if show_progress:
                     epoch_iterator.set_postfix(
                         val_acc=f"{val_accuracy:.4f}",
@@ -328,11 +363,7 @@ def _load_config(config_path: Path) -> dict[str, Any]:
 def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
     merged = copy.deepcopy(base)
     for key, value in overrides.items():
-        if (
-            key in merged
-            and isinstance(merged[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
             merged[key] = _deep_merge(merged[key], value)
         else:
             merged[key] = copy.deepcopy(value)
@@ -350,29 +381,12 @@ def _apply_profile(config: dict[str, Any], profile_name: str | None) -> dict[str
     if resolved_profile not in profiles:
         raise ValueError(f"Unknown reproduction profile: {resolved_profile}")
 
-    profile = profiles[resolved_profile]
-    if not isinstance(profile, dict):
-        raise ValueError(f"Profile '{resolved_profile}' must be a dictionary")
-
     cfg = copy.deepcopy(config)
-    for section_name in ("data", "model", "reproduction"):
+    profile = profiles[resolved_profile]
+    for section_name in ("reproduction", "datasets"):
         section_overrides = profile.get(section_name)
         if isinstance(section_overrides, dict):
             cfg[section_name] = _deep_merge(cfg[section_name], section_overrides)
-
-    method_overrides = profile.get("methods")
-    if isinstance(method_overrides, list):
-        cfg["methods"] = copy.deepcopy(method_overrides)
-    elif isinstance(method_overrides, dict):
-        updated_methods = []
-        for method_cfg in cfg["methods"]:
-            override = method_overrides.get(str(method_cfg["name"]))
-            if isinstance(override, dict):
-                updated_methods.append(_deep_merge(method_cfg, override))
-            else:
-                updated_methods.append(copy.deepcopy(method_cfg))
-        cfg["methods"] = updated_methods
-
     return cfg
 
 
@@ -382,55 +396,35 @@ def _resolve_device(device_name: str) -> str:
     return device_name.lower()
 
 
-def _apply_cli_overrides(config: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
-    cfg = _apply_profile(config, getattr(args, "profile", None))
-    if args.max_runs is not None:
-        cfg["reproduction"]["run_seeds"] = cfg["reproduction"]["run_seeds"][
-            : int(args.max_runs)
-        ]
-    if args.max_factuals is not None:
-        cfg["data"]["split"]["target_factual_count"] = int(args.max_factuals)
-    if args.override_epochs is not None:
-        cfg["model"]["epochs"] = int(args.override_epochs)
-    if args.override_budget is not None:
-        for method_cfg in cfg["methods"]:
-            method_cfg["budget"] = int(args.override_budget)
-    if args.override_num_mcmc is not None:
-        for method_cfg in cfg["methods"]:
-            method_cfg["num_mcmc"] = int(args.override_num_mcmc)
-    if args.methods is not None:
-        requested_methods = {
-            method_name.strip()
-            for method_name in str(args.methods).split(",")
-            if method_name.strip()
-        }
-        cfg["methods"] = [
-            method_cfg
-            for method_cfg in cfg["methods"]
-            if str(method_cfg["name"]) in requested_methods
-        ]
-        cfg["reproduction"]["paper_targets"] = {
-            method_name: metric_cfg
-            for method_name, metric_cfg in cfg["reproduction"]["paper_targets"].items()
-            if method_name in requested_methods
-        }
-    if args.use_reference_checkpoint:
-        cfg["model"]["use_reference_checkpoint"] = True
-    return cfg
-
-
-def _ordered_mapping(
-    names: list[str],
-    values: dict[str, Any],
-) -> dict[str, Any]:
+def _ordered_mapping(names: list[str], values: dict[str, Any]) -> dict[str, Any]:
     return {name: values[name] for name in names}
 
 
-def _load_raw_compas_dataframe(data_cfg: dict[str, Any]) -> pd.DataFrame:
+def _bucket_cap_gain_like(values: pd.Series) -> pd.Series:
+    numeric = values.astype(float)
+    positive = numeric[numeric > 0]
+    if positive.empty:
+        return pd.Series(["0"] * len(values), index=values.index, dtype="object")
+    bins = np.digitize(
+        numeric.to_numpy(dtype="float64"),
+        [0, float(np.median(positive)), float("inf")],
+        right=True,
+    )
+    return pd.Series(bins.astype(str), index=values.index, dtype="object")
+
+
+def _load_raw_dataframe(data_cfg: dict[str, Any]) -> pd.DataFrame:
     raw_path = (PROJECT_ROOT / data_cfg["raw_path"]).resolve()
     df = pd.read_csv(raw_path).dropna().reset_index(drop=True)
-    target_column = data_cfg["target_column"]
-    ordered_columns = list(data_cfg["raw_feature_order"]) + [target_column]
+
+    variant = str(data_cfg.get("variant", data_cfg["dataset_name"])).lower()
+    if variant == "adult_binary":
+        if "fnlwgt" in df.columns:
+            df = df.drop(columns=["fnlwgt"])
+        df["capital-gain"] = _bucket_cap_gain_like(df["capital-gain"])
+        df["capital-loss"] = _bucket_cap_gain_like(df["capital-loss"])
+
+    ordered_columns = list(data_cfg["raw_feature_order"]) + [data_cfg["target_column"]]
     return df.loc[:, ordered_columns].copy(deep=True)
 
 
@@ -488,17 +482,11 @@ def _build_reference_split(
         dtype=int,
     )
 
-    train_df = balanced_df.iloc[train_positions].reset_index(drop=True)
-    val_df = balanced_df.iloc[val_positions].reset_index(drop=True)
-    provisional_factual_df = balanced_df.iloc[provisional_positions].reset_index(
-        drop=True
-    )
-
     return SplitArtifacts(
         balanced_df=balanced_df,
-        train_df=train_df,
-        val_df=val_df,
-        provisional_factual_df=provisional_factual_df,
+        train_df=balanced_df.iloc[train_positions].reset_index(drop=True),
+        val_df=balanced_df.iloc[val_positions].reset_index(drop=True),
+        provisional_factual_df=balanced_df.iloc[provisional_positions].reset_index(drop=True),
         provisional_unique_count=len(provisional_unique_positions),
     )
 
@@ -507,22 +495,19 @@ def _compute_scaling_stats(
     train_df: pd.DataFrame,
     continuous_feature_names: list[str],
 ) -> ScalingStats:
-    minimum = {
-        feature_name: float(train_df[feature_name].min())
-        for feature_name in continuous_feature_names
-    }
-    maximum = {
-        feature_name: float(train_df[feature_name].max())
-        for feature_name in continuous_feature_names
-    }
-    return ScalingStats(minimum=minimum, maximum=maximum)
+    return ScalingStats(
+        minimum={
+            feature_name: float(train_df[feature_name].min())
+            for feature_name in continuous_feature_names
+        },
+        maximum={
+            feature_name: float(train_df[feature_name].max())
+            for feature_name in continuous_feature_names
+        },
+    )
 
 
-def _normalize_feature(
-    values: pd.Series,
-    minimum: float,
-    maximum: float,
-) -> pd.Series:
+def _normalize_feature(values: pd.Series, minimum: float, maximum: float) -> pd.Series:
     if maximum == minimum:
         return pd.Series(0.0, index=values.index, dtype="float64")
     return (values.astype("float64") - minimum) / (maximum - minimum)
@@ -549,10 +534,10 @@ def _encode_raw_features(
                 for index, category in enumerate(data_cfg["categorical_values"][feature_name])
             }
             encoded_columns[feature_name] = values.map(category_to_index).astype("float64")
-            continue
-        for category in data_cfg["categorical_values"][feature_name]:
-            column_name = f"{feature_name}_cat_{category}"
-            encoded_columns[column_name] = (values == str(category)).astype("float64")
+        else:
+            for category in data_cfg["categorical_values"][feature_name]:
+                column_name = f"{feature_name}_cat_{category}"
+                encoded_columns[column_name] = (values == str(category)).astype("float64")
 
     encoded_df = pd.DataFrame(encoded_columns, index=raw_df.index)
     return encoded_df.loc[:, data_cfg["encoded_feature_order"]].copy(deep=True)
@@ -573,26 +558,33 @@ def _decode_counterfactual_set(
         if maximum == minimum:
             decoded[feature_name] = int(round(minimum))
             continue
-        raw_values = (
-            decoded[feature_name].astype("float64") * (maximum - minimum) + minimum
-        )
+        raw_values = decoded[feature_name].astype("float64") * (maximum - minimum) + minimum
         decoded[feature_name] = np.rint(raw_values).astype(int)
 
     for feature_name in data_cfg["categorical_feature_order"]:
         if _uses_scalar_categorical_encoding(data_cfg):
             categories = list(data_cfg["categorical_values"][feature_name])
             decoded[feature_name] = decoded[feature_name].map(
-                lambda value: categories[
-                    max(0, min(len(categories) - 1, int(round(float(value)))))
-                ]
+                lambda value: categories[max(0, min(len(categories) - 1, int(round(float(value)))))]
             )
         decoded[feature_name] = decoded[feature_name].astype(str)
 
     return decoded
 
 
-def _build_dataset_template(data_cfg: dict[str, Any]) -> CompasCarlaDataset:
-    template = CompasCarlaDataset(path=str((PROJECT_ROOT / "dataset/compas_carla").resolve()))
+def _build_dataset_template(data_cfg: dict[str, Any]):
+    source_dataset_name = str(data_cfg.get("source_dataset", data_cfg["dataset_name"]))
+    if source_dataset_name == "adult_carla":
+        template = AdultCarlaDataset(
+            path=str((PROJECT_ROOT / "dataset/adult_carla").resolve())
+        )
+    elif source_dataset_name == "compas_carla":
+        template = CompasCarlaDataset(
+            path=str((PROJECT_ROOT / "dataset/compas_carla").resolve())
+        )
+    else:
+        raise ValueError(f"Unsupported source_dataset: {source_dataset_name}")
+
     raw_feature_names = list(data_cfg["raw_feature_order"]) + [data_cfg["target_column"]]
     template.update(
         "raw_feature_type",
@@ -606,7 +598,10 @@ def _build_dataset_template(data_cfg: dict[str, Any]) -> CompasCarlaDataset:
         "raw_feature_actionability",
         _ordered_mapping(raw_feature_names, data_cfg["raw_feature_actionability"]),
     )
-    template.update("feature_order", list(data_cfg["encoded_feature_order"]) + [data_cfg["target_column"]])
+    template.update(
+        "feature_order",
+        list(data_cfg["encoded_feature_order"]) + [data_cfg["target_column"]],
+    )
     return template
 
 
@@ -621,7 +616,7 @@ def _build_encoding_map(data_cfg: dict[str, Any]) -> dict[str, list[str]]:
 
 
 def _build_frozen_dataset(
-    template: CompasCarlaDataset,
+    template,
     feature_df: pd.DataFrame,
     target: pd.Series,
     data_cfg: dict[str, Any],
@@ -691,24 +686,21 @@ def _build_metric_context(
                 state: _percentile_rank(state)
                 for state in original_ranges[feature_name]
             }
-            continue
-
-        value_counts = balanced_df[feature_name].astype(str).value_counts()
-        running = 0.0
-        total = float(max(1, int(balanced_df.shape[0])))
-        feature_percentiles: dict[object, float] = {}
-        for state in original_ranges[feature_name]:
-            running += float(value_counts.get(state, 0))
-            feature_percentiles[state] = running / total
-        percentiles[feature_name] = feature_percentiles
+        else:
+            value_counts = balanced_df[feature_name].astype(str).value_counts()
+            running = 0.0
+            total = float(max(1, int(balanced_df.shape[0])))
+            feature_percentiles: dict[object, float] = {}
+            for state in original_ranges[feature_name]:
+                running += float(value_counts.get(state, 0))
+                feature_percentiles[state] = running / total
+            percentiles[feature_name] = feature_percentiles
 
     mads: dict[str, float] = {}
     for feature_name in continuous_feature_names:
         values = train_df[feature_name].astype(float).to_numpy()
         mad = float(np.median(np.abs(values - np.median(values))))
-        if mad <= 0.0:
-            mad = 1.0
-        mads[feature_name] = mad
+        mads[feature_name] = mad if mad > 0.0 else 1.0
 
     cost_map = {
         feature_name: {
@@ -769,18 +761,18 @@ def _sample_editable_features(
     context: PaperMetricContext,
     rng: np.random.Generator,
 ) -> set[str]:
-    non_fixed_features = [
+    editable_candidates = [
         feature_name
         for feature_name in context.feature_names
-        if context.feature_types[feature_name] != "fixed"
+        if int(context.feature_change_restriction[feature_name]) != -2
     ]
-    subset_size = int(rng.integers(1, len(non_fixed_features) + 1))
-    sampled = rng.choice(
-        np.array(non_fixed_features, dtype=object),
-        size=subset_size,
+    num_features = int(rng.integers(1, len(editable_candidates) + 1))
+    chosen = rng.choice(
+        np.array(editable_candidates, dtype=object),
+        size=num_features,
         replace=False,
     )
-    return {str(feature_name) for feature_name in sampled.tolist()}
+    return {str(feature_name) for feature_name in chosen.tolist()}
 
 
 def _sample_preference_scores(
@@ -788,6 +780,8 @@ def _sample_preference_scores(
     editable_features: set[str],
     rng: np.random.Generator,
 ) -> dict[str, float]:
+    if not editable_features:
+        return {feature_name: 0.0 for feature_name in context.feature_names}
     concentration = np.array(
         [
             1.0 if feature_name in editable_features else EPSILON
@@ -795,10 +789,12 @@ def _sample_preference_scores(
         ],
         dtype="float64",
     )
-    preference = rng.dirichlet(concentration)
+    preference_vector = rng.dirichlet(concentration)
     return {
         feature_name: (
-            float(preference[index]) if feature_name in editable_features else 0.0
+            float(preference_vector[index])
+            if feature_name in editable_features
+            else 0.0
         )
         for index, feature_name in enumerate(context.feature_names)
     }
@@ -811,41 +807,76 @@ def _get_valid_ranges(
 ) -> dict[str, list[object]]:
     valid_ranges: dict[str, list[object]] = {}
     for feature_name in context.feature_names:
-        restriction = int(context.feature_change_restriction[feature_name])
         current_value = query_row[feature_name]
-        feature_range = list(context.original_ranges[feature_name])
-
         if feature_name in context.continuous_feature_names:
             current_value = int(current_value)
         else:
             current_value = str(current_value)
 
+        states = list(context.original_ranges[feature_name])
+        restriction = int(context.feature_change_restriction[feature_name])
         if restriction == -2 or feature_name not in editable_features:
             valid_ranges[feature_name] = [current_value]
-            continue
-
-        if restriction == 0:
-            valid_ranges[feature_name] = feature_range
-            continue
-
-        if feature_name not in context.continuous_feature_names and feature_name not in context.categorical_feature_names:
-            raise ValueError(f"Unknown feature type for {feature_name}")
-
-        if restriction == 1:
-            if current_value not in feature_range:
-                raise ValueError(f"Unknown current value for {feature_name}: {current_value}")
-            valid_ranges[feature_name] = feature_range[feature_range.index(current_value) :]
-            continue
-
-        if restriction == -1:
-            if current_value not in feature_range:
-                raise ValueError(f"Unknown current value for {feature_name}: {current_value}")
-            valid_ranges[feature_name] = feature_range[: feature_range.index(current_value) + 1]
-            continue
-
-        raise ValueError(f"Unsupported change restriction: {restriction}")
-
+        elif restriction == 0:
+            valid_ranges[feature_name] = states
+        elif restriction == 1:
+            valid_ranges[feature_name] = states[states.index(current_value) :]
+        elif restriction == -1:
+            valid_ranges[feature_name] = states[: states.index(current_value) + 1]
+        else:
+            raise ValueError(f"Unsupported feature restriction: {restriction}")
     return valid_ranges
+
+
+def _ordered_linear_cost(
+    states: list[object],
+    current_value: object,
+    restriction: int,
+) -> np.ndarray:
+    current_index = states.index(current_value)
+    flat_mean = np.full(len(states), np.inf, dtype="float64")
+    flat_mean[current_index] = 0.0
+
+    if restriction in {0, 1}:
+        after = states[current_index:]
+        if len(after) > 1:
+            flat_mean[current_index:] = np.linspace(0.0, 1.0, len(after))
+    if restriction in {0, -1}:
+        before = states[: current_index + 1]
+        if len(before) > 1:
+            flat_mean[: current_index + 1] = np.linspace(0.0, 1.0, len(before))[::-1]
+    return flat_mean
+
+
+def _ordered_percentile_cost(
+    feature_name: str,
+    states: list[object],
+    current_value: object,
+    restriction: int,
+    context: PaperMetricContext,
+) -> np.ndarray:
+    flat_mean = np.full(len(states), np.inf, dtype="float64")
+    current_percentile = context.percentiles[feature_name][current_value]
+    for index, state in enumerate(states):
+        if restriction == 1 and index < states.index(current_value):
+            continue
+        if restriction == -1 and index > states.index(current_value):
+            continue
+        flat_mean[index] = abs(
+            context.percentiles[feature_name][state] - current_percentile
+        )
+    flat_mean[states.index(current_value)] = 0.0
+    return flat_mean
+
+
+def _unordered_cost(
+    states: list[object],
+    current_value: object,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    flat_mean = rng.uniform(0.0, 1.0, len(states)).astype("float64")
+    flat_mean[states.index(current_value)] = 0.0
+    return flat_mean
 
 
 def _linear_cost_means(
@@ -856,53 +887,29 @@ def _linear_cost_means(
     context: PaperMetricContext,
     rng: np.random.Generator,
 ) -> tuple[np.ndarray, np.ndarray]:
-    full_range = list(context.original_ranges[feature_name])
     restriction = int(context.feature_change_restriction[feature_name])
-    feature_type = context.feature_types[feature_name]
-
-    means = np.full(len(full_range), context.invalid_cost, dtype="float64")
-    variances = np.zeros(len(full_range), dtype="float64")
-    current_index = full_range.index(current_value)
+    feature_type = str(context.feature_types[feature_name])
 
     if preference_score == 0.0 or len(valid_states) == 1 or feature_type == "fixed":
-        flat_mean = np.array([0.0], dtype="float64")
-    elif feature_type == "ordered":
-        if restriction == 1:
-            flat_mean = np.linspace(0.0, 1.0, len(valid_states), dtype="float64")
-        elif restriction == -1:
-            flat_mean = np.linspace(0.0, 1.0, len(valid_states), dtype="float64")[::-1]
-        elif restriction == 0:
-            current_valid_index = valid_states.index(current_value)
-            post = np.linspace(
-                0.0,
-                1.0,
-                len(valid_states[current_valid_index:]),
-                dtype="float64",
-            )
-            pre = np.linspace(
-                0.0,
-                1.0,
-                len(valid_states[: current_valid_index + 1]),
-                dtype="float64",
-            )[::-1]
-            flat_mean = np.concatenate([pre[:-1], post])
-        else:
-            raise ValueError(f"Unsupported change restriction: {restriction}")
-        flat_mean = flat_mean * (1.0 - preference_score)
-    elif feature_type == "unordered":
-        flat_mean = rng.uniform(0.0, 1.0, len(valid_states)).astype("float64")
-        flat_mean[valid_states.index(current_value)] = 0.0
-        flat_mean = flat_mean * (1.0 - preference_score)
+        means = np.full(len(context.original_ranges[feature_name]), context.invalid_cost, dtype="float64")
+        variances = np.zeros_like(means)
+        means[context.cost_map[feature_name][current_value]] = 0.0
+        return means, variances
+
+    if feature_type == "ordered":
+        flat_mean = _ordered_linear_cost(valid_states, current_value, restriction)
     else:
-        raise ValueError(f"Unsupported feature type: {feature_type}")
+        flat_mean = _unordered_cost(valid_states, current_value, rng)
+    flat_mean = flat_mean * (1.0 - preference_score)
 
+    means = np.full(len(context.original_ranges[feature_name]), context.invalid_cost, dtype="float64")
+    variances = np.zeros_like(means)
     for index, state in enumerate(valid_states):
-        full_index = full_range.index(state)
-        means[full_index] = float(flat_mean[index])
-        variances[full_index] = context.variance
-
-    means[current_index] = 0.0
-    variances[current_index] = 0.0
+        means[context.cost_map[feature_name][state]] = flat_mean[index]
+        if flat_mean[index] > 0.0 and np.isfinite(flat_mean[index]):
+            variances[context.cost_map[feature_name][state]] = context.variance
+    means[context.cost_map[feature_name][current_value]] = 0.0
+    variances[context.cost_map[feature_name][current_value]] = 0.0
     return np.round(means, 4), np.round(variances, 4)
 
 
@@ -914,41 +921,35 @@ def _percentile_cost_means(
     context: PaperMetricContext,
     rng: np.random.Generator,
 ) -> tuple[np.ndarray, np.ndarray]:
-    full_range = list(context.original_ranges[feature_name])
     restriction = int(context.feature_change_restriction[feature_name])
-    feature_type = context.feature_types[feature_name]
-
-    means = np.full(len(full_range), context.invalid_cost, dtype="float64")
-    variances = np.zeros(len(full_range), dtype="float64")
-    current_index = full_range.index(current_value)
+    feature_type = str(context.feature_types[feature_name])
 
     if preference_score == 0.0 or len(valid_states) == 1 or feature_type == "fixed":
-        flat_mean = np.array([0.0], dtype="float64")
-    elif feature_type == "ordered":
-        feature_percentiles = context.percentiles[feature_name]
-        current_percentile = feature_percentiles[current_value]
-        flat_mean = np.array(
-            [
-                abs(feature_percentiles[state] - current_percentile)
-                for state in valid_states
-            ],
-            dtype="float64",
+        means = np.full(len(context.original_ranges[feature_name]), context.invalid_cost, dtype="float64")
+        variances = np.zeros_like(means)
+        means[context.cost_map[feature_name][current_value]] = 0.0
+        return means, variances
+
+    if feature_type == "ordered":
+        flat_mean = _ordered_percentile_cost(
+            feature_name,
+            valid_states,
+            current_value,
+            restriction,
+            context,
         )
-        flat_mean = flat_mean * (1.0 - preference_score)
-    elif feature_type == "unordered":
-        flat_mean = rng.uniform(0.0, 1.0, len(valid_states)).astype("float64")
-        flat_mean[valid_states.index(current_value)] = 0.0
-        flat_mean = flat_mean * (1.0 - preference_score)
     else:
-        raise ValueError(f"Unsupported feature type: {feature_type}")
+        flat_mean = _unordered_cost(valid_states, current_value, rng)
+    flat_mean = flat_mean * (1.0 - preference_score)
 
+    means = np.full(len(context.original_ranges[feature_name]), context.invalid_cost, dtype="float64")
+    variances = np.zeros_like(means)
     for index, state in enumerate(valid_states):
-        full_index = full_range.index(state)
-        means[full_index] = float(flat_mean[index])
-        variances[full_index] = context.variance
-
-    means[current_index] = 0.0
-    variances[current_index] = 0.0
+        means[context.cost_map[feature_name][state]] = flat_mean[index]
+        if flat_mean[index] > 0.0 and np.isfinite(flat_mean[index]):
+            variances[context.cost_map[feature_name][state]] = context.variance
+    means[context.cost_map[feature_name][current_value]] = 0.0
+    variances[context.cost_map[feature_name][current_value]] = 0.0
     return np.round(means, 4), np.round(variances, 4)
 
 
@@ -959,12 +960,12 @@ def _combine_cost_means(
     percentile_vars: np.ndarray,
     alpha: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    if alpha == 0.0:
-        return linear_means, linear_vars
-    if alpha == 1.0:
-        return percentile_means, percentile_vars
-    means = np.round(linear_means * alpha + percentile_means * (1.0 - alpha), 4)
-    return means, percentile_vars
+    means = linear_means * alpha + percentile_means * (1.0 - alpha)
+    variances = linear_vars * alpha + percentile_vars * (1.0 - alpha)
+    invalid_mask = (linear_means >= 99999.0) | (percentile_means >= 99999.0)
+    means[invalid_mask] = 99999.0
+    variances[invalid_mask] = 0.0
+    return means, variances
 
 
 def _sample_cost_vector(
@@ -975,7 +976,7 @@ def _sample_cost_vector(
 ) -> np.ndarray:
     samples = np.full(means.shape, invalid_cost, dtype="float64")
     zero_mask = means == 0.0
-    positive_mask = (means > 0.0) & (means <= 1.0)
+    positive_mask = np.isfinite(means) & (means > 0.0) & (means < invalid_cost)
     if positive_mask.any():
         mean_values = means[positive_mask] + EPSILON
         mean_values[mean_values >= 1.0] = 1.0 - (EPSILON * 1.1)
@@ -1008,7 +1009,6 @@ def _sample_user_cost(
             current_value = int(current_value)
         else:
             current_value = str(current_value)
-
         valid_states = valid_ranges[feature_name]
         linear_means, linear_vars = _linear_cost_means(
             feature_name,
@@ -1050,10 +1050,7 @@ def _compute_cf_cost(
     total_cost = 0.0
     for feature_index, feature_name in enumerate(context.feature_names):
         value = cf_values[feature_index]
-        if feature_name in context.continuous_feature_names:
-            key = int(float(value))
-        else:
-            key = str(value)
+        key = int(float(value)) if feature_name in context.continuous_feature_names else str(value)
         total_cost += float(user_cost[feature_name][context.cost_map[feature_name][key]])
     return total_cost
 
@@ -1068,10 +1065,7 @@ def _pairwise_distance(
     cat_idx = context.categorical_feature_indexes
     cont_idx = context.continuous_feature_indexes
 
-    cat_count_dists = (
-        cfs_array[..., cat_idx] != query_array[..., cat_idx]
-    ).astype(int).mean(axis=-1)
-
+    cat_count_dists = (cfs_array[..., cat_idx] != query_array[..., cat_idx]).astype(int).mean(axis=-1)
     cfs_cont = cfs_array[..., cont_idx].astype(float).astype(int)
     query_cont = query_array[..., cont_idx].astype(float).astype(int)
     cont_count_dists = (cfs_cont != query_cont).astype(int).mean(axis=-1)
@@ -1114,7 +1108,6 @@ def _validity_and_unique_valid_sets(
 ) -> tuple[float, np.ndarray]:
     if len(cfs) == 0:
         return 0.0, np.empty((0, cfs.shape[1] if cfs.ndim == 2 else 0), dtype=str)
-
     target_class = 1 - int(original_class)
     cfs_df = pd.DataFrame(cfs.astype(str, copy=False))
     unique_cfs_df = cfs_df.drop_duplicates(keep="first")
@@ -1150,9 +1143,11 @@ def _compute_set_metrics(
         query_values,
         context,
     )
-    cat_proximity = float(1.0 - cat_dists.mean())
-    cont_proximity = float(1.0 - cont_norm_dists.mean())
-    proximity = _merge_cat_cont(cat_proximity, cont_proximity, context)
+    proximity = _merge_cat_cont(
+        float(1.0 - cat_dists.mean()),
+        float(1.0 - cont_norm_dists.mean()),
+        context,
+    )
 
     if len(unique_valid_cfs) <= 1:
         diversity = 0.0
@@ -1161,20 +1156,13 @@ def _compute_set_metrics(
         pairwise_cont_norm = []
         for first_index in range(len(unique_valid_cfs)):
             for second_index in range(first_index + 1, len(unique_valid_cfs)):
-                (
-                    pair_cat,
-                    _pair_cont_mad,
-                    _pair_cont_count,
-                    pair_cont_norm,
-                ) = _pairwise_distance(
+                pair_cat, _pair_cont_mad, _pair_cont_count, pair_cont_norm = _pairwise_distance(
                     unique_valid_cfs[first_index],
                     unique_valid_cfs[second_index],
                     context,
                 )
                 pairwise_cat.append(float(np.asarray(pair_cat).reshape(-1)[0]))
-                pairwise_cont_norm.append(
-                    float(np.asarray(pair_cont_norm).reshape(-1)[0])
-                )
+                pairwise_cont_norm.append(float(np.asarray(pair_cont_norm).reshape(-1)[0]))
         diversity = _merge_cat_cont(
             float(np.mean(pairwise_cat)),
             float(np.mean(pairwise_cont_norm)),
@@ -1208,7 +1196,6 @@ def _compute_cost_metrics(
 ) -> dict[str, float | bool]:
     target_class = 1 - int(original_class)
     validity_mask = pred_classes.astype(int) == target_class
-
     if len(cf_values) == 0 or not bool(validity_mask.any()):
         final_cost = float(context.invalid_cost)
     else:
@@ -1224,6 +1211,7 @@ def _compute_cost_metrics(
         "Cov": float(covered),
         "FS@1": float(final_cost <= cost_threshold),
         "covered": covered,
+        "final_cost": final_cost,
     }
 
 
@@ -1233,27 +1221,22 @@ def _scale_metric_for_report(metric_name: str, value: float) -> float:
     return float(value * 100.0)
 
 
-def _evaluate_method(
-    method_name: str,
-    method_cfg: dict[str, Any],
-    model: ReferenceCompasMlpModel,
+def _build_runtime_and_method(
+    *,
+    model: ReferenceBinaryMlpModel,
     trainset,
+    data_cfg: dict[str, Any],
+    method_cfg: dict[str, Any],
     factual_encoded: pd.DataFrame,
     factual_raw: pd.DataFrame,
-    user_costs: list[dict[str, np.ndarray]],
-    factual_predictions: np.ndarray,
-    metric_context: PaperMetricContext,
-    data_cfg: dict[str, Any],
     scaling_stats: ScalingStats,
-    device: str,
-    progress_mode: str,
-    heartbeat_seconds: int,
-    progress_position: int = 0,
-) -> tuple[dict[str, float], dict[str, float]]:
+    evaluation_rng: np.random.Generator,
+    row_index: int,
+) -> tuple[ColsMethod, dict[str, object], RuntimeSearchContext, int, int]:
     cols_method = ColsMethod(
         target_model=model,
         seed=int(method_cfg["seed"]),
-        device=device,
+        device=str(method_cfg["device"]),
         desired_class=method_cfg.get("desired_class"),
         num_cfs=int(method_cfg["num_cfs"]),
         num_mcmc=int(method_cfg["num_mcmc"]),
@@ -1269,21 +1252,316 @@ def _evaluate_method(
     )
     cols_method.fit(trainset)
 
-    cf_sets_encoded = cols_method.get_counterfactual_sets(
-        factual_encoded,
-        show_progress=_progress_enabled(progress_mode),
-        search_progress=_search_progress_enabled(progress_mode),
-        heartbeat_seconds=heartbeat_seconds,
-        progress_desc=f"{method_name} factuals",
-        progress_position=progress_position,
+    factual_encoded_row = factual_encoded.iloc[[row_index]].reset_index(drop=True)
+    factual_state = decode_feature_dataframe(factual_encoded_row, cols_method._schema).iloc[0].to_dict()
+    original_prediction = int(_predict_label_indices(model, factual_encoded_row)[0])
+    target_index = resolve_target_index(
+        model,
+        original_prediction=original_prediction,
+        desired_class=method_cfg.get("desired_class"),
     )
-    cf_validity_masks = [mask.to_numpy(copy=True) for mask in cols_method._last_counterfactual_validity]
-    search_stats = list(cols_method._last_search_stats)
+    runtime_context = build_runtime_context(
+        schema=cols_method._schema,
+        decoded_training=cols_method._decoded_training,
+        base_state_spaces=cols_method._base_state_spaces,
+        factual_state=factual_state,
+        num_mcmc=int(method_cfg["num_mcmc"]),
+        alpha=method_cfg.get("alpha"),
+        variance=float(method_cfg["variance"]),
+        invalid_cost=float(method_cfg["invalid_cost"]),
+        rng=evaluation_rng,
+    )
+    return cols_method, factual_state, runtime_context, target_index, original_prediction
+
+
+def _objective_score_from_set_metrics(
+    objective_name: str,
+    set_metrics: dict[str, float | bool],
+) -> float:
+    objective_name = str(objective_name).lower()
+    validity = float(set_metrics["Val"])
+    if objective_name == "proximity":
+        return (-float(set_metrics["Prox"]) - validity) / 2.0
+    if objective_name == "diversity":
+        return (-float(set_metrics["Div"]) - validity) / 2.0
+    if objective_name == "sparsity":
+        return (-float(set_metrics["Spars"]) - validity) / 2.0
+    raise ValueError(f"Unsupported distance objective: {objective_name}")
+
+
+def _evaluate_search_candidate(
+    *,
+    model: ReferenceBinaryMlpModel,
+    cols_method: ColsMethod,
+    candidate_states: pd.DataFrame,
+    runtime_context: RuntimeSearchContext,
+    factual_raw_row: pd.Series,
+    original_prediction: int,
+    metric_context: PaperMetricContext,
+    data_cfg: dict[str, Any],
+    scaling_stats: ScalingStats,
+    objective_name: str,
+    query_count: int,
+) -> SearchRunArtifacts:
+    encoded_set = encode_state_dataframe(candidate_states, runtime_context.schema)
+    pred_classes = _predict_label_indices(model, encoded_set)
+    query_count += int(encoded_set.shape[0])
+    target_index = 1 - int(original_prediction)
+    valid_mask = pred_classes.astype(int) == int(target_index)
+
+    if objective_name == "cost_simple":
+        cost_matrix = compute_candidate_cost_matrix(candidate_states, runtime_context, valid_mask)
+        score = float(compute_emc(cost_matrix, invalid_cost=metric_context.invalid_cost))
+    else:
+        cf_raw = _decode_counterfactual_set(
+            encoded_set,
+            cols_method,
+            data_cfg,
+            scaling_stats,
+        )
+        cf_values = cf_raw.loc[:, metric_context.feature_names].astype(str).to_numpy()
+        query_values = factual_raw_row.loc[metric_context.feature_names].astype(str).to_numpy()
+        set_metrics = _compute_set_metrics(
+            query_values=query_values,
+            cf_values=cf_values,
+            pred_classes=pred_classes,
+            original_class=original_prediction,
+            context=metric_context,
+        )
+        score = float(_objective_score_from_set_metrics(objective_name, set_metrics))
+
+    return SearchRunArtifacts(
+        encoded_set=encoded_set.reset_index(drop=True),
+        pred_classes=pred_classes,
+        valid_mask=valid_mask.astype(bool, copy=False),
+        score=score,
+        num_queries=query_count,
+    )
+
+
+def _run_local_search_objective(
+    *,
+    model: ReferenceBinaryMlpModel,
+    trainset,
+    method_cfg: dict[str, Any],
+    factual_encoded_row: pd.DataFrame,
+    factual_raw_row: pd.Series,
+    metric_context: PaperMetricContext,
+    data_cfg: dict[str, Any],
+    scaling_stats: ScalingStats,
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, float]:
+    local_cfg = copy.deepcopy(method_cfg)
+    evaluation_rng = np.random.default_rng(int(local_cfg["seed"]))
+    cols_method, factual_state, runtime_context, target_index, original_prediction = _build_runtime_and_method(
+        model=model,
+        trainset=trainset,
+        data_cfg=data_cfg,
+        method_cfg=local_cfg,
+        factual_encoded=factual_encoded_row,
+        factual_raw=factual_raw_row.to_frame().T,
+        scaling_stats=scaling_stats,
+        evaluation_rng=evaluation_rng,
+        row_index=0,
+    )
+
+    rng = np.random.default_rng(int(local_cfg["seed"]))
+    objective_name = str(local_cfg["objective"]).lower()
+    budget = int(local_cfg["budget"])
+    query_count = 0
+    best_states: pd.DataFrame | None = None
+    best_encoded: pd.DataFrame | None = None
+    best_pred_classes: np.ndarray | None = None
+    best_valid_mask: np.ndarray | None = None
+    best_score = float("inf")
+    current_states: pd.DataFrame | None = None
+    init_type = str(local_cfg["init_type"])
+
+    for attempt in range(16):
+        candidate_states = cols_method._initialize_state_set(
+            factual_state,
+            runtime_context,
+            rng,
+            init_type=init_type,
+        )
+        candidate = _evaluate_search_candidate(
+            model=model,
+            cols_method=cols_method,
+            candidate_states=candidate_states,
+            runtime_context=runtime_context,
+            factual_raw_row=factual_raw_row,
+            original_prediction=original_prediction,
+            metric_context=metric_context,
+            data_cfg=data_cfg,
+            scaling_stats=scaling_stats,
+            objective_name=objective_name,
+            query_count=query_count,
+        )
+        query_count = candidate.num_queries
+        if candidate.valid_mask.sum() > 0:
+            best_states = candidate_states.reset_index(drop=True)
+            current_states = candidate_states.reset_index(drop=True)
+            best_encoded = candidate.encoded_set
+            best_pred_classes = candidate.pred_classes
+            best_valid_mask = candidate.valid_mask
+            best_score = float(candidate.score)
+            break
+        if attempt >= 9:
+            init_type = "random"
+
+    if best_states is None or best_encoded is None or best_pred_classes is None or best_valid_mask is None:
+        raise RuntimeError("Local-search initialization failed to find any valid counterfactuals")
+
+    while query_count < budget:
+        base_states = best_states if str(local_cfg["iter_type"]).lower() == "best" else current_states
+        if base_states is None:
+            break
+        candidate_states = cols_method._perturb_state_set(
+            base_states,
+            runtime_context,
+            rng,
+        )
+        current_states = candidate_states.reset_index(drop=True)
+        candidate = _evaluate_search_candidate(
+            model=model,
+            cols_method=cols_method,
+            candidate_states=candidate_states,
+            runtime_context=runtime_context,
+            factual_raw_row=factual_raw_row,
+            original_prediction=original_prediction,
+            metric_context=metric_context,
+            data_cfg=data_cfg,
+            scaling_stats=scaling_stats,
+            objective_name=objective_name,
+            query_count=query_count,
+        )
+        query_count = candidate.num_queries
+        if float(candidate.score) < best_score:
+            best_states = candidate_states.reset_index(drop=True)
+            best_encoded = candidate.encoded_set
+            best_pred_classes = candidate.pred_classes
+            best_valid_mask = candidate.valid_mask
+            best_score = float(candidate.score)
+
+    return best_encoded, best_pred_classes, best_valid_mask, best_score
+
+
+def _evaluate_method(
+    *,
+    method_name: str,
+    method_cfg: dict[str, Any],
+    model: ReferenceBinaryMlpModel,
+    trainset,
+    factual_encoded: pd.DataFrame,
+    factual_raw: pd.DataFrame,
+    user_costs: list[dict[str, np.ndarray]],
+    factual_predictions: np.ndarray,
+    metric_context: PaperMetricContext,
+    data_cfg: dict[str, Any],
+    scaling_stats: ScalingStats,
+    device: str,
+    progress_mode: str,
+    heartbeat_seconds: int,
+    progress_position: int = 0,
+) -> tuple[dict[str, float], dict[str, float], list[PerFactualResult]]:
+    resolved_method_cfg = copy.deepcopy(method_cfg)
+    resolved_method_cfg["device"] = device
+
+    if str(resolved_method_cfg.get("search", "cols")).lower() == "cols":
+        cols_method = ColsMethod(
+            target_model=model,
+            seed=int(resolved_method_cfg["seed"]),
+            device=device,
+            desired_class=resolved_method_cfg.get("desired_class"),
+            num_cfs=int(resolved_method_cfg["num_cfs"]),
+            num_mcmc=int(resolved_method_cfg["num_mcmc"]),
+            budget=int(resolved_method_cfg["budget"]),
+            num_parallel_runs=int(resolved_method_cfg["num_parallel_runs"]),
+            hamming_dist=int(resolved_method_cfg["hamming_dist"]),
+            perturb_type=str(resolved_method_cfg["perturb_type"]),
+            init_type=str(resolved_method_cfg["init_type"]),
+            iter_type=str(resolved_method_cfg["iter_type"]),
+            alpha=resolved_method_cfg.get("alpha"),
+            variance=float(resolved_method_cfg["variance"]),
+            invalid_cost=float(resolved_method_cfg["invalid_cost"]),
+        )
+        cols_method.fit(trainset)
+        cf_sets_encoded = cols_method.get_counterfactual_sets(
+            factual_encoded,
+            show_progress=_progress_enabled(progress_mode),
+            search_progress=_search_progress_enabled(progress_mode),
+            heartbeat_seconds=heartbeat_seconds,
+            progress_desc=f"{method_name} factuals",
+            progress_position=progress_position,
+        )
+        cf_pred_classes_list = [
+            _predict_label_indices(model, cf_encoded) for cf_encoded in cf_sets_encoded
+        ]
+        cf_validity_masks = [
+            mask.to_numpy(copy=True)
+            for mask in cols_method._last_counterfactual_validity
+        ]
+        search_stats = list(cols_method._last_search_stats)
+    else:
+        cf_sets_encoded = []
+        cf_pred_classes_list = []
+        cf_validity_masks = []
+        search_stats = []
+        factual_iterator = _build_progress_bar(
+            range(factual_encoded.shape[0]),
+            total=factual_encoded.shape[0],
+            desc=f"{method_name} factuals",
+            position=progress_position,
+            leave=False,
+            disable=not _progress_enabled(progress_mode),
+        )
+        for row_index in factual_iterator:
+            cf_encoded, cf_pred_classes, validity_mask, score = _run_local_search_objective(
+                model=model,
+                trainset=trainset,
+                method_cfg=resolved_method_cfg,
+                factual_encoded_row=factual_encoded.iloc[[row_index]].reset_index(drop=True),
+                factual_raw_row=factual_raw.iloc[row_index],
+                metric_context=metric_context,
+                data_cfg=data_cfg,
+                scaling_stats=scaling_stats,
+            )
+            cf_sets_encoded.append(cf_encoded)
+            cf_pred_classes_list.append(cf_pred_classes)
+            cf_validity_masks.append(validity_mask)
+            search_stats.append(
+                {
+                    "row_index": row_index,
+                    "target_index": 1 - int(factual_predictions[row_index]),
+                    "emc": score,
+                    "num_valid": int(validity_mask.sum()),
+                    "num_queries": int(cf_encoded.shape[0]),
+                }
+            )
+        factual_iterator.close()
+        cols_method = ColsMethod(
+            target_model=model,
+            seed=int(resolved_method_cfg["seed"]),
+            device=device,
+            desired_class=resolved_method_cfg.get("desired_class"),
+            num_cfs=int(resolved_method_cfg["num_cfs"]),
+            num_mcmc=int(resolved_method_cfg["num_mcmc"]),
+            budget=int(resolved_method_cfg["budget"]),
+            num_parallel_runs=int(resolved_method_cfg["num_parallel_runs"]),
+            hamming_dist=int(resolved_method_cfg["hamming_dist"]),
+            perturb_type=str(resolved_method_cfg["perturb_type"]),
+            init_type=str(resolved_method_cfg["init_type"]),
+            iter_type=str(resolved_method_cfg["iter_type"]),
+            alpha=resolved_method_cfg.get("alpha"),
+            variance=float(resolved_method_cfg["variance"]),
+            invalid_cost=float(resolved_method_cfg["invalid_cost"]),
+        )
+        cols_method.fit(trainset)
 
     cost_rows = []
     set_rows = []
+    fairness_rows: list[PerFactualResult] = []
     evaluation_iterator = _build_progress_bar(
-        enumerate(cf_sets_encoded),
+        range(len(cf_sets_encoded)),
         total=len(cf_sets_encoded),
         desc=f"{method_name} evaluate",
         position=progress_position,
@@ -1291,48 +1569,54 @@ def _evaluate_method(
         disable=not _progress_enabled(progress_mode),
     )
     last_heartbeat = time.monotonic()
-    for factual_index, cf_encoded in evaluation_iterator:
-        cf_pred_classes = _predict_label_indices(model, cf_encoded)
+    for factual_index in evaluation_iterator:
+        cf_encoded = cf_sets_encoded[factual_index]
+        cf_pred_classes = cf_pred_classes_list[factual_index]
         validity_mask = cf_validity_masks[factual_index].astype(bool)
-        target_index = int(method_cfg["desired_class"])
+        target_index = int(resolved_method_cfg["desired_class"])
         if not np.array_equal(validity_mask, cf_pred_classes == target_index):
-            raise AssertionError("Stored COLS validity mask does not match model predictions")
+            raise AssertionError("Stored validity mask does not match model predictions")
 
         cf_raw = _decode_counterfactual_set(cf_encoded, cols_method, data_cfg, scaling_stats)
         cf_values = cf_raw.loc[:, metric_context.feature_names].astype(str).to_numpy()
-        query_values = (
-            factual_raw.iloc[factual_index]
-            .loc[metric_context.feature_names]
-            .astype(str)
-            .to_numpy()
-        )
+        query_values = factual_raw.iloc[factual_index].loc[metric_context.feature_names].astype(str).to_numpy()
         original_class = int(factual_predictions[factual_index])
 
-        cost_rows.append(
-            _compute_cost_metrics(
-                cf_values=cf_values,
-                pred_classes=cf_pred_classes,
-                original_class=original_class,
-                user_cost=user_costs[factual_index],
-                context=metric_context,
-                cost_threshold=float(data_cfg["evaluation"]["cost_threshold"]),
-                coverage_threshold=float(data_cfg["evaluation"]["coverage_threshold"]),
+        cost_metrics = _compute_cost_metrics(
+            cf_values=cf_values,
+            pred_classes=cf_pred_classes,
+            original_class=original_class,
+            user_cost=user_costs[factual_index],
+            context=metric_context,
+            cost_threshold=float(data_cfg["evaluation"]["cost_threshold"]),
+            coverage_threshold=float(data_cfg["evaluation"]["coverage_threshold"]),
+        )
+        set_metrics = _compute_set_metrics(
+            query_values=query_values,
+            cf_values=cf_values,
+            pred_classes=cf_pred_classes,
+            original_class=original_class,
+            context=metric_context,
+        )
+        cost_rows.append(cost_metrics)
+        set_rows.append(set_metrics)
+        fairness_rows.append(
+            PerFactualResult(
+                subgroup_values={
+                    feature_name: str(factual_raw.iloc[factual_index][feature_name])
+                    for feature_name in data_cfg["fairness"]["subgroup_features"]
+                },
+                final_cost=float(cost_metrics["final_cost"]),
+                fs_at_1=float(cost_metrics["FS@1"]),
+                cov=float(cost_metrics["Cov"]),
             )
         )
-        set_rows.append(
-            _compute_set_metrics(
-                query_values=query_values,
-                cf_values=cf_values,
-                pred_classes=cf_pred_classes,
-                original_class=original_class,
-                context=metric_context,
-            )
-        )
+
         if _progress_enabled(progress_mode):
             evaluation_iterator.set_postfix(
                 valid=int(search_stats[factual_index]["num_valid"]),
                 queries=int(search_stats[factual_index]["num_queries"]),
-                emc=f"{float(search_stats[factual_index]['emc']):.4f}",
+                score=f"{float(search_stats[factual_index]['emc']):.4f}",
             )
         last_heartbeat = _maybe_write_heartbeat(
             enabled=_progress_enabled(progress_mode),
@@ -1341,8 +1625,7 @@ def _evaluate_method(
             message=(
                 f"[evaluate] method={method_name} "
                 f"factual={factual_index + 1}/{len(cf_sets_encoded)} "
-                f"queries={int(search_stats[factual_index]['num_queries'])} "
-                f"emc={float(search_stats[factual_index]['emc']):.4f}"
+                f"queries={int(search_stats[factual_index]['num_queries'])}"
             ),
         )
     evaluation_iterator.close()
@@ -1382,74 +1665,66 @@ def _evaluate_method(
     }
 
     search_summary = {
-        "mean_queries": float(
-            np.mean([float(stats["num_queries"]) for stats in search_stats])
-        ),
-        "mean_emc": float(np.mean([float(stats["emc"]) for stats in search_stats])),
-        "mean_valid_cfs": float(
-            np.mean([float(stats["num_valid"]) for stats in search_stats])
-        ),
+        "mean_queries": float(np.mean([float(stats["num_queries"]) for stats in search_stats])),
+        "mean_score": float(np.mean([float(stats["emc"]) for stats in search_stats])),
+        "mean_valid_cfs": float(np.mean([float(stats["num_valid"]) for stats in search_stats])),
         "coverage_fraction": float(np.mean(covered_mask)),
     }
-    return aggregated, search_summary
+    return aggregated, search_summary, fairness_rows
 
 
-def _run_single_seed(
+def _run_single_seed_for_dataset(
+    *,
     run_seed: int,
-    config: dict[str, Any],
+    dataset_name: str,
+    dataset_cfg: dict[str, Any],
+    method_map: dict[str, dict[str, Any]],
     device: str,
     progress_mode: str,
     heartbeat_seconds: int,
-    seed_position: int = 0,
-) -> dict[str, Any]:
-    data_cfg = config["data"]
-    model_cfg = config["model"]
-
-    raw_df = _load_raw_compas_dataframe(data_cfg)
-    split_artifacts = _build_reference_split(raw_df, data_cfg)
+) -> TableRunResult:
+    raw_df = _load_raw_dataframe(dataset_cfg)
+    split_artifacts = _build_reference_split(raw_df, dataset_cfg)
     scaling_stats = _compute_scaling_stats(
         split_artifacts.train_df,
-        data_cfg["continuous_feature_order"],
+        list(dataset_cfg["continuous_feature_order"]),
     )
 
-    template = _build_dataset_template(data_cfg)
-    balanced_features = _encode_raw_features(
-        split_artifacts.balanced_df,
-        data_cfg,
-        scaling_stats,
-    )
-    train_features = _encode_raw_features(split_artifacts.train_df, data_cfg, scaling_stats)
-    val_features = _encode_raw_features(split_artifacts.val_df, data_cfg, scaling_stats)
+    template = _build_dataset_template(dataset_cfg)
+    balanced_features = _encode_raw_features(split_artifacts.balanced_df, dataset_cfg, scaling_stats)
+    train_features = _encode_raw_features(split_artifacts.train_df, dataset_cfg, scaling_stats)
+    val_features = _encode_raw_features(split_artifacts.val_df, dataset_cfg, scaling_stats)
     provisional_features = _encode_raw_features(
         split_artifacts.provisional_factual_df,
-        data_cfg,
+        dataset_cfg,
         scaling_stats,
     )
 
     trainset = _build_frozen_dataset(
         template,
         train_features,
-        split_artifacts.train_df[data_cfg["target_column"]],
-        data_cfg,
+        split_artifacts.train_df[dataset_cfg["target_column"]],
+        dataset_cfg,
         "trainset",
         extra_attrs={
             "cols_feature_space_df": balanced_features,
             "cols_state_space_overrides": _build_cols_state_space_overrides(
                 split_artifacts.balanced_df,
                 scaling_stats,
-                data_cfg,
+                dataset_cfg,
             ),
         },
     )
     valset = _build_frozen_dataset(
         template,
         val_features,
-        split_artifacts.val_df[data_cfg["target_column"]],
-        data_cfg,
+        split_artifacts.val_df[dataset_cfg["target_column"]],
+        dataset_cfg,
         "valset",
     )
 
-    model = ReferenceCompasMlpModel(
+    model_cfg = dataset_cfg["model"]
+    model = ReferenceBinaryMlpModel(
         seed=int(model_cfg.get("seed", 1234)),
         device=device,
         epochs=int(model_cfg["epochs"]),
@@ -1470,80 +1745,47 @@ def _run_single_seed(
         trainset,
         valset=valset,
         show_progress=_progress_enabled(progress_mode),
-        progress_desc=f"seed {run_seed} train",
-        progress_position=seed_position + 1,
-        progress_leave=False,
+        progress_desc=f"{dataset_name} seed {run_seed} train",
         heartbeat_seconds=heartbeat_seconds,
     )
 
     provisional_predictions = _predict_label_indices(model, provisional_features)
-    undesired_class = int(data_cfg["undesired_class"])
-    keep_mask = provisional_predictions == undesired_class
-
+    keep_mask = provisional_predictions == int(dataset_cfg["undesired_class"])
     factual_raw = split_artifacts.provisional_factual_df.loc[keep_mask].reset_index(drop=True)
     factual_encoded = provisional_features.loc[keep_mask].reset_index(drop=True)
 
-    target_factual_count = int(data_cfg["split"]["target_factual_count"])
+    target_factual_count = int(dataset_cfg["split"]["target_factual_count"])
     if factual_raw.shape[0] > target_factual_count:
         factual_raw = factual_raw.iloc[:target_factual_count].reset_index(drop=True)
         factual_encoded = factual_encoded.iloc[:target_factual_count].reset_index(drop=True)
-
     if factual_raw.empty:
-        raise RuntimeError("Model filtering produced no COMPAS factuals for recourse")
+        raise RuntimeError(f"Model filtering produced no factuals for {dataset_name}")
 
     metric_context = _build_metric_context(
-        split_artifacts.balanced_df.loc[:, list(data_cfg["raw_feature_order"]) + [data_cfg["target_column"]]],
-        split_artifacts.train_df.loc[:, list(data_cfg["raw_feature_order"]) + [data_cfg["target_column"]]],
-        data_cfg,
-        data_cfg["evaluation"],
+        split_artifacts.balanced_df.loc[:, list(dataset_cfg["raw_feature_order"]) + [dataset_cfg["target_column"]]],
+        split_artifacts.train_df.loc[:, list(dataset_cfg["raw_feature_order"]) + [dataset_cfg["target_column"]]],
+        dataset_cfg,
+        dataset_cfg["evaluation"],
     )
 
     evaluation_rng = np.random.default_rng(run_seed)
-    user_costs = []
-    user_cost_iterator = _build_progress_bar(
-        range(factual_raw.shape[0]),
-        total=factual_raw.shape[0],
-        desc=f"seed {run_seed} user-costs",
-        position=seed_position + 1,
-        leave=False,
-        disable=not _progress_enabled(progress_mode),
-    )
-    last_heartbeat = time.monotonic()
-    for row_index in user_cost_iterator:
-        user_costs.append(
-            _sample_user_cost(
-                factual_raw.iloc[row_index].loc[metric_context.feature_names],
-                metric_context,
-                data_cfg["evaluation"].get("alpha"),
-                evaluation_rng,
-            )
+    user_costs = [
+        _sample_user_cost(
+            factual_raw.iloc[row_index].loc[metric_context.feature_names],
+            metric_context,
+            dataset_cfg["evaluation"].get("alpha"),
+            evaluation_rng,
         )
-        last_heartbeat = _maybe_write_heartbeat(
-            enabled=_progress_enabled(progress_mode),
-            heartbeat_seconds=heartbeat_seconds,
-            last_heartbeat=last_heartbeat,
-            message=(
-                f"[user-costs] seed={run_seed} "
-                f"sampled={row_index + 1}/{factual_raw.shape[0]}"
-            ),
-        )
-    user_cost_iterator.close()
+        for row_index in range(factual_raw.shape[0])
+    ]
     factual_predictions = _predict_label_indices(model, factual_encoded)
 
     method_results: dict[str, dict[str, Any]] = {}
-    method_iterator = _build_progress_bar(
-        config["methods"],
-        total=len(config["methods"]),
-        desc=f"seed {run_seed} methods",
-        position=seed_position + 1,
-        leave=False,
-        disable=not _progress_enabled(progress_mode),
-    )
-    for method_index, base_method_cfg in enumerate(method_iterator):
+    for method_name, base_method_cfg in method_map.items():
         method_cfg = copy.deepcopy(base_method_cfg)
         method_cfg["seed"] = run_seed
-        metrics, search_summary = _evaluate_method(
-            method_name=str(method_cfg["name"]),
+        metrics, search_summary, fairness_rows = _evaluate_method(
+            method_name=method_name,
             method_cfg=method_cfg,
             model=model,
             trainset=trainset,
@@ -1552,164 +1794,167 @@ def _run_single_seed(
             user_costs=user_costs,
             factual_predictions=factual_predictions,
             metric_context=metric_context,
-            data_cfg=data_cfg,
+            data_cfg=dataset_cfg,
             scaling_stats=scaling_stats,
             device=device,
             progress_mode=progress_mode,
             heartbeat_seconds=heartbeat_seconds,
-            progress_position=seed_position + 1,
         )
-        method_results[str(method_cfg["name"])] = {
+        method_results[method_name] = {
             "metrics": metrics,
             "search": search_summary,
+            "fairness_rows": fairness_rows,
         }
-        if _progress_enabled(progress_mode):
-            method_iterator.set_postfix(
-                method=str(method_cfg["name"]),
-                cov=f"{metrics['Cov']:.2f}",
-                val=f"{metrics['Val']:.2f}",
-            )
-    method_iterator.close()
 
-    return {
-        "seed": run_seed,
-        "balanced_rows": int(split_artifacts.balanced_df.shape[0]),
-        "train_rows": int(split_artifacts.train_df.shape[0]),
-        "val_rows": int(split_artifacts.val_df.shape[0]),
-        "provisional_rows": int(split_artifacts.provisional_factual_df.shape[0]),
-        "provisional_unique_rows": int(split_artifacts.provisional_unique_count),
-        "factual_rows": int(factual_raw.shape[0]),
-        "val_accuracy": (
-            float(model._best_val_accuracy)
-            if model._best_val_accuracy is not None
-            else float("nan")
-        ),
-        "methods": method_results,
-    }
+    return TableRunResult(
+        seed=run_seed,
+        dataset=dataset_name,
+        methods=method_results,
+        val_accuracy=float(model._best_val_accuracy) if model._best_val_accuracy is not None else float("nan"),
+        factual_rows=int(factual_raw.shape[0]),
+    )
 
 
-def _build_comparison_table(
-    run_results: list[dict[str, Any]],
-    paper_targets: dict[str, dict[str, float]],
+def _aggregate_table1(
+    run_results: list[TableRunResult],
+    targets: dict[str, dict[str, dict[str, float]]],
 ) -> pd.DataFrame:
     records = []
-    for method_name, metric_targets in paper_targets.items():
+    for dataset_name, method_map in targets.items():
+        dataset_runs = [result for result in run_results if result.dataset == dataset_name]
+        for method_name, metric_targets in method_map.items():
+            for metric_name, paper_value in metric_targets.items():
+                values = [
+                    float(result.methods[method_name]["metrics"][metric_name])
+                    for result in dataset_runs
+                ]
+                records.append(
+                    {
+                        "table": "Table 1",
+                        "dataset": dataset_name,
+                        "method": method_name,
+                        "metric": metric_name,
+                        "paper": float(paper_value),
+                        "reproduced_mean": float(np.nanmean(values)),
+                        "reproduced_std": float(np.nanstd(values, ddof=0)),
+                        "absolute_gap": float(abs(np.nanmean(values) - float(paper_value))),
+                    }
+                )
+    return pd.DataFrame.from_records(records)
+
+
+def _aggregate_table2(
+    run_results: list[TableRunResult],
+    targets: dict[str, dict[str, float]],
+) -> pd.DataFrame:
+    records = []
+    for method_name, metric_targets in targets.items():
         for metric_name, paper_value in metric_targets.items():
-            metric_values = [
-                float(result["methods"][method_name]["metrics"][metric_name])
+            values = [
+                float(result.methods[method_name]["metrics"][metric_name])
                 for result in run_results
             ]
-            reproduced_mean = float(np.nanmean(metric_values))
-            reproduced_std = float(np.nanstd(metric_values, ddof=0))
             records.append(
                 {
+                    "table": "Table 2",
                     "method": method_name,
                     "metric": metric_name,
                     "paper": float(paper_value),
-                    "reproduced_mean": reproduced_mean,
-                    "reproduced_std": reproduced_std,
-                    "absolute_gap": float(abs(reproduced_mean - float(paper_value))),
+                    "reproduced_mean": float(np.nanmean(values)),
+                    "reproduced_std": float(np.nanstd(values, ddof=0)),
+                    "absolute_gap": float(abs(np.nanmean(values) - float(paper_value))),
                 }
             )
     return pd.DataFrame.from_records(records)
 
 
-def _print_run_summary(run_result: dict[str, Any]) -> None:
-    print(
-        "seed={seed} balanced={balanced_rows} train={train_rows} val={val_rows} "
-        "provisional={provisional_rows} provisional_unique={provisional_unique_rows} "
-        "factuals={factual_rows} val_acc={val_accuracy:.4f}".format(**run_result)
-    )
-    for method_name, method_result in run_result["methods"].items():
-        search = method_result["search"]
-        print(
-            "  {name}: mean_queries={queries:.2f} mean_emc={emc:.4f} "
-            "mean_valid_cfs={valid:.2f} coverage={coverage:.4f}".format(
-                name=method_name,
-                queries=search["mean_queries"],
-                emc=search["mean_emc"],
-                valid=search["mean_valid_cfs"],
-                coverage=search["coverage_fraction"],
-            )
-        )
+def _aggregate_table3(
+    run_results: list[TableRunResult],
+    subgroup_feature: str,
+    subgroup_order: list[str],
+    targets: dict[str, dict[str, dict[str, float]]],
+) -> pd.DataFrame:
+    records = []
+    for method_name, paper_rows in targets.items():
+        female_label, male_label = subgroup_order
+        female_fs = []
+        female_cov = []
+        male_fs = []
+        male_cov = []
+        for result in run_results:
+            rows = result.methods[method_name]["fairness_rows"]
+            female_rows = [row for row in rows if row.subgroup_values[subgroup_feature] == female_label]
+            male_rows = [row for row in rows if row.subgroup_values[subgroup_feature] == male_label]
+            female_fs.append(float(np.mean([row.fs_at_1 for row in female_rows])) * 100.0)
+            female_cov.append(float(np.mean([row.cov for row in female_rows])) * 100.0)
+            male_fs.append(float(np.mean([row.fs_at_1 for row in male_rows])) * 100.0)
+            male_cov.append(float(np.mean([row.cov for row in male_rows])) * 100.0)
 
-@pytest.mark.slow
-def test_reproduce() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        default=str(Path(__file__).with_name("reproduce_configs.yaml")),
-    )
-    parser.add_argument("--max-runs", type=int, default=None)
-    parser.add_argument("--max-factuals", type=int, default=None)
-    parser.add_argument("--override-epochs", type=int, default=None)
-    parser.add_argument("--override-budget", type=int, default=None)
-    parser.add_argument("--override-num-mcmc", type=int, default=None)
-    parser.add_argument("--methods", type=str, default=None)
-    parser.add_argument("--use-reference-checkpoint", action="store_true")
-    parser.add_argument("--profile", type=str, default=None)
-    parser.add_argument("--progress", type=str, default="standard")
-    parser.add_argument("--heartbeat-seconds", type=int, default=60)
-    args = parser.parse_args()
+        reproduced = {
+            female_label: {
+                "FS@1": float(np.mean(female_fs)),
+                "Cov": float(np.mean(female_cov)),
+            },
+            male_label: {
+                "FS@1": float(np.mean(male_fs)),
+                "Cov": float(np.mean(male_cov)),
+            },
+        }
+        reproduced["DIR"] = {
+            "DIR-FS": (
+                reproduced[male_label]["FS@1"] / reproduced[female_label]["FS@1"]
+                if reproduced[female_label]["FS@1"] > 0.0
+                else float("nan")
+            ),
+            "DIR-Cov": (
+                reproduced[male_label]["Cov"] / reproduced[female_label]["Cov"]
+                if reproduced[female_label]["Cov"] > 0.0
+                else float("nan")
+            ),
+        }
 
-    config_path = (PROJECT_ROOT / args.config).resolve()
-    if not config_path.exists():
-        config_path = Path(args.config).resolve()
-    config = _apply_cli_overrides(_load_config(config_path), args)
-    device = _resolve_device(str(config["model"]["device"]).lower())
-    progress_mode = _resolve_progress_mode(args.progress)
-    heartbeat_seconds = max(1, int(args.heartbeat_seconds))
+        for subgroup_name, metric_targets in paper_rows.items():
+            if subgroup_name == "DIR":
+                source = reproduced["DIR"]
+            else:
+                source = reproduced[subgroup_name]
+            for metric_name, paper_value in metric_targets.items():
+                value = float(source[metric_name])
+                records.append(
+                    {
+                        "table": "Table 3",
+                        "method": method_name,
+                        "subgroup": subgroup_name,
+                        "metric": metric_name,
+                        "paper": float(paper_value),
+                        "reproduced_mean": value,
+                        "reproduced_std": 0.0,
+                        "absolute_gap": float(abs(value - float(paper_value))),
+                    }
+                )
+    return pd.DataFrame.from_records(records)
 
-    run_results = []
-    run_seeds = [int(seed) for seed in config["reproduction"]["run_seeds"]]
-    seed_iterator = _build_progress_bar(
-        run_seeds,
-        total=len(run_seeds),
-        desc="reproduction seeds",
-        position=0,
-        leave=True,
-        disable=not _progress_enabled(progress_mode),
-    )
-    for seed_index, run_seed in enumerate(seed_iterator):
-        run_result = _run_single_seed(
-            run_seed,
-            config,
-            device,
-            progress_mode=progress_mode,
-            heartbeat_seconds=heartbeat_seconds,
-            seed_position=0,
-        )
-        run_results.append(run_result)
-        _print_run_summary(run_result)
-        if _progress_enabled(progress_mode):
-            seed_iterator.set_postfix(
-                seed=run_seed,
-                factuals=int(run_result["factual_rows"]),
-                val_acc=f"{float(run_result['val_accuracy']):.4f}",
-            )
-    seed_iterator.close()
 
-    comparison = _build_comparison_table(
-        run_results,
-        config["reproduction"]["paper_targets"],
-    )
-    print("\nComparison Table")
-    print(comparison.to_string(index=False))
-    report_path = write_reproduction_report(
-        output_path=REPORT_PATH,
-        paper_id="cols_compas_table",
-        reproduction_metadata={
-            "timestamp": datetime.now(timezone.utc),
-            "framework_version": "1.0.0",
-            "source_script": Path(__file__).name,
-            "config_path": str(config_path),
-            "run_seeds": run_seeds,
-        },
-        experiments_data={
-            f"{row['method']}_{row['metric']}": {
+def _build_report_entries(
+    comparison_tables: list[pd.DataFrame],
+) -> dict[str, dict[str, Any]]:
+    experiments: dict[str, dict[str, Any]] = {}
+    for table in comparison_tables:
+        for row in table.to_dict(orient="records"):
+            key_parts = [
+                str(row["table"]).replace(" ", "_"),
+                str(row.get("dataset", "")),
+                str(row["method"]),
+                str(row.get("subgroup", "")),
+                str(row["metric"]),
+            ]
+            key = "_".join([part for part in key_parts if part])
+            experiments[key] = {
                 "configuration": {
-                    "dataset": str(config["dataset"]["name"]),
+                    "table": row["table"],
+                    "dataset": row.get("dataset"),
                     "method": row["method"],
+                    "subgroup": row.get("subgroup"),
                     "metric": row["metric"],
                 },
                 "metrics": {
@@ -1723,11 +1968,270 @@ def test_reproduce() -> None:
                     },
                 },
             }
-            for row in comparison.to_dict(orient="records")
+    return experiments
+
+
+def _parse_method_filter(methods_arg: str | None) -> set[str] | None:
+    if methods_arg is None:
+        return None
+    requested = {method.strip() for method in methods_arg.split(",") if method.strip()}
+    if not requested:
+        raise ValueError("--methods must include at least one method name")
+    return requested
+
+
+def _normalize_method_filter_name(method_name: str) -> str:
+    return "".join(ch for ch in method_name.lower() if ch.isalnum())
+
+
+def _filter_table_methods(
+    table_name: str,
+    table_cfg: dict[str, Any],
+    requested: set[str],
+) -> None:
+    methods = table_cfg.get("methods", {})
+    available = set(methods)
+    requested_aliases = {_normalize_method_filter_name(name) for name in requested}
+    selected = {
+        name: cfg
+        for name, cfg in methods.items()
+        if name in requested or _normalize_method_filter_name(name) in requested_aliases
+    }
+    if not selected:
+        raise ValueError(
+            f"No requested methods are available for {table_name}. "
+            f"Requested {sorted(requested)}, available {sorted(available)}."
+        )
+    table_cfg["methods"] = selected
+
+    paper_targets = table_cfg.get("paper_targets", {})
+    if table_name == "table1":
+        table_cfg["paper_targets"] = {
+            dataset_name: {
+                method_name: targets
+                for method_name, targets in dataset_targets.items()
+                if method_name in selected
+            }
+            for dataset_name, dataset_targets in paper_targets.items()
+        }
+        return
+
+    table_cfg["paper_targets"] = {
+        method_name: targets
+        for method_name, targets in paper_targets.items()
+        if method_name in selected
+    }
+
+
+def _apply_cli_overrides(config: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    cfg = _apply_profile(config, getattr(args, "profile", None))
+    requested_methods = _parse_method_filter(getattr(args, "methods", None))
+    if requested_methods is not None:
+        if args.tables is not None:
+            selected_table_names = set(args.tables)
+        elif args.all_tables:
+            selected_table_names = set(cfg["reproduction"]["tables"].keys())
+        else:
+            selected_table_names = {"table1"}
+        for table_name in selected_table_names:
+            _filter_table_methods(
+                table_name,
+                cfg["reproduction"]["tables"][table_name],
+                requested_methods,
+            )
+    if args.max_runs is not None:
+        cfg["reproduction"]["run_seeds"] = cfg["reproduction"]["run_seeds"][: int(args.max_runs)]
+    if args.max_factuals is not None:
+        for dataset_cfg in cfg["datasets"].values():
+            dataset_cfg["split"]["target_factual_count"] = int(args.max_factuals)
+    if args.override_epochs is not None:
+        for dataset_cfg in cfg["datasets"].values():
+            dataset_cfg["model"]["epochs"] = int(args.override_epochs)
+    if args.override_budget is not None:
+        for table_cfg in cfg["reproduction"]["tables"].values():
+            for method_cfg in table_cfg["methods"].values():
+                method_cfg["budget"] = int(args.override_budget)
+    if args.override_num_mcmc is not None:
+        for table_cfg in cfg["reproduction"]["tables"].values():
+            for method_cfg in table_cfg["methods"].values():
+                method_cfg["num_mcmc"] = int(args.override_num_mcmc)
+    if args.use_reference_checkpoint:
+        for dataset_cfg in cfg["datasets"].values():
+            dataset_cfg["model"]["use_reference_checkpoint"] = True
+    if getattr(args, "train_model_from_scratch", False):
+        for dataset_cfg in cfg["datasets"].values():
+            dataset_cfg["model"]["use_reference_checkpoint"] = False
+    return cfg
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
+    parser.add_argument("--report-path", default=str(REPORT_PATH))
+    parser.add_argument("--profile", type=str, default=None)
+    parser.add_argument("--tables", nargs="+", choices=["table1", "table2", "table3"], default=None)
+    parser.add_argument(
+        "--methods",
+        type=str,
+        default=None,
+        help="Comma-separated method rows to run, for example: cols-emc or 'COLS,P-COLS'.",
+    )
+    parser.add_argument("--all-tables", action="store_true")
+    parser.add_argument("--max-runs", type=int, default=None)
+    parser.add_argument("--max-factuals", type=int, default=None)
+    parser.add_argument("--override-epochs", type=int, default=None)
+    parser.add_argument("--override-budget", type=int, default=None)
+    parser.add_argument("--override-num-mcmc", type=int, default=None)
+    parser.add_argument("--use-reference-checkpoint", action="store_true")
+    parser.add_argument("--train-model-from-scratch", action="store_true")
+    parser.add_argument("--progress", type=str, default="standard")
+    parser.add_argument("--heartbeat-seconds", type=int, default=60)
+    return parser.parse_args(argv)
+
+
+def _method_subset_matches(
+    required: dict[str, dict[str, Any]],
+    available: dict[str, dict[str, Any]],
+) -> bool:
+    for method_name, required_cfg in required.items():
+        available_cfg = available.get(method_name)
+        if available_cfg != required_cfg:
+            return False
+    return True
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = _parse_args(argv)
+    config_path = (PROJECT_ROOT / args.config).resolve()
+    if not config_path.exists():
+        config_path = Path(args.config).resolve()
+    report_path_arg = Path(args.report_path)
+    report_output_path = (
+        (PROJECT_ROOT / report_path_arg).resolve()
+        if not report_path_arg.is_absolute()
+        else report_path_arg.resolve()
+    )
+    config = _apply_cli_overrides(_load_config(config_path), args)
+    progress_mode = _resolve_progress_mode(args.progress)
+    heartbeat_seconds = max(1, int(args.heartbeat_seconds))
+
+    if args.tables is not None:
+        selected_tables = list(args.tables)
+    elif args.all_tables:
+        selected_tables = list(config["reproduction"]["tables"].keys())
+    else:
+        # Match the original workflow more closely by defaulting to the main result table only.
+        selected_tables = ["table1"]
+    run_seeds = [int(seed) for seed in config["reproduction"]["run_seeds"]]
+    comparison_tables: list[pd.DataFrame] = []
+    table1_run_results_by_dataset: dict[str, list[TableRunResult]] = {}
+    table1_method_map: dict[str, dict[str, Any]] | None = None
+
+    if "table1" in selected_tables:
+        table_cfg = config["reproduction"]["tables"]["table1"]
+        table1_method_map = copy.deepcopy(table_cfg["methods"])
+        run_results = []
+        for dataset_name in table_cfg["datasets"]:
+            dataset_cfg = copy.deepcopy(config["datasets"][dataset_name])
+            device = _resolve_device(str(dataset_cfg["model"]["device"]).lower())
+            dataset_run_results: list[TableRunResult] = []
+            for run_seed in run_seeds:
+                result = _run_single_seed_for_dataset(
+                    run_seed=run_seed,
+                    dataset_name=dataset_name,
+                    dataset_cfg=dataset_cfg,
+                    method_map=copy.deepcopy(table_cfg["methods"]),
+                    device=device,
+                    progress_mode=progress_mode,
+                    heartbeat_seconds=heartbeat_seconds,
+                )
+                run_results.append(result)
+                dataset_run_results.append(result)
+            table1_run_results_by_dataset[dataset_name] = dataset_run_results
+        comparison = _aggregate_table1(run_results, table_cfg["paper_targets"])
+        comparison_tables.append(comparison)
+        print("\nTable 1 Comparison")
+        print(comparison.to_string(index=False))
+
+    if "table2" in selected_tables:
+        table_cfg = config["reproduction"]["tables"]["table2"]
+        dataset_name = str(table_cfg["dataset"])
+        dataset_cfg = copy.deepcopy(config["datasets"][dataset_name])
+        device = _resolve_device(str(dataset_cfg["model"]["device"]).lower())
+        run_results = [
+            _run_single_seed_for_dataset(
+                run_seed=run_seed,
+                dataset_name=dataset_name,
+                dataset_cfg=dataset_cfg,
+                method_map=copy.deepcopy(table_cfg["methods"]),
+                device=device,
+                progress_mode=progress_mode,
+                heartbeat_seconds=heartbeat_seconds,
+            )
+            for run_seed in run_seeds
+        ]
+        comparison = _aggregate_table2(run_results, table_cfg["paper_targets"])
+        comparison_tables.append(comparison)
+        print("\nTable 2 Comparison")
+        print(comparison.to_string(index=False))
+
+    if "table3" in selected_tables:
+        table_cfg = config["reproduction"]["tables"]["table3"]
+        dataset_name = str(table_cfg["dataset"])
+        table3_method_map = copy.deepcopy(table_cfg["methods"])
+        can_reuse_table1 = (
+            dataset_name in table1_run_results_by_dataset
+            and table1_method_map is not None
+            and _method_subset_matches(table3_method_map, table1_method_map)
+        )
+        if can_reuse_table1:
+            run_results = table1_run_results_by_dataset[dataset_name]
+        else:
+            dataset_cfg = copy.deepcopy(config["datasets"][dataset_name])
+            device = _resolve_device(str(dataset_cfg["model"]["device"]).lower())
+            run_results = [
+                _run_single_seed_for_dataset(
+                    run_seed=run_seed,
+                    dataset_name=dataset_name,
+                    dataset_cfg=dataset_cfg,
+                    method_map=table3_method_map,
+                    device=device,
+                    progress_mode=progress_mode,
+                    heartbeat_seconds=heartbeat_seconds,
+                )
+                for run_seed in run_seeds
+            ]
+        fairness_cfg = table_cfg["fairness"]
+        comparison = _aggregate_table3(
+            run_results,
+            subgroup_feature=str(fairness_cfg["subgroup_feature"]),
+            subgroup_order=[str(value) for value in fairness_cfg["subgroup_order"]],
+            targets=table_cfg["paper_targets"],
+        )
+        comparison_tables.append(comparison)
+        print("\nTable 3 Comparison")
+        print(comparison.to_string(index=False))
+
+    report_path = write_reproduction_report(
+        output_path=report_output_path,
+        paper_id="cols_tables_1_2_3",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(config_path),
+            "tables": selected_tables,
+            "run_seeds": run_seeds,
         },
+        experiments_data=_build_report_entries(comparison_tables),
     )
     print(f"reproduction_report_path: {report_path}")
 
 
+@pytest.mark.slow
+def test_reproduce() -> None:
+    pytest.skip("Run this module as a script for bounded reproduction probes.")
+
+
 if __name__ == "__main__":
-    test_reproduce()
+    main()

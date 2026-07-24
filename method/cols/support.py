@@ -72,7 +72,7 @@ def sort_states(values: Sequence[object], ordered: bool) -> list[object]:
 
 
 def is_ordered_feature(source_type: str, actionability: str) -> bool:
-    return source_type == "numerical" or actionability in {
+    return source_type in {"numerical", "ordered_categorical", "ordinal"} or actionability in {
         "same-or-increase",
         "same-or-decrease",
     }
