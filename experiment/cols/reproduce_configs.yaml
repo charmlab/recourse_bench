@@ -1,132 +1,299 @@
 active_profile: paper
 
-data:
-  dataset_name: compas_carla
-  raw_path: dataset/compas_carla/compas_carla.csv
-  target_column: score
-  undesired_class: 0
-  desired_class: 1
-  raw_feature_order:
-    - age
-    - two_year_recid
-    - c_charge_degree
-    - race
-    - sex
-    - priors_count
-    - length_of_stay
-  continuous_feature_order:
-    - age
-    - two_year_recid
-    - priors_count
-    - length_of_stay
-  categorical_feature_order:
-    - c_charge_degree
-    - race
-    - sex
-  encoding_mode: scalar
-  encoded_feature_order:
-    - age
-    - two_year_recid
-    - priors_count
-    - length_of_stay
-    - c_charge_degree
-    - race
-    - sex
-  categorical_values:
-    c_charge_degree:
-      - F
-      - M
-    race:
-      - African-American
-      - Other
-    sex:
-      - Female
-      - Male
-  raw_feature_type:
-    age: numerical
-    two_year_recid: numerical
-    c_charge_degree: categorical
-    race: categorical
-    sex: categorical
-    priors_count: numerical
-    length_of_stay: numerical
-    score: binary
-  raw_feature_mutability:
-    age: true
-    two_year_recid: true
-    c_charge_degree: true
-    race: false
-    sex: false
-    priors_count: true
-    length_of_stay: true
-    score: false
-  raw_feature_actionability:
-    age: same-or-increase
-    two_year_recid: any
-    c_charge_degree: any
-    race: none
-    sex: none
-    priors_count: same-or-increase
-    length_of_stay: same-or-increase
-    score: none
-  reference_feature_types:
-    age: ordered
-    two_year_recid: ordered
-    c_charge_degree: unordered
-    race: fixed
-    sex: fixed
-    priors_count: ordered
-    length_of_stay: ordered
-  reference_feature_change_restriction:
-    age: 1
-    two_year_recid: 0
-    c_charge_degree: 0
-    race: -2
-    sex: -2
-    priors_count: 1
-    length_of_stay: 1
-  balance:
-    seed: 1
-  split:
-    split_seed: 1
-    val_fraction: 0.1
-    nominal_provisional_factual_count: 1000
-    target_factual_count: 491
-  evaluation:
-    cost_threshold: 1.0
-    coverage_threshold: 100.0
-    invalid_cost: 99999.0
-    variance: 0.001
-    alpha: null
-
-model:
-  device: auto
-  seed: 1234
-  epochs: 2000
-  learning_rate: 0.00001
-  batch_size: 32
-  optimizer: adam
-  criterion: cross_entropy
-  output_activation: softmax
-  use_reference_checkpoint: false
-  reference_checkpoint_path: reference/EMC-COLS-recourse/trained_models/compas_binary-default.ckpt
-  hidden_layers:
-    - 20
-
-methods:
-  - name: COLS
+datasets:
+  adult_binary:
+    dataset_name: adult_binary
+    source_dataset: adult_carla
+    variant: adult_binary
+    raw_path: dataset/adult_carla/adult_carla.csv
+    target_column: income
+    undesired_class: 0
     desired_class: 1
-    num_cfs: 10
-    num_mcmc: 1000
-    budget: 5000
-    num_parallel_runs: 1
-    hamming_dist: 2
-    perturb_type: all
-    init_type: ham_2
-    iter_type: best
-    alpha: null
-    variance: 0.001
-    invalid_cost: 99999.0
+    raw_feature_order:
+      - age
+      - workclass
+      - education-num
+      - marital-status
+      - occupation
+      - relationship
+      - race
+      - sex
+      - capital-gain
+      - capital-loss
+      - hours-per-week
+      - native-country
+    continuous_feature_order:
+      - age
+      - education-num
+      - hours-per-week
+    categorical_feature_order:
+      - marital-status
+      - capital-gain
+      - capital-loss
+      - native-country
+      - occupation
+      - race
+      - relationship
+      - sex
+      - workclass
+    encoding_mode: scalar
+    encoded_feature_order:
+      - age
+      - education-num
+      - hours-per-week
+      - marital-status
+      - capital-gain
+      - capital-loss
+      - native-country
+      - occupation
+      - race
+      - relationship
+      - sex
+      - workclass
+    categorical_values:
+      marital-status:
+        - Married
+        - Non-Married
+      capital-gain:
+        - "0"
+        - "1"
+        - "2"
+      capital-loss:
+        - "0"
+        - "1"
+        - "2"
+      native-country:
+        - Non-US
+        - US
+      occupation:
+        - Managerial-Specialist
+        - Other
+      race:
+        - Non-White
+        - White
+      relationship:
+        - Husband
+        - Non-Husband
+      sex:
+        - Female
+        - Male
+      workclass:
+        - Non-Private
+        - Private
+    raw_feature_type:
+      age: numerical
+      workclass: categorical
+      education-num: numerical
+      marital-status: categorical
+      occupation: categorical
+      relationship: categorical
+      race: categorical
+      sex: categorical
+      capital-gain: ordered_categorical
+      capital-loss: ordered_categorical
+      hours-per-week: numerical
+      native-country: categorical
+      income: binary
+    raw_feature_mutability:
+      age: true
+      workclass: true
+      education-num: true
+      marital-status: true
+      occupation: true
+      relationship: true
+      race: false
+      sex: false
+      capital-gain: true
+      capital-loss: true
+      hours-per-week: true
+      native-country: false
+      income: false
+    raw_feature_actionability:
+      age: same-or-increase
+      workclass: any
+      education-num: same-or-increase
+      marital-status: any
+      occupation: any
+      relationship: any
+      race: none
+      sex: none
+      capital-gain: any
+      capital-loss: any
+      hours-per-week: any
+      native-country: none
+      income: none
+    reference_feature_types:
+      age: ordered
+      workclass: unordered
+      education-num: ordered
+      marital-status: unordered
+      occupation: unordered
+      relationship: unordered
+      race: fixed
+      sex: fixed
+      capital-gain: ordered
+      capital-loss: ordered
+      hours-per-week: ordered
+      native-country: fixed
+    reference_feature_change_restriction:
+      age: 1
+      workclass: 0
+      education-num: 1
+      marital-status: 0
+      occupation: 0
+      relationship: 0
+      race: -2
+      sex: -2
+      capital-gain: 0
+      capital-loss: 0
+      hours-per-week: 0
+      native-country: -2
+    balance:
+      seed: 1
+    split:
+      split_seed: 1
+      val_fraction: 0.1
+      nominal_provisional_factual_count: 1000
+      target_factual_count: 749
+    evaluation:
+      cost_threshold: 1.0
+      coverage_threshold: 100.0
+      invalid_cost: 99999.0
+      variance: 0.001
+      alpha: null
+    fairness:
+      subgroup_features:
+        - sex
+    model:
+      device: auto
+      seed: 1234
+      epochs: 1000
+      learning_rate: 0.0001
+      batch_size: 32
+      optimizer: adam
+      criterion: cross_entropy
+      output_activation: softmax
+      use_reference_checkpoint: true
+      reference_checkpoint_path: reference/EMC-COLS-recourse/trained_models/adult_binary-default.ckpt
+      hidden_layers:
+        - 20
+
+  compas_binary:
+    dataset_name: compas_binary
+    source_dataset: compas_carla
+    variant: compas_binary
+    raw_path: dataset/compas_carla/compas_carla.csv
+    target_column: score
+    undesired_class: 0
+    desired_class: 1
+    raw_feature_order:
+      - age
+      - two_year_recid
+      - c_charge_degree
+      - race
+      - sex
+      - priors_count
+      - length_of_stay
+    continuous_feature_order:
+      - age
+      - two_year_recid
+      - priors_count
+      - length_of_stay
+    categorical_feature_order:
+      - c_charge_degree
+      - race
+      - sex
+    encoding_mode: scalar
+    encoded_feature_order:
+      - age
+      - two_year_recid
+      - priors_count
+      - length_of_stay
+      - c_charge_degree
+      - race
+      - sex
+    categorical_values:
+      c_charge_degree:
+        - F
+        - M
+      race:
+        - African-American
+        - Other
+      sex:
+        - Female
+        - Male
+    raw_feature_type:
+      age: numerical
+      two_year_recid: numerical
+      c_charge_degree: categorical
+      race: categorical
+      sex: categorical
+      priors_count: numerical
+      length_of_stay: numerical
+      score: binary
+    raw_feature_mutability:
+      age: true
+      two_year_recid: true
+      c_charge_degree: true
+      race: false
+      sex: false
+      priors_count: true
+      length_of_stay: true
+      score: false
+    raw_feature_actionability:
+      age: same-or-increase
+      two_year_recid: any
+      c_charge_degree: any
+      race: none
+      sex: none
+      priors_count: same-or-increase
+      length_of_stay: same-or-increase
+      score: none
+    reference_feature_types:
+      age: ordered
+      two_year_recid: ordered
+      c_charge_degree: unordered
+      race: fixed
+      sex: fixed
+      priors_count: ordered
+      length_of_stay: ordered
+    reference_feature_change_restriction:
+      age: 1
+      two_year_recid: 0
+      c_charge_degree: 0
+      race: -2
+      sex: -2
+      priors_count: 1
+      length_of_stay: 1
+    balance:
+      seed: 1
+    split:
+      split_seed: 1
+      val_fraction: 0.1
+      nominal_provisional_factual_count: 1000
+      target_factual_count: 491
+    evaluation:
+      cost_threshold: 1.0
+      coverage_threshold: 100.0
+      invalid_cost: 99999.0
+      variance: 0.001
+      alpha: null
+    fairness:
+      subgroup_features:
+        - sex
+    model:
+      device: auto
+      seed: 1234
+      epochs: 2000
+      learning_rate: 0.0001
+      batch_size: 32
+      optimizer: adam
+      criterion: cross_entropy
+      output_activation: softmax
+      use_reference_checkpoint: true
+      reference_checkpoint_path: reference/EMC-COLS-recourse/trained_models/compas_binary-default.ckpt
+      hidden_layers:
+        - 20
 
 reproduction:
   run_seeds:
@@ -135,23 +302,168 @@ reproduction:
     - 3
     - 4
     - 5
-  paper_targets:
-    COLS:
-      FS@1: 82.23
-      PAC: 0.24
-      Cov: 82.23
-      Div: 29.32
-      Prox: 77.82
-      Spars: 70.05
-      Val: 95.48
+  tables:
+    table1:
+      datasets:
+        - adult_binary
+        - compas_binary
+      methods:
+        COLS:
+          search: cols
+          desired_class: 1
+          objective: cost
+          num_cfs: 10
+          num_mcmc: 1000
+          budget: 5000
+          num_parallel_runs: 1
+          hamming_dist: 2
+          perturb_type: all
+          init_type: ham_2
+          iter_type: best
+          alpha: null
+          variance: 0.001
+          invalid_cost: 99999.0
+        P-COLS:
+          search: cols
+          desired_class: 1
+          objective: cost
+          num_cfs: 10
+          num_mcmc: 1000
+          budget: 5000
+          num_parallel_runs: 5
+          hamming_dist: 2
+          perturb_type: all
+          init_type: ham_2
+          iter_type: best
+          alpha: null
+          variance: 0.001
+          invalid_cost: 99999.0
+      paper_targets:
+        adult_binary:
+          COLS:
+            FS@1: 72.57
+            PAC: 0.38
+            Cov: 76.07
+            Div: 25.77
+            Prox: 80.22
+            Spars: 76.48
+            Val: 97.15
+          P-COLS:
+            FS@1: 75.82
+            PAC: 0.40
+            Cov: 79.20
+            Div: 25.57
+            Prox: 81.67
+            Spars: 78.00
+            Val: 94.78
+        compas_binary:
+          COLS:
+            FS@1: 82.23
+            PAC: 0.24
+            Cov: 82.23
+            Div: 29.32
+            Prox: 77.82
+            Spars: 70.05
+            Val: 95.48
+          P-COLS:
+            FS@1: 83.73
+            PAC: 0.24
+            Cov: 83.73
+            Div: 29.38
+            Prox: 78.48
+            Spars: 71.30
+            Val: 92.78
+
+    table2:
+      dataset: adult_binary
+      methods:
+        COLS EMC:
+          search: cols
+          desired_class: 1
+          objective: cost
+          num_cfs: 10
+          num_mcmc: 1000
+          budget: 3000
+          num_parallel_runs: 1
+          hamming_dist: 2
+          perturb_type: all
+          init_type: ham_2
+          iter_type: best
+          alpha: null
+          variance: 0.001
+          invalid_cost: 99999.0
+      paper_targets:
+        COLS EMC:
+          FS@1: 68.8
+          PAC: 0.391
+          Cov: 72.6
+          Div: 27.1
+          Prox: 77.5
+          Spars: 73.5
+
+    table3:
+      dataset: adult_binary
+      methods:
+        COLS:
+          search: cols
+          desired_class: 1
+          objective: cost
+          num_cfs: 10
+          num_mcmc: 1000
+          budget: 5000
+          num_parallel_runs: 1
+          hamming_dist: 2
+          perturb_type: all
+          init_type: ham_2
+          iter_type: best
+          alpha: null
+          variance: 0.001
+          invalid_cost: 99999.0
+        P-COLS:
+          search: cols
+          desired_class: 1
+          objective: cost
+          num_cfs: 10
+          num_mcmc: 1000
+          budget: 5000
+          num_parallel_runs: 5
+          hamming_dist: 2
+          perturb_type: all
+          init_type: ham_2
+          iter_type: best
+          alpha: null
+          variance: 0.001
+          invalid_cost: 99999.0
+      fairness:
+        subgroup_feature: sex
+        subgroup_order:
+          - Female
+          - Male
+      paper_targets:
+        COLS:
+          Female:
+            FS@1: 72.7
+            Cov: 76.2
+          Male:
+            FS@1: 72.3
+            Cov: 75.6
+          DIR:
+            DIR-FS: 0.994
+            DIR-Cov: 0.992
+        P-COLS:
+          Female:
+            FS@1: 76.5
+            Cov: 80.2
+          Male:
+            FS@1: 76.8
+            Cov: 80.2
+          DIR:
+            DIR-FS: 1.004
+            DIR-Cov: 1.0
 
 profiles:
   paper: {}
   fast_debug:
-    methods:
-      COLS:
-        num_mcmc: 50
-        budget: 100
     reproduction:
       run_seeds:
         - 1

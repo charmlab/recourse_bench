@@ -1,0 +1,143 @@
+{
+  "paper_id": "cols_tables_1_2_3",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-16T17:02:43.635709Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_cols_reproduce.py",
+    "config_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/cols/reproduce_configs.yaml",
+    "tables": [
+      "table2"
+    ],
+    "run_seeds": [
+      1
+    ]
+  },
+  "experiments": {
+    "Table_2_COLS EMC_FS@1": {
+      "configuration": {
+        "table": "Table 2",
+        "dataset": null,
+        "method": "COLS EMC",
+        "subgroup": null,
+        "metric": "FS@1"
+      },
+      "metrics": {
+        "reproduced_mean": {
+          "original": 68.8,
+          "reproduced": 50.0,
+          "delta": 0.27325581395348836
+        },
+        "reproduced_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "Table_2_COLS EMC_PAC": {
+      "configuration": {
+        "table": "Table 2",
+        "dataset": null,
+        "method": "COLS EMC",
+        "subgroup": null,
+        "metric": "PAC"
+      },
+      "metrics": {
+        "reproduced_mean": {
+          "original": 0.391,
+          "reproduced": 1.019393990846988,
+          "delta": 0.6164387827368609
+        },
+        "reproduced_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "Table_2_COLS EMC_Cov": {
+      "configuration": {
+        "table": "Table 2",
+        "dataset": null,
+        "method": "COLS EMC",
+        "subgroup": null,
+        "metric": "Cov"
+      },
+      "metrics": {
+        "reproduced_mean": {
+          "original": 72.6,
+          "reproduced": 100.0,
+          "delta": 0.2740000000000001
+        },
+        "reproduced_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "Table_2_COLS EMC_Div": {
+      "configuration": {
+        "table": "Table 2",
+        "dataset": null,
+        "method": "COLS EMC",
+        "subgroup": null,
+        "metric": "Div"
+      },
+      "metrics": {
+        "reproduced_mean": {
+          "original": 27.1,
+          "reproduced": 31.427825924890506,
+          "delta": 0.13770681864006737
+        },
+        "reproduced_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "Table_2_COLS EMC_Prox": {
+      "configuration": {
+        "table": "Table 2",
+        "dataset": null,
+        "method": "COLS EMC",
+        "subgroup": null,
+        "metric": "Prox"
+      },
+      "metrics": {
+        "reproduced_mean": {
+          "original": 77.5,
+          "reproduced": 78.01259849449673,
+          "delta": 0.0065707142742192975
+        },
+        "reproduced_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    },
+    "Table_2_COLS EMC_Spars": {
+      "configuration": {
+        "table": "Table 2",
+        "dataset": null,
+        "method": "COLS EMC",
+        "subgroup": null,
+        "metric": "Spars"
+      },
+      "metrics": {
+        "reproduced_mean": {
+          "original": 73.5,
+          "reproduced": 70.13888888888889,
+          "delta": 0.04572940287226006
+        },
+        "reproduced_std": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        }
+      }
+    }
+  }
+}
