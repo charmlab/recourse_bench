@@ -1,0 +1,869 @@
+{
+  "paper_id": "rbr_german",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-26T19:04:52.525905Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_rbr_reproduce.py",
+    "current_config_path": "./experiment/rbr/german_mlp_rbr_reproduce_current.yaml",
+    "future_config_path": "./experiment/rbr/german_mlp_rbr_reproduce_future.yaml",
+    "device": "cuda"
+  },
+  "experiments": {
+    "classifier_metrics": {
+      "configuration": {
+        "dataset": "german",
+        "mode": "paper_sweep"
+      },
+      "metrics": {
+        "present_accuracy": {
+          "original": 0.67,
+          "reproduced": 0.705,
+          "delta": 0.04964539007092188
+        },
+        "present_auc": {
+          "original": 0.6,
+          "reproduced": 0.6164285714285714,
+          "delta": 0.026651216685979192
+        },
+        "shift_accuracy": {
+          "original": 0.66,
+          "reproduced": 0.64,
+          "delta": 0.030303030303030328
+        },
+        "shift_auc": {
+          "original": 0.6,
+          "reproduced": 0.6398809523809524,
+          "delta": 0.06232558139534896
+        }
+      }
+    },
+    "variant_epsilon_pe=0.0000": {
+      "configuration": {
+        "variant_label": "epsilon_pe=0.0000",
+        "sweep_parameter": "epsilon_pe",
+        "sweep_value": 0.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 30,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9090909090909091,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5196970105171204,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.066666666666666,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.3086092360044044,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.2576795816421509,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_epsilon_pe=0.5000": {
+      "configuration": {
+        "variant_label": "epsilon_pe=0.5000",
+        "sweep_parameter": "epsilon_pe",
+        "sweep_value": 0.5
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.5,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 30,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9090909090909091,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5269697308540344,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 6.933333333333334,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.3121353676061698,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.26155155897140503,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_epsilon_pe=1.0000": {
+      "configuration": {
+        "variant_label": "epsilon_pe=1.0000",
+        "sweep_parameter": "epsilon_pe",
+        "sweep_value": 1.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 30,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9090909090909091,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5224242210388184,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 6.633333333333334,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.3125207655261051,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.26003530621528625,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_delta_plus=0.0000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.0000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.4515151381492615,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 2.606060606060606,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.29988327622413635,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.22910581049187537,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.20499911904335022,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.29988327622413635,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_delta_plus=0.2000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.2000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.2
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.2,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 30,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9090909090909091,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5196970105171204,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.066666666666666,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.3086092360044044,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.2576795816421509,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_delta_plus=0.4000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.4000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.4
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.4,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 32,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9696969696969697,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6272726655006409,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.21875,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.7088840007781982,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.3753184300604726,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.28984686732292175,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.7088840007781982,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_delta_plus=0.6000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.6000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.6
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.6,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6899999976158142,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.545454545454546,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.8998833298683167,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.4522684288923995,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.3322056829929352,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.8998833298683167,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_delta_plus=0.8000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.8000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.8
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.8,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.7239393591880798,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.636363636363637,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 1.0998833179473877,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.5374726010700099,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.38680288195610046,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 1.0998833179473877,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_delta_plus=1.0000": {
+      "configuration": {
+        "variant_label": "delta_plus=1.0000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 1.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.7384848594665527,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.757575757575758,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 1.299883246421814,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.6249965312112579,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.4444732367992401,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 1.299883246421814,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_epsilon_op=0.0000": {
+      "configuration": {
+        "variant_label": "epsilon_op=0.0000",
+        "sweep_parameter": "epsilon_op",
+        "sweep_value": 0.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 30,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9090909090909091,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5196970105171204,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.066666666666666,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.3086092360044044,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.2576795816421509,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.5238199830055237,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_epsilon_op=0.5000": {
+      "configuration": {
+        "variant_label": "epsilon_op=0.5000",
+        "sweep_parameter": "epsilon_op",
+        "sweep_value": 0.5
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.5,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 30,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9090909090909091,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5230302810668945,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.1,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.5238200426101685,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.30761762378032137,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.2570039629936218,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.5238200426101685,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    },
+    "variant_epsilon_op=1.0000": {
+      "configuration": {
+        "variant_label": "epsilon_op=1.0000",
+        "sweep_parameter": "epsilon_op",
+        "sweep_value": 1.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 33,
+          "delta": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 31,
+          "delta": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.9393939393939394,
+          "delta": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5442423820495605,
+          "delta": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.387096774193548,
+          "delta": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.5151888132095337,
+          "delta": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.29859055670499435,
+          "delta": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.2469140589237213,
+          "delta": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.5151888132095337,
+          "delta": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null
+        }
+      }
+    }
+  }
+}
