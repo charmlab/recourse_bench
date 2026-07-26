@@ -26,7 +26,7 @@ DESIRED_CLASS = 1
 CACHE_DIR = PROJECT_ROOT / "cache" / "face"
 SUMMARY_CSV_PATH = CACHE_DIR / "synthetic_face_summary.csv"
 SUMMARY_JSON_PATH = CACHE_DIR / "synthetic_face_summary.json"
-REPORT_PATH = CACHE_DIR / "reproduction_report.json"
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
 # Approximate original-space query point (x1 ~= 0, x2 ~= 7) after min-max normalization.
 TRIPTYCH_QUERY_POINT = (0.1465, 0.7269)
 

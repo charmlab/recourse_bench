@@ -1,0 +1,292 @@
+{
+  "paper_id": "probe_probabilistic_recourse",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-26T01:17:06.159936Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_probe_reproduce.py",
+    "device": "cuda",
+    "datasets": [
+      "adult_carla",
+      "compas_carla",
+      "credit_carla"
+    ],
+    "models": [
+      "linear",
+      "mlp"
+    ],
+    "n_cfs": 500,
+    "monte_carlo_samples": 10000
+  },
+  "experiments": {
+    "adult_linear": {
+      "configuration": {
+        "dataset": "adult",
+        "model": "linear",
+        "n_cfs": 500,
+        "monte_carlo_samples": 10000
+      },
+      "metrics": {
+        "test_accuracy": {
+          "original": 0.83,
+          "reproduced": 0.8395617604255676,
+          "delta": 0.011388989918646225
+        },
+        "test_auc": {
+          "original": null,
+          "reproduced": 0.890037622289884,
+          "delta": null
+        },
+        "ra": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "air_mean": {
+          "original": 0.34,
+          "reproduced": 0.34886881756782534,
+          "delta": 0.025421640230431555
+        },
+        "air_std": {
+          "original": 0.02,
+          "reproduced": 0.005032157931057161,
+          "delta": 0.7483921034471419
+        },
+        "ac_mean": {
+          "original": 1.56,
+          "reproduced": 1.523353120625019,
+          "delta": 0.023491589342936544
+        },
+        "ac_std": {
+          "original": 0.92,
+          "reproduced": 0.7454065932360688,
+          "delta": 0.18977544213470782
+        }
+      }
+    },
+    "adult_mlp": {
+      "configuration": {
+        "dataset": "adult",
+        "model": "mlp",
+        "n_cfs": 500,
+        "monte_carlo_samples": 10000
+      },
+      "metrics": {
+        "test_accuracy": {
+          "original": 0.85,
+          "reproduced": 0.8459097146987915,
+          "delta": 0.00481210035436291
+        },
+        "test_auc": {
+          "original": null,
+          "reproduced": 0.8986145857739953,
+          "delta": null
+        },
+        "ra": {
+          "original": 0.99,
+          "reproduced": 0.868,
+          "delta": 0.12323232323232323
+        },
+        "air_mean": {
+          "original": 0.35,
+          "reproduced": 0.4063248992790275,
+          "delta": 0.13862034883653196
+        },
+        "air_std": {
+          "original": 0.01,
+          "reproduced": 0.05280592147313422,
+          "delta": 0.8106272985864351
+        },
+        "ac_mean": {
+          "original": 1.43,
+          "reproduced": 0.7628826291433403,
+          "delta": 0.4665156439557061
+        },
+        "ac_std": {
+          "original": 0.49,
+          "reproduced": 0.572728889769596,
+          "delta": 0.14444686001936652
+        }
+      }
+    },
+    "compas_linear": {
+      "configuration": {
+        "dataset": "compas",
+        "model": "linear",
+        "n_cfs": 500,
+        "monte_carlo_samples": 10000
+      },
+      "metrics": {
+        "test_accuracy": {
+          "original": 0.84,
+          "reproduced": 0.835627555847168,
+          "delta": 0.005205290658133334
+        },
+        "test_auc": {
+          "original": null,
+          "reproduced": 0.8164703509125831,
+          "delta": null
+        },
+        "ra": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "air_mean": {
+          "original": 0.28,
+          "reproduced": 0.287710672186822,
+          "delta": 0.02680009096713357
+        },
+        "air_std": {
+          "original": 0.02,
+          "reproduced": 0.016255897793204355,
+          "delta": 0.1872051103397823
+        },
+        "ac_mean": {
+          "original": 0.63,
+          "reproduced": 0.567669988036975,
+          "delta": 0.09893652692543653
+        },
+        "ac_std": {
+          "original": 0.39,
+          "reproduced": 0.33504729686460893,
+          "delta": 0.14090436701382328
+        }
+      }
+    },
+    "compas_mlp": {
+      "configuration": {
+        "dataset": "compas",
+        "model": "mlp",
+        "n_cfs": 500,
+        "monte_carlo_samples": 10000
+      },
+      "metrics": {
+        "test_accuracy": {
+          "original": 0.85,
+          "reproduced": 0.8445343971252441,
+          "delta": 0.006430121029124515
+        },
+        "test_auc": {
+          "original": null,
+          "reproduced": 0.8532631098871221,
+          "delta": null
+        },
+        "ra": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "air_mean": {
+          "original": 0.33,
+          "reproduced": 0.3324368176460266,
+          "delta": 0.0073301677692670176
+        },
+        "air_std": {
+          "original": 0.02,
+          "reproduced": 0.026697956886610856,
+          "delta": 0.2508790060249858
+        },
+        "ac_mean": {
+          "original": 0.8,
+          "reproduced": 0.5121454624831676,
+          "delta": 0.35981817189604054
+        },
+        "ac_std": {
+          "original": 0.34,
+          "reproduced": 0.35023144488315916,
+          "delta": 0.02921338170127029
+        }
+      }
+    },
+    "gmc_linear": {
+      "configuration": {
+        "dataset": "gmc",
+        "model": "linear",
+        "n_cfs": 500,
+        "monte_carlo_samples": 10000
+      },
+      "metrics": {
+        "test_accuracy": {
+          "original": 0.92,
+          "reproduced": 0.9375919699668884,
+          "delta": 0.018762927297158546
+        },
+        "test_auc": {
+          "original": null,
+          "reproduced": 0.8038680068413853,
+          "delta": null
+        },
+        "ra": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "air_mean": {
+          "original": 0.24,
+          "reproduced": 0.3460638166666031,
+          "delta": 0.30648629402589256
+        },
+        "air_std": {
+          "original": 0.01,
+          "reproduced": 0.011247622071805661,
+          "delta": 0.11092318570456476
+        },
+        "ac_mean": {
+          "original": 0.6,
+          "reproduced": 0.6089410736262798,
+          "delta": 0.014682986603342767
+        },
+        "ac_std": {
+          "original": 0.56,
+          "reproduced": 0.4492595404876728,
+          "delta": 0.19775082055772722
+        }
+      }
+    },
+    "gmc_mlp": {
+      "configuration": {
+        "dataset": "gmc",
+        "model": "mlp",
+        "n_cfs": 500,
+        "monte_carlo_samples": 10000
+      },
+      "metrics": {
+        "test_accuracy": {
+          "original": 0.93,
+          "reproduced": 0.9369860887527466,
+          "delta": 0.0074559151268146885
+        },
+        "test_auc": {
+          "original": null,
+          "reproduced": 0.8229648181779916,
+          "delta": null
+        },
+        "ra": {
+          "original": 1.0,
+          "reproduced": 1.0,
+          "delta": 0.0
+        },
+        "air_mean": {
+          "original": 0.25,
+          "reproduced": 0.21774001955986022,
+          "delta": 0.12903992176055912
+        },
+        "air_std": {
+          "original": 0.03,
+          "reproduced": 0.045916603405735175,
+          "delta": 0.3466415680857423
+        },
+        "ac_mean": {
+          "original": 0.47,
+          "reproduced": 0.46636575636267663,
+          "delta": 0.007732433270900728
+        },
+        "ac_std": {
+          "original": 0.21,
+          "reproduced": 0.22740437580180553,
+          "delta": 0.07653492040528867
+        }
+      }
+    }
+  }
+}

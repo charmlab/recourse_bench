@@ -1,0 +1,106 @@
+{
+  "paper_id": "cemsp_hepatitis_figure4",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-23T00:26:39.548382Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_cemsp_reproduce.py",
+    "device": "cuda",
+    "split_seed": 42,
+    "model_seeds": [
+      42,
+      43
+    ],
+    "max_factuals": 20
+  },
+  "experiments": {
+    "hepatitis_figure4": {
+      "configuration": {
+        "dataset": "hepatitis",
+        "method": "cemsp",
+        "num_abnormal_factuals": 20
+      },
+      "metrics": {
+        "model_a_test_accuracy": {
+          "original": 0.957,
+          "reproduced": 0.9675675675675676,
+          "delta": 0.010921787709497244
+        },
+        "model_a_test_f1": {
+          "original": 0.9754601226993865,
+          "reproduced": 0.9814814814814815,
+          "delta": 0.006134969325153372
+        },
+        "model_b_test_accuracy": {
+          "original": 0.957,
+          "reproduced": 0.9567567567567568,
+          "delta": 0.00025417266796573404
+        },
+        "model_b_test_f1": {
+          "original": 0.9754601226993865,
+          "reproduced": 0.9754601226993865,
+          "delta": 0.0
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 20.0,
+          "delta": null
+        },
+        "num_with_cf": {
+          "original": 20.0,
+          "reproduced": 20.0,
+          "delta": 0.0
+        },
+        "mean_num_cf": {
+          "original": 2.7,
+          "reproduced": 2.25,
+          "delta": 0.1666666666666667
+        },
+        "median_num_cf": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null
+        },
+        "mean_sparsity": {
+          "original": 0.7055555555555553,
+          "reproduced": 0.6799999999999998,
+          "delta": 0.036220472440944736
+        },
+        "mean_aps": {
+          "original": 0.06909776055124893,
+          "reproduced": 0.07636950904392767,
+          "delta": 0.09521795522472243
+        },
+        "mean_proximity": {
+          "original": 1.5435558842295323,
+          "reproduced": 1.6501449699282473,
+          "delta": 0.06459377063298252
+        },
+        "mean_diversity": {
+          "original": 1.35596991730314,
+          "reproduced": 1.1499358806197633,
+          "delta": 0.1519458758297187
+        },
+        "mean_diversity2": {
+          "original": 1.5717481658370183,
+          "reproduced": 1.205060033893646,
+          "delta": 0.23329954499937106
+        },
+        "mean_inconsistency": {
+          "original": 0.7474046082754859,
+          "reproduced": 1.3752817566653437,
+          "delta": 0.4565443737960113
+        },
+        "mean_count_diversity": {
+          "original": 0.2673809523809524,
+          "reproduced": 0.27555555555555555,
+          "delta": 0.029665898617511496
+        },
+        "mean_count_diversity2": {
+          "original": 0.32333333333333336,
+          "reproduced": 0.30416666666666664,
+          "delta": 0.05927835051546408
+        }
+      }
+    }
+  }
+}

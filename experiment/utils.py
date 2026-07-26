@@ -69,6 +69,7 @@ def generate_reproduction_report(
                 "metric_name": {
                     "original": 0.95,
                     "reproduced": 0.94,
+                    "delta": 0.0106
                 }
             }
         }
