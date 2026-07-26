@@ -1,0 +1,342 @@
+{
+  "paper_id": "trex_recourse_robustness",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-26T08:24:31.241507Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_trex_reproduce.py",
+    "config_path": "C:\\Users\\hashi\\OneDrive\\Desktop\\UniversityOfWaterloo\\ECE_masters\\recourse_bench\\experiment\\trex\\config.yaml",
+    "device": "cuda",
+    "elapsed_seconds": 17863.684066900052,
+    "datasets": [
+      "german_trex",
+      "heloc_trex",
+      "ctg_trex"
+    ]
+  },
+  "experiments": {
+    "german_trex_l1": {
+      "configuration": {
+        "dataset": "german_trex",
+        "norm": "l1",
+        "tau": 0.95
+      },
+      "metrics": {
+        "tau": {
+          "original": null,
+          "reproduced": 0.95,
+          "delta": null
+        },
+        "norm": {
+          "original": null,
+          "reproduced": 1,
+          "delta": null
+        },
+        "current_validity_pct": {
+          "original": null,
+          "reproduced": 100.0,
+          "delta": null
+        },
+        "cost": {
+          "original": 4.81,
+          "reproduced": 3.2502505779266357,
+          "delta": 0.3242722291212815
+        },
+        "lof": {
+          "original": 0.72,
+          "reproduced": 0.7368421052631579,
+          "delta": 0.02285714285714284
+        },
+        "wi_validity_pct": {
+          "original": 98.0,
+          "reproduced": 94.24210526315788,
+          "delta": 0.038345864661654266
+        },
+        "lo_validity_pct": {
+          "original": 96.5,
+          "reproduced": 94.3578947368421,
+          "delta": 0.022197982001636286
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 190,
+          "delta": null
+        },
+        "num_valid_counterfactuals": {
+          "original": null,
+          "reproduced": 190,
+          "delta": null
+        }
+      }
+    },
+    "german_trex_l2": {
+      "configuration": {
+        "dataset": "german_trex",
+        "norm": "l2",
+        "tau": 0.95
+      },
+      "metrics": {
+        "tau": {
+          "original": null,
+          "reproduced": 0.95,
+          "delta": null
+        },
+        "norm": {
+          "original": null,
+          "reproduced": 2,
+          "delta": null
+        },
+        "current_validity_pct": {
+          "original": null,
+          "reproduced": 100.0,
+          "delta": null
+        },
+        "cost": {
+          "original": 1.2,
+          "reproduced": 0.8209619522094727,
+          "delta": 0.31586503982543945
+        },
+        "lof": {
+          "original": 0.75,
+          "reproduced": 0.8842105263157894,
+          "delta": 0.15178571428571425
+        },
+        "wi_validity_pct": {
+          "original": 99.2,
+          "reproduced": 93.81052631578949,
+          "delta": 0.05432937181663825
+        },
+        "lo_validity_pct": {
+          "original": 98.7,
+          "reproduced": 94.03157894736842,
+          "delta": 0.047299098810857004
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 190,
+          "delta": null
+        },
+        "num_valid_counterfactuals": {
+          "original": null,
+          "reproduced": 190,
+          "delta": null
+        }
+      }
+    },
+    "heloc_trex_l1": {
+      "configuration": {
+        "dataset": "heloc_trex",
+        "norm": "l1",
+        "tau": 0.9
+      },
+      "metrics": {
+        "tau": {
+          "original": null,
+          "reproduced": 0.9,
+          "delta": null
+        },
+        "norm": {
+          "original": null,
+          "reproduced": 1,
+          "delta": null
+        },
+        "current_validity_pct": {
+          "original": null,
+          "reproduced": 100.0,
+          "delta": null
+        },
+        "cost": {
+          "original": 1.02,
+          "reproduced": 1.3859022855758667,
+          "delta": 0.2640173765380781
+        },
+        "lof": {
+          "original": 0.38,
+          "reproduced": -0.27771911298838436,
+          "delta": 1.7308397710220642
+        },
+        "wi_validity_pct": {
+          "original": 98.2,
+          "reproduced": 99.51847940865892,
+          "delta": 0.013248588769576778
+        },
+        "lo_validity_pct": {
+          "original": 98.1,
+          "reproduced": 99.65153115100318,
+          "delta": 0.015569566599555155
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 947,
+          "delta": null
+        },
+        "num_valid_counterfactuals": {
+          "original": null,
+          "reproduced": 947,
+          "delta": null
+        }
+      }
+    },
+    "heloc_trex_l2": {
+      "configuration": {
+        "dataset": "heloc_trex",
+        "norm": "l2",
+        "tau": 0.85
+      },
+      "metrics": {
+        "tau": {
+          "original": null,
+          "reproduced": 0.85,
+          "delta": null
+        },
+        "norm": {
+          "original": null,
+          "reproduced": 2,
+          "delta": null
+        },
+        "current_validity_pct": {
+          "original": null,
+          "reproduced": 100.0,
+          "delta": null
+        },
+        "cost": {
+          "original": 0.29,
+          "reproduced": 0.3174568712711334,
+          "delta": 0.08649008339681862
+        },
+        "lof": {
+          "original": 0.68,
+          "reproduced": 0.03484688489968321,
+          "delta": 0.9487545810298776
+        },
+        "wi_validity_pct": {
+          "original": 98.5,
+          "reproduced": 99.039070749736,
+          "delta": 0.00544301098198092
+        },
+        "lo_validity_pct": {
+          "original": 98.2,
+          "reproduced": 99.09820485744456,
+          "delta": 0.009063785350467712
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 947,
+          "delta": null
+        },
+        "num_valid_counterfactuals": {
+          "original": null,
+          "reproduced": 947,
+          "delta": null
+        }
+      }
+    },
+    "ctg_trex_l1": {
+      "configuration": {
+        "dataset": "ctg_trex",
+        "norm": "l1",
+        "tau": 0.95
+      },
+      "metrics": {
+        "tau": {
+          "original": null,
+          "reproduced": 0.95,
+          "delta": null
+        },
+        "norm": {
+          "original": null,
+          "reproduced": 1,
+          "delta": null
+        },
+        "current_validity_pct": {
+          "original": null,
+          "reproduced": 100.0,
+          "delta": null
+        },
+        "cost": {
+          "original": 1.11,
+          "reproduced": 0.9498069286346436,
+          "delta": 0.144318082311132
+        },
+        "lof": {
+          "original": 0.83,
+          "reproduced": -0.42207792207792205,
+          "delta": 1.5085276169613517
+        },
+        "wi_validity_pct": {
+          "original": 100.0,
+          "reproduced": 99.77922077922078,
+          "delta": 0.0022077922077922097
+        },
+        "lo_validity_pct": {
+          "original": 98.8,
+          "reproduced": 99.7792207792208,
+          "delta": 0.009813874788494246
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 308,
+          "delta": null
+        },
+        "num_valid_counterfactuals": {
+          "original": null,
+          "reproduced": 308,
+          "delta": null
+        }
+      }
+    },
+    "ctg_trex_l2": {
+      "configuration": {
+        "dataset": "ctg_trex",
+        "norm": "l2",
+        "tau": 0.95
+      },
+      "metrics": {
+        "tau": {
+          "original": null,
+          "reproduced": 0.95,
+          "delta": null
+        },
+        "norm": {
+          "original": null,
+          "reproduced": 2,
+          "delta": null
+        },
+        "current_validity_pct": {
+          "original": null,
+          "reproduced": 100.0,
+          "delta": null
+        },
+        "cost": {
+          "original": 0.42,
+          "reproduced": 0.39592278003692627,
+          "delta": 0.05732671419779456
+        },
+        "lof": {
+          "original": 0.94,
+          "reproduced": -0.3961038961038961,
+          "delta": 1.421387123514783
+        },
+        "wi_validity_pct": {
+          "original": 100.0,
+          "reproduced": 99.70129870129873,
+          "delta": 0.002987012987012747
+        },
+        "lo_validity_pct": {
+          "original": 99.7,
+          "reproduced": 99.81168831168833,
+          "delta": 0.0011189903064213241
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 308,
+          "delta": null
+        },
+        "num_valid_counterfactuals": {
+          "original": null,
+          "reproduced": 308,
+          "delta": null
+        }
+      }
+    }
+  }
+}
