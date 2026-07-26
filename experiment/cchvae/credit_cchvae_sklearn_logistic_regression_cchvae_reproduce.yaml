@@ -16,7 +16,7 @@ model:
   seed: 619
   device: cpu
   solver: lbfgs
-  max_iter: 1000
+  max_iter: 3000
   cv: 5
   scoring: roc_auc
   n_jobs: -1

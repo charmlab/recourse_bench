@@ -1,0 +1,236 @@
+{
+  "paper_id": "cfvae_adult_constraints",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-24T17:27:04.932430Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_cfvae_reproduce.py",
+    "weights_dir": "C:\\Users\\hashi\\OneDrive\\Desktop\\UniversityOfWaterloo\\ECE_masters\\recourse_bench\\experiment\\cfvae\\weights",
+    "tolerance": 1.0
+  },
+  "experiments": {
+    "adult-age_BaseCVAE": {
+      "configuration": {
+        "dataset": "adult-age",
+        "method": "BaseCVAE"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "constraint_feasibility_score": {
+          "original": 56.82554814,
+          "reproduced": 56.96854146806483,
+          "delta": 0.002510040179718911
+        },
+        "cont_proximity": {
+          "original": -2.24059021,
+          "reproduced": -2.2381529043407946,
+          "delta": 0.001087796263827076
+        },
+        "cat_proximity": {
+          "original": -3.26024786,
+          "reproduced": -3.2602478551000957,
+          "delta": 1.5029239163915868e-09
+        }
+      }
+    },
+    "adult-age_BaseVAE": {
+      "configuration": {
+        "dataset": "adult-age",
+        "method": "BaseVAE"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "constraint_feasibility_score": {
+          "original": 42.85033365,
+          "reproduced": 43.06005719733079,
+          "delta": 0.0048704892882443585
+        },
+        "cont_proximity": {
+          "original": -2.66647616,
+          "reproduced": -2.664956383421795,
+          "delta": 0.0005699569345504087
+        },
+        "cat_proximity": {
+          "original": -3.12011439,
+          "reproduced": -3.120114394661583,
+          "delta": 1.4940423746930098e-09
+        }
+      }
+    },
+    "adult-age_ModelApprox": {
+      "configuration": {
+        "dataset": "adult-age",
+        "method": "ModelApprox"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 99.5900858,
+          "reproduced": 99.64728312678741,
+          "delta": 0.0005739978551612026
+        },
+        "constraint_feasibility_score": {
+          "original": 84.26668079,
+          "reproduced": 83.88875509775194,
+          "delta": 0.004484876925316185
+        },
+        "cont_proximity": {
+          "original": -2.73294234,
+          "reproduced": -2.733969551367649,
+          "delta": 0.0003757215829762891
+        },
+        "cat_proximity": {
+          "original": -3.26167779,
+          "reproduced": -3.26186844613918,
+          "delta": 5.844997808109e-05
+        }
+      }
+    },
+    "adult-age_ExampleBased": {
+      "configuration": {
+        "dataset": "adult-age",
+        "method": "ExampleBased"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 99.52335558,
+          "reproduced": 99.51382268827454,
+          "delta": 9.578547336854413e-05
+        },
+        "constraint_feasibility_score": {
+          "original": 74.03769743,
+          "reproduced": 74.6028706454077,
+          "delta": 0.007575756944984275
+        },
+        "cont_proximity": {
+          "original": -6.80110826,
+          "reproduced": -6.8069779316864585,
+          "delta": 0.0008623021472032151
+        },
+        "cat_proximity": {
+          "original": -3.72411821,
+          "reproduced": -3.728312678741659,
+          "delta": 0.0011250313756074153
+        }
+      }
+    },
+    "adult-age-ed_BaseCVAE": {
+      "configuration": {
+        "dataset": "adult-age-ed",
+        "method": "BaseCVAE"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "constraint_feasibility_score": {
+          "original": 57.01620591,
+          "reproduced": 56.78741658722593,
+          "delta": 0.004012706898372249
+        },
+        "cont_proximity": {
+          "original": -2.25337728,
+          "reproduced": -2.2492502135309222,
+          "delta": 0.0018315026541306874
+        },
+        "cat_proximity": {
+          "original": -3.26024786,
+          "reproduced": -3.2602478551000957,
+          "delta": 1.5029239163915868e-09
+        }
+      }
+    },
+    "adult-age-ed_BaseVAE": {
+      "configuration": {
+        "dataset": "adult-age-ed",
+        "method": "BaseVAE"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "constraint_feasibility_score": {
+          "original": 42.59294566,
+          "reproduced": 42.964728312678744,
+          "delta": 0.00865320618282682
+        },
+        "cont_proximity": {
+          "original": -2.6661057,
+          "reproduced": -2.662725352004554,
+          "delta": 0.0012678972163204841
+        },
+        "cat_proximity": {
+          "original": -3.12011439,
+          "reproduced": -3.120114394661583,
+          "delta": 1.4940423746930098e-09
+        }
+      }
+    },
+    "adult-age-ed_ModelApprox": {
+      "configuration": {
+        "dataset": "adult-age-ed",
+        "method": "ModelApprox"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 100.0,
+          "reproduced": 100.0,
+          "delta": 0.0
+        },
+        "constraint_feasibility_score": {
+          "original": 79.5042898,
+          "reproduced": 79.2373689227836,
+          "delta": 0.003357314151071037
+        },
+        "cont_proximity": {
+          "original": -2.90320554,
+          "reproduced": -2.903026722028288,
+          "delta": 6.159328688527956e-05
+        },
+        "cat_proximity": {
+          "original": -3.22097235,
+          "reproduced": -3.2192564346997146,
+          "delta": 0.0005327320802009535
+        }
+      }
+    },
+    "adult-age-ed_ExampleBased": {
+      "configuration": {
+        "dataset": "adult-age-ed",
+        "method": "ExampleBased"
+      },
+      "metrics": {
+        "target_class_validity": {
+          "original": 99.93326978,
+          "reproduced": 99.94280266920877,
+          "delta": 9.538344887447994e-05
+        },
+        "constraint_feasibility_score": {
+          "original": 66.35181132,
+          "reproduced": 66.42824741080605,
+          "delta": 0.0011506564418801938
+        },
+        "cont_proximity": {
+          "original": -3.20324281,
+          "reproduced": -3.202042774507118,
+          "delta": 0.00037463144821101924
+        },
+        "cat_proximity": {
+          "original": -3.5914204,
+          "reproduced": -3.594661582459486,
+          "delta": 0.0009016655351651096
+        }
+      }
+    }
+  }
+}

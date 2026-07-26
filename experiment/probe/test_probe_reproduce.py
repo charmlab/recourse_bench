@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 import numpy as np
 import pandas as pd
 import torch
+from dataset.gmc_carla.gmc_carla import GmcCarlaDataset
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
@@ -24,6 +25,14 @@ from evaluation.evaluation_utils import resolve_evaluation_inputs
 from experiment.utils import write_reproduction_report
 from experiments import Experiment
 from method.probe.utils import compute_invalidation_rate, reparametrization_trick
+from utils.registry import get_registry, register
+
+if "credit_carla" not in get_registry("Dataset"):
+    # The reference PROBE script uses `credit_carla`, while the repo registers
+    # the matching Give Me Some Credit dataset as `gmc_carla`.
+    @register("credit_carla")
+    class CreditCarlaDataset(GmcCarlaDataset):
+        pass
 
 SEED = 42
 TRAIN_SPLIT = 0.8
@@ -40,7 +49,7 @@ MC_SAMPLES = 10000
 SMOKE_MC_SAMPLES = 256
 DEFAULT_N_CFS = 500
 SMOKE_N_CFS = 32
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "experiment" / "probe" / "probe_reproduce"
+REPORT_PATH = PROJECT_ROOT / "experiment" / "probe" / "reproduction_report.json"
 
 PAPER_PROBE_RESULTS = {
     ("compas_carla", "linear"): {
@@ -544,23 +553,13 @@ def _run_case(case: ReproductionCase, device: str, n_cfs: int | None, monte_carl
     }
 
 
-def _save_outputs(output_dir: Path, rows: list[dict[str, Any]], summary: dict[str, Any]) -> None:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    frame = pd.DataFrame(rows)
-    frame.to_csv(output_dir / "probe_reference_results.csv", index=False)
-    with (output_dir / "probe_reference_results.json").open("w", encoding="utf-8") as file:
-        json.dump(rows, file, indent=2)
-    with (output_dir / "probe_reference_summary.json").open("w", encoding="utf-8") as file:
-        json.dump(summary, file, indent=2)
-
-
 def _write_reproduction_report(
-    output_dir: Path,
+    output_path: Path,
     rows: list[dict[str, Any]],
     summary: dict[str, Any],
 ) -> Path:
     return write_reproduction_report(
-        output_path=output_dir / "reproduction_report.json",
+        output_path=output_path,
         paper_id="probe_probabilistic_recourse",
         reproduction_metadata={
             "timestamp": datetime.now(timezone.utc),
@@ -697,11 +696,6 @@ def test_reproduce() -> None:
         "--smoke",
         action="store_true",
     )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=DEFAULT_OUTPUT_DIR,
-    )
     args = parser.parse_args()
 
     n_cfs = args.n_cfs
@@ -717,9 +711,8 @@ def test_reproduce() -> None:
         monte_carlo_samples=mc_samples,
         device=args.device,
     )
-    _save_outputs(args.output_dir, output["rows"], output["summary"])
     report_path = _write_reproduction_report(
-        args.output_dir,
+        REPORT_PATH,
         output["rows"],
         output["summary"],
     )

@@ -1,0 +1,43 @@
+{
+  "paper_id": "larr_german",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-25T16:03:22.243857Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_larr_reproduce.py",
+    "robustness_bounds": [
+      0.27,
+      0.29
+    ],
+    "consistency_bounds": [
+      0.4,
+      0.41
+    ],
+    "n_folds": 5,
+    "num_factuals_per_fold": 5,
+    "alpha": 0.5,
+    "beta": 0.518
+  },
+  "experiments": {
+    "german_larr_reproduction": {
+      "configuration": {
+        "dataset": "german",
+        "model": "mlp",
+        "method": "larr",
+        "n_folds": 5,
+        "num_factuals_per_fold": 5
+      },
+      "metrics": {
+        "average_robustness": {
+          "original": 0.27,
+          "reproduced": 0.2566034682831446,
+          "delta": 0.04961678413650147
+        },
+        "average_consistency": {
+          "original": 0.4,
+          "reproduced": 0.4343245244490299,
+          "delta": 0.0790296714019842
+        }
+      }
+    }
+  }
+}

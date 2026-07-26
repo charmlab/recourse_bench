@@ -914,6 +914,31 @@ def _run_compas_reproduction(
             "assert_paper": bool(assert_paper),
         },
         experiments_data={
+            "compas_table1": {
+                "configuration": {
+                    "dataset": "compas_clue",
+                    "target_model": "mlp_bayesian",
+                    "device": device,
+                },
+                "metrics": {
+                    "table1_epistemic": {
+                        "original": COMPAS_PAPER_RESULTS["table1_epistemic"],
+                        "reproduced": comparison["table1_epistemic"],
+                    },
+                    "table1_aleatoric": {
+                        "original": COMPAS_PAPER_RESULTS["table1_aleatoric"],
+                        "reproduced": comparison["table1_aleatoric"],
+                    },
+                    "epistemic_selected_count": {
+                        "original": None,
+                        "reproduced": int(baselines["epistemic_mask"].sum()),
+                    },
+                    "aleatoric_selected_count": {
+                        "original": None,
+                        "reproduced": int(baselines["aleatoric_mask"].sum()),
+                    },
+                },
+            },
             "compas_table2": {
                 "configuration": {
                     "dataset": "compas_clue",
