@@ -315,7 +315,7 @@ DEFAULT_BASE_PARAMS = {
     "act_high": 1.0,
     "replay_buffer_size": 1000,
     "batch_size": 100,
-    "num_workers": 4,
+    "num_workers": 0,
     "shuffle": True,
     "exploration_steps": 100,
     "update_every": 1,
