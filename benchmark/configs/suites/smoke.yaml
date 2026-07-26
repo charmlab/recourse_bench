@@ -11,10 +11,30 @@ models:
   - randomforest
 
 methods:
-  - gs
-  - dice
   - apas
+  - arg_ensembling
+  - cemsp
+  - cchvae
+  - cfrl
+  - cfvae
+  - clue
+  - cogs
+  - cols
+  - cvas_proj
+  - dice
+  - diverse_dist
+  - face
+  - gs
+  - larr
+  - mace
+  - probe
+  - proplace
+  - rbr
+  - roar
+  - sns
+  - trex
 
 benchmark:
-  sample_target: 3
-  min_factuals: 2
+  sample_seeds: [0, 1, 2, 3]
+  # sample_target: 5
+  # min_factuals: 2
