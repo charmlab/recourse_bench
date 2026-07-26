@@ -170,6 +170,7 @@ def _suite_overrides(suite_cfg: dict) -> dict:
 
 def _resolve_benchmark_cfg(config: dict) -> dict:
     benchmark_cfg = deepcopy(config.get("benchmark", {}))
+    benchmark_cfg.setdefault("device", "cpu")
     benchmark_cfg.setdefault("desired_class", 1)
     benchmark_cfg.setdefault("sample_target", 50)
     benchmark_cfg.setdefault("min_factuals", 25)
@@ -183,6 +184,10 @@ def _resolve_benchmark_cfg(config: dict) -> dict:
     model_cache_cfg.setdefault("enabled", True)
     model_cache_cfg.setdefault("namespace", "benchmark")
     benchmark_cfg["model_cache"] = model_cache_cfg
+    if "sample_seeds" in benchmark_cfg and benchmark_cfg["sample_seeds"] is not None:
+        benchmark_cfg["sample_seeds"] = [
+            int(seed) for seed in benchmark_cfg["sample_seeds"]
+        ]
     return benchmark_cfg
 
 
@@ -299,9 +304,10 @@ def _build_run_config(
         run_cfg.setdefault("method", {})
         run_cfg["method"]["desired_class"] = run_cfg["benchmark"]["desired_class"]
 
+    benchmark_device = run_cfg["benchmark"].get("device", "cpu")
     resolved_device = _resolve_device(
         run_cfg["model"]["name"],
-        run_cfg["model"].get("device", "auto"),
+        benchmark_device,
     )
     run_cfg["model"]["device"] = resolved_device
     run_cfg["method"]["device"] = resolved_device
@@ -412,6 +418,7 @@ def _sample_factuals(testset, target_model, benchmark_cfg: dict) -> tuple[object
         "requested_factual_count": sample_target,
         "eligible_factual_count": eligible_count,
         "actual_factual_count": sampled_count,
+        "sampled_all_eligible": sampled_count >= eligible_count,
     }
 
     if eligible_count == 0:
@@ -436,6 +443,22 @@ def _sample_factuals(testset, target_model, benchmark_cfg: dict) -> tuple[object
     return sampled_dataset, metadata
 
 
+def _resolve_sample_seeds(benchmark_cfg: dict) -> list[int]:
+    configured = benchmark_cfg.get("sample_seeds")
+    if configured is None:
+        return [int(benchmark_cfg["sample_seed"])]
+
+    resolved: list[int] = []
+    seen: set[int] = set()
+    for seed in configured:
+        normalized = int(seed)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        resolved.append(normalized)
+    return resolved or [int(benchmark_cfg["sample_seed"])]
+
+
 def _metric_means(metric_rows: list[dict[str, object]]) -> dict[str, float]:
     if not metric_rows:
         return {}
@@ -450,6 +473,7 @@ def _metric_means(metric_rows: list[dict[str, object]]) -> dict[str, float]:
 def _detail_rows(
     *,
     run_id: str,
+    sample_seed: int | None,
     config: dict,
     factuals,
     counterfactuals,
@@ -477,6 +501,13 @@ def _detail_rows(
             {
                 "run_id": run_id,
                 "row_type": "detail",
+                "summary_scope": None,
+                "sample_seed": sample_seed,
+                "sample_run_id": (
+                    f"{run_id}__sample_seed_{sample_seed}"
+                    if sample_seed is not None
+                    else run_id
+                ),
                 "status": "completed",
                 "dataset_name": config["dataset"]["name"],
                 "model_name": config["model"]["name"],
@@ -502,6 +533,9 @@ def _summary_record(
     config: dict,
     status: str,
     sampling_metadata: dict,
+    summary_scope: str = "seed",
+    sample_seed: int | None = None,
+    sample_run_id: str | None = None,
     successful_counterfactual_count: int = 0,
     factual_index: object = None,
     error_message: str | None = None,
@@ -511,6 +545,9 @@ def _summary_record(
     record: dict[str, object] = {
         "run_id": run_id,
         "row_type": "summary",
+        "summary_scope": summary_scope,
+        "sample_seed": sample_seed,
+        "sample_run_id": sample_run_id,
         "status": status,
         "dataset_name": config["dataset"]["name"],
         "model_name": config["model"]["name"],
@@ -530,13 +567,184 @@ def _summary_record(
     return record
 
 
-def _execute_run(run_id: str, config: dict) -> list[dict[str, object]]:
+def _aggregate_seed_summaries(
+    *,
+    run_id: str,
+    config: dict,
+    summary_records: list[dict[str, object]],
+) -> dict[str, object] | None:
+    completed_records = [
+        record for record in summary_records if record.get("status") == "completed"
+    ]
+    if not completed_records:
+        return None
+
+    numeric_columns = {
+        key
+        for record in completed_records
+        for key, value in record.items()
+        if isinstance(value, (int, float)) and key not in {"sample_seed", "factual_rank"}
+    }
+    aggregate_metrics: dict[str, float] = {}
+    for column in sorted(numeric_columns):
+        series = pd.to_numeric(
+            pd.Series([record.get(column) for record in completed_records]),
+            errors="coerce",
+        )
+        aggregate_metrics[f"{column}_mean"] = float(series.mean(skipna=True))
+        aggregate_metrics[f"{column}_std"] = float(series.std(skipna=True, ddof=0))
+
+    sample_seeds = [record.get("sample_seed") for record in summary_records]
+    aggregate_record = _summary_record(
+        run_id=run_id,
+        config=config,
+        status=(
+            "completed"
+            if len(completed_records) == len(summary_records)
+            else "completed_partial"
+        ),
+        sampling_metadata={
+            "requested_factual_count": completed_records[0].get(
+                "requested_factual_count", 0
+            ),
+            "eligible_factual_count": completed_records[0].get(
+                "eligible_factual_count", 0
+            ),
+            "actual_factual_count": completed_records[0].get(
+                "actual_factual_count", 0
+            ),
+        },
+        summary_scope="aggregate",
+        sample_seed=None,
+        sample_run_id=run_id,
+        successful_counterfactual_count=0,
+        metrics=aggregate_metrics,
+        run_duration_seconds=sum(
+            float(record.get("run_duration_seconds") or 0.0)
+            for record in completed_records
+        ),
+    )
+    aggregate_record["completed_sample_seed_count"] = len(completed_records)
+    aggregate_record["requested_sample_seed_count"] = len(summary_records)
+    aggregate_record["sample_seed_values"] = ",".join(
+        str(seed) for seed in sample_seeds if seed is not None
+    )
+    return aggregate_record
+
+
+def _execute_single_seed_run(
+    *,
+    run_id: str,
+    sample_seed: int,
+    config: dict,
+    experiment: Experiment,
+    testset,
+) -> list[dict[str, object]]:
+    seed_run_id = f"{run_id}__sample_seed_{sample_seed}"
+    benchmark_cfg = deepcopy(config["benchmark"])
+    benchmark_cfg["sample_seed"] = sample_seed
     sampling_metadata = {
-        "requested_factual_count": int(config["benchmark"]["sample_target"]),
+        "requested_factual_count": int(benchmark_cfg["sample_target"]),
         "eligible_factual_count": 0,
         "actual_factual_count": 0,
     }
+    logger = logging.getLogger(__name__)
     start_time = time.monotonic()
+
+    try:
+        logger = experiment._logger
+        logger.info("Starting sample-seed run: %s", seed_run_id)
+        factuals, sampling_metadata = _sample_factuals(
+            testset,
+            experiment._target_model,
+            benchmark_cfg,
+        )
+        if factuals is None:
+            logger.warning("Skipping run %s due to zero eligible factuals", seed_run_id)
+            duration = round(time.monotonic() - start_time, 6)
+            return [
+                _summary_record(
+                    run_id=run_id,
+                    config=config,
+                    status="skipped_insufficient_factuals",
+                    sampling_metadata=sampling_metadata,
+                    sample_seed=sample_seed,
+                    sample_run_id=seed_run_id,
+                    run_duration_seconds=duration,
+                )
+            ]
+        if sampling_metadata["eligible_factual_count"] < int(benchmark_cfg["min_factuals"]):
+            logger.warning(
+                "Proceeding with partial factual set for run %s (%d < %d)",
+                seed_run_id,
+                sampling_metadata["eligible_factual_count"],
+                int(benchmark_cfg["min_factuals"]),
+            )
+        if (
+            len(_resolve_sample_seeds(config["benchmark"])) > 1
+            and sampling_metadata.get("sampled_all_eligible", False)
+        ):
+            logger.warning(
+                "Sample seed %s does not change factual selection for %s because "
+                "actual_factual_count (%d) >= eligible_factual_count (%d)",
+                sample_seed,
+                seed_run_id,
+                sampling_metadata["actual_factual_count"],
+                sampling_metadata["eligible_factual_count"],
+            )
+
+        method_batch_size = int(benchmark_cfg["method_batch_size"])
+        counterfactuals = experiment._method.predict(factuals, batch_size=method_batch_size)
+        detail_records, summary_metrics, success_count = _detail_rows(
+            run_id=run_id,
+            sample_seed=sample_seed,
+            config=config,
+            factuals=factuals,
+            counterfactuals=counterfactuals,
+            evaluation_steps=experiment._evaluation,
+            sampling_metadata=sampling_metadata,
+        )
+        duration = round(time.monotonic() - start_time, 6)
+        detail_records.append(
+            _summary_record(
+                run_id=run_id,
+                config=config,
+                status="completed",
+                sampling_metadata=sampling_metadata,
+                sample_seed=sample_seed,
+                sample_run_id=seed_run_id,
+                successful_counterfactual_count=success_count,
+                metrics=summary_metrics,
+                run_duration_seconds=duration,
+            )
+        )
+        logger.info(
+            "Completed sample-seed run %s with %d factuals and %d successful counterfactuals",
+            seed_run_id,
+            sampling_metadata["actual_factual_count"],
+            success_count,
+        )
+        return detail_records
+    except Exception as error:
+        duration = round(time.monotonic() - start_time, 6)
+        logger.exception("Benchmark sample-seed run failed: %s", seed_run_id)
+        should_raise = not bool(config.get("benchmark", {}).get("continue_on_error", True))
+        failed_record = _summary_record(
+            run_id=run_id,
+            config=config,
+            status="failed",
+            sampling_metadata=sampling_metadata,
+            sample_seed=sample_seed,
+            sample_run_id=seed_run_id,
+            error_message=f"{error.__class__.__name__}: {error}",
+            run_duration_seconds=duration,
+        )
+        if should_raise:
+            raise
+        return [failed_record]
+
+
+def _execute_run(run_id: str, config: dict) -> list[dict[str, object]]:
     logger = logging.getLogger(__name__)
 
     try:
@@ -558,74 +766,48 @@ def _execute_run(run_id: str, config: dict) -> list[dict[str, object]]:
         experiment._target_model.fit(trainset)
         experiment._method.fit(trainset)
 
-        factuals, sampling_metadata = _sample_factuals(
-            testset,
-            experiment._target_model,
-            config["benchmark"],
-        )
-        if factuals is None:
-            logger.warning(
-                "Skipping run %s due to zero eligible factuals",
-                run_id,
+        records: list[dict[str, object]] = []
+        sample_seeds = _resolve_sample_seeds(config["benchmark"])
+        seed_summaries: list[dict[str, object]] = []
+        for sample_seed in sample_seeds:
+            seed_records = _execute_single_seed_run(
+                run_id=run_id,
+                sample_seed=sample_seed,
+                config=config,
+                experiment=experiment,
+                testset=testset,
             )
-            duration = round(time.monotonic() - start_time, 6)
-            return [
-                _summary_record(
-                    run_id=run_id,
-                    config=config,
-                    status="skipped_insufficient_factuals",
-                    sampling_metadata=sampling_metadata,
-                    run_duration_seconds=duration,
-                )
-            ]
-        if sampling_metadata["eligible_factual_count"] < int(config["benchmark"]["min_factuals"]):
-            logger.warning(
-                "Proceeding with partial factual set for run %s (%d < %d)",
-                run_id,
-                sampling_metadata["eligible_factual_count"],
-                int(config["benchmark"]["min_factuals"]),
+            records.extend(seed_records)
+            seed_summaries.extend(
+                record
+                for record in seed_records
+                if record.get("row_type") == "summary"
+                and record.get("summary_scope") == "seed"
             )
 
-        method_batch_size = int(config["benchmark"]["method_batch_size"])
-        counterfactuals = experiment._method.predict(factuals, batch_size=method_batch_size)
-        detail_records, summary_metrics, success_count = _detail_rows(
-            run_id=run_id,
-            config=config,
-            factuals=factuals,
-            counterfactuals=counterfactuals,
-            evaluation_steps=experiment._evaluation,
-            sampling_metadata=sampling_metadata,
-        )
-        duration = round(time.monotonic() - start_time, 6)
-        detail_records.append(
-            _summary_record(
+        if len(sample_seeds) > 1:
+            aggregate_record = _aggregate_seed_summaries(
                 run_id=run_id,
                 config=config,
-                status="completed",
-                sampling_metadata=sampling_metadata,
-                successful_counterfactual_count=success_count,
-                metrics=summary_metrics,
-                run_duration_seconds=duration,
+                summary_records=seed_summaries,
             )
-        )
-        logger.info(
-            "Completed benchmark run %s with %d factuals and %d successful counterfactuals",
-            run_id,
-            sampling_metadata["actual_factual_count"],
-            success_count,
-        )
-        return detail_records
+            if aggregate_record is not None:
+                records.append(aggregate_record)
+
+        return records
     except Exception as error:
-        duration = round(time.monotonic() - start_time, 6)
-        logger.exception("Benchmark run failed: %s", run_id)
+        logger.exception("Benchmark run failed before sample-seed execution: %s", run_id)
         should_raise = not bool(config.get("benchmark", {}).get("continue_on_error", True))
         failed_record = _summary_record(
             run_id=run_id,
             config=config,
             status="failed",
-            sampling_metadata=sampling_metadata,
+            sampling_metadata={
+                "requested_factual_count": int(config["benchmark"]["sample_target"]),
+                "eligible_factual_count": 0,
+                "actual_factual_count": 0,
+            },
             error_message=f"{error.__class__.__name__}: {error}",
-            run_duration_seconds=duration,
         )
         if should_raise:
             raise
