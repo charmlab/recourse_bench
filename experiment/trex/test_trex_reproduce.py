@@ -119,10 +119,10 @@ def _resolve_project_path(path_value: str) -> Path:
     return path
 
 
-def _resolve_data_config(
+def _resolve_data_configs(
     config: dict[str, Any],
     dataset_name: str | None,
-) -> dict[str, Any]:
+) -> list[dict[str, Any]]:
     data_cfg = config.get("data")
     if not isinstance(data_cfg, list) or not data_cfg:
         raise ValueError("TreX reproduction expects one or more data sections")
@@ -132,11 +132,11 @@ def _resolve_data_config(
         raise ValueError("Each data section entry must be a dictionary")
 
     if dataset_name is None:
-        return entries[0]
+        return entries
 
     for item in entries:
         if str(item.get("name")) == dataset_name:
-            return item
+            return [item]
     available = ", ".join(str(item.get("name")) for item in entries)
     raise ValueError(f"Unknown dataset '{dataset_name}'. Available: {available}")
 
@@ -144,9 +144,9 @@ def _resolve_data_config(
 def _resolve_settings(
     config: dict[str, Any],
     args: argparse.Namespace,
+    data_item: dict[str, Any],
 ) -> dict[str, Any]:
     experiment_cfg = config.get("experiment", {})
-    data_item = _resolve_data_config(config, args.dataset)
     data_overrides = data_item.get("overrides", {})
     model_overrides = config.get("model", {}).get("overrides", {})
     method_overrides = config.get("method", {}).get("overrides", {})
@@ -1045,42 +1045,10 @@ def _print_summary(
             )
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
-    parser.add_argument("--dataset", default=None)
-    parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default=None)
-    parser.add_argument("--wi-models", type=int, default=None)
-    parser.add_argument("--lo-models", type=int, default=None)
-    parser.add_argument("--pilot-model-count", type=int, default=None)
-    parser.add_argument("--pilot-factual-limit", type=int, default=None)
-    parser.add_argument("--factual-limit", type=int, default=None)
-    parser.add_argument(
-        "--tau-grid",
-        type=float,
-        nargs="+",
-        default=None,
-    )
-    parser.add_argument("--tau-l1", type=float, default=None)
-    parser.add_argument("--tau-l2", type=float, default=None)
-    parser.add_argument("--train-batch-size", type=int, default=None)
-    parser.add_argument("--learning-rate", type=float, default=None)
-    parser.add_argument("--k", type=int, default=None)
-    parser.add_argument("--sigma", type=float, default=None)
-    parser.add_argument("--cf-confidence", type=float, default=None)
-    parser.add_argument("--cf-steps", type=int, default=None)
-    parser.add_argument("--cf-step-size", type=float, default=None)
-    parser.add_argument("--trex-step-size", type=float, default=None)
-    parser.add_argument("--trex-max-steps", type=int, default=None)
-    parser.add_argument("--trex-epsilon", type=float, default=None)
-    return parser.parse_args()
-
-@pytest.mark.slow
-def test_reproduce() -> None:
-    args = parse_args()
+def _run_single_dataset_reproduction(
+    settings: dict[str, Any],
+) -> dict[str, Any]:
     start_time = time.perf_counter()
-    config = _load_config(Path(args.config).resolve())
-    settings = _resolve_settings(config, args)
 
     with tqdm(total=5, desc="Reproduction stages", unit="stage") as stage_bar:
         stage_bar.set_postfix_str("load data")
@@ -1203,7 +1171,7 @@ def test_reproduce() -> None:
         stage_bar.update(1)
 
     elapsed_seconds = time.perf_counter() - start_time
-    output = {
+    return {
         "config_path": settings["config_path"],
         "experiment_name": settings["experiment_name"],
         "device": settings["device"],
@@ -1250,7 +1218,75 @@ def test_reproduce() -> None:
         "l2": norm_results["l2"],
     }
 
-    _print_summary(output=output)
+
+def _build_report_experiments(outputs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    experiments_data: dict[str, dict[str, Any]] = {}
+    for output in outputs:
+        for norm_key in ("l1", "l2"):
+            norm_output = output[norm_key]
+            experiments_data[f"{output['data']['data_name']}_{norm_key}"] = {
+                "configuration": {
+                    "dataset": output["data"]["data_name"],
+                    "norm": norm_key,
+                    "tau": norm_output["tau"],
+                },
+                "metrics": {
+                    key: {
+                        "original": norm_output.get("paper_target", {}).get(key)
+                        if norm_output.get("paper_target")
+                        else None,
+                        "reproduced": value,
+                    }
+                    for key, value in norm_output.items()
+                    if isinstance(value, (int, float, np.floating, np.integer))
+                },
+            }
+    return experiments_data
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
+    parser.add_argument("--dataset", default=None)
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default=None)
+    parser.add_argument("--wi-models", type=int, default=None)
+    parser.add_argument("--lo-models", type=int, default=None)
+    parser.add_argument("--pilot-model-count", type=int, default=None)
+    parser.add_argument("--pilot-factual-limit", type=int, default=None)
+    parser.add_argument("--factual-limit", type=int, default=None)
+    parser.add_argument(
+        "--tau-grid",
+        type=float,
+        nargs="+",
+        default=None,
+    )
+    parser.add_argument("--tau-l1", type=float, default=None)
+    parser.add_argument("--tau-l2", type=float, default=None)
+    parser.add_argument("--train-batch-size", type=int, default=None)
+    parser.add_argument("--learning-rate", type=float, default=None)
+    parser.add_argument("--k", type=int, default=None)
+    parser.add_argument("--sigma", type=float, default=None)
+    parser.add_argument("--cf-confidence", type=float, default=None)
+    parser.add_argument("--cf-steps", type=int, default=None)
+    parser.add_argument("--cf-step-size", type=float, default=None)
+    parser.add_argument("--trex-step-size", type=float, default=None)
+    parser.add_argument("--trex-max-steps", type=int, default=None)
+    parser.add_argument("--trex-epsilon", type=float, default=None)
+    return parser.parse_args()
+
+@pytest.mark.slow
+def test_reproduce() -> None:
+    args = parse_args()
+    config = _load_config(Path(args.config).resolve())
+    data_items = _resolve_data_configs(config, args.dataset)
+    outputs: list[dict[str, Any]] = []
+    for data_item in data_items:
+        settings = _resolve_settings(config, args, data_item)
+        output = _run_single_dataset_reproduction(settings)
+        outputs.append(output)
+        _print_summary(output=output)
+        print("")
+
     report_path = write_reproduction_report(
         output_path=REPORT_PATH,
         paper_id="trex_recourse_robustness",
@@ -1258,42 +1294,12 @@ def test_reproduce() -> None:
             "timestamp": datetime.now(timezone.utc),
             "framework_version": "1.0.0",
             "source_script": Path(__file__).name,
-            "config_path": str(output["config_path"]),
-            "device": output["device"],
-            "elapsed_seconds": output["elapsed_seconds"],
+            "config_path": str(Path(args.config).resolve()),
+            "device": outputs[0]["device"] if outputs else "unknown",
+            "elapsed_seconds": float(sum(output["elapsed_seconds"] for output in outputs)),
+            "datasets": [output["data"]["data_name"] for output in outputs],
         },
-        experiments_data={
-            f"{output['data']['data_name']}_l1": {
-                "configuration": {
-                    "dataset": output["data"]["data_name"],
-                    "norm": "l1",
-                    "tau": output["l1"]["tau"],
-                },
-                "metrics": {
-                    key: {
-                        "original": output["l1"].get("paper_target", {}).get(key) if output["l1"].get("paper_target") else None,
-                        "reproduced": value,
-                    }
-                    for key, value in output["l1"].items()
-                    if isinstance(value, (int, float, np.floating, np.integer))
-                },
-            },
-            f"{output['data']['data_name']}_l2": {
-                "configuration": {
-                    "dataset": output["data"]["data_name"],
-                    "norm": "l2",
-                    "tau": output["l2"]["tau"],
-                },
-                "metrics": {
-                    key: {
-                        "original": output["l2"].get("paper_target", {}).get(key) if output["l2"].get("paper_target") else None,
-                        "reproduced": value,
-                    }
-                    for key, value in output["l2"].items()
-                    if isinstance(value, (int, float, np.floating, np.integer))
-                },
-            },
-        },
+        experiments_data=_build_report_experiments(outputs),
     )
     print(f"reproduction_report_path: {report_path}")
 
