@@ -94,12 +94,12 @@ class _CemspReferenceMlp(ModelObject):
         blocks.append(torch.nn.Linear(current_dim, output_dim))
         return torch.nn.Sequential(*blocks)
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for _CemspReferenceMlp.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for _CemspReferenceMlp.fit()")
 
         with seed_context(self._seed):
-            X, labels, output_dim = self.extract_training_data(trainset)
+            X, labels, output_dim = self.extract_training_data(train_set)
             if self._output_activation_name == "sigmoid":
                 if len(self.get_class_to_index()) != 2:
                     raise ValueError(
@@ -291,19 +291,19 @@ def _materialize_reference_split(raw_dataset, split_seed: int):
     train_df = train_df.copy(deep=True)
     test_df = test_df.copy(deep=True)
 
-    trainset_raw = raw_dataset
-    testset_raw = raw_dataset.clone()
-    trainset_raw.update("trainset", True, df=train_df)
-    testset_raw.update("testset", True, df=test_df)
-    trainset_raw.freeze()
-    testset_raw.freeze()
-    return trainset_raw, testset_raw
+    train_set_raw = raw_dataset
+    test_set_raw = raw_dataset.clone()
+    train_set_raw.update("train_set", True, df=train_df)
+    test_set_raw.update("test_set", True, df=test_df)
+    train_set_raw.freeze()
+    test_set_raw.freeze()
+    return train_set_raw, test_set_raw
 
 
-def _scale_reference_split(trainset_raw, testset_raw):
+def _scale_reference_split(train_set_raw, test_set_raw):
     scaler = StandardScaler()
-    train_x_raw = trainset_raw.get(target=False)
-    test_x_raw = testset_raw.get(target=False)
+    train_x_raw = train_set_raw.get(target=False)
+    test_x_raw = test_set_raw.get(target=False)
     train_x = pd.DataFrame(
         scaler.fit_transform(train_x_raw),
         index=train_x_raw.index,
@@ -314,17 +314,17 @@ def _scale_reference_split(trainset_raw, testset_raw):
         index=test_x_raw.index,
         columns=test_x_raw.columns,
     )
-    train_y = trainset_raw.get(target=True)
-    test_y = testset_raw.get(target=True)
-    trainset = _build_dataset_clone(trainset_raw, train_x, train_y, "trainset")
-    testset = _build_dataset_clone(testset_raw, test_x, test_y, "testset")
-    return trainset, testset, scaler
+    train_y = train_set_raw.get(target=True)
+    test_y = test_set_raw.get(target=True)
+    train_set = _build_dataset_clone(train_set_raw, train_x, train_y, "train_set")
+    test_set = _build_dataset_clone(test_set_raw, test_x, test_y, "test_set")
+    return train_set, test_set, scaler
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
+def _compute_model_metrics(model, test_set) -> dict[str, float]:
+    probabilities = model.predict_proba(test_set).detach().cpu()
     predictions = probabilities.argmax(dim=1)
-    target = testset.get(target=True).iloc[:, 0].astype(int).to_numpy()
+    target = test_set.get(target=True).iloc[:, 0].astype(int).to_numpy()
     accuracy = float(accuracy_score(target, predictions.numpy()))
     f1 = float(f1_score(target, predictions.numpy()))
     return {"test_accuracy": accuracy, "test_f1": f1}
@@ -430,11 +430,11 @@ class _ReferenceEvaluator:
         return float(np.sum(np.multiply(np.abs(left - right), self.get_mads()), axis=0))
 
 
-def _collect_reference_sets(model, trainset, testset):
-    train_x = trainset.get(target=False)
-    test_x = testset.get(target=False)
-    train_y = trainset.get(target=True).iloc[:, 0].astype(int).to_numpy()
-    test_y = testset.get(target=True).iloc[:, 0].astype(int).to_numpy()
+def _collect_reference_sets(model, train_set, test_set):
+    train_x = train_set.get(target=False)
+    test_x = test_set.get(target=False)
+    train_y = train_set.get(target=True).iloc[:, 0].astype(int).to_numpy()
+    test_y = test_set.get(target=True).iloc[:, 0].astype(int).to_numpy()
 
     pred_test = (
         model.get_prediction(test_x, proba=False).argmax(dim=1).detach().cpu().numpy()
@@ -592,18 +592,18 @@ def main() -> None:
 
     raw_dataset = _build_dataset(config)
     split_seed = int(reproduction_cfg["split_seed"])
-    trainset_raw, testset_raw = _materialize_reference_split(raw_dataset, split_seed)
-    trainset, testset, scaler = _scale_reference_split(trainset_raw, testset_raw)
+    train_set_raw, test_set_raw = _materialize_reference_split(raw_dataset, split_seed)
+    train_set, test_set, scaler = _scale_reference_split(train_set_raw, test_set_raw)
 
     model_a = _build_model(config, seed=int(model_seeds[0]))
-    model_a.fit(trainset)
-    metrics_a = _compute_model_metrics(model_a, testset)
+    model_a.fit(train_set)
+    metrics_a = _compute_model_metrics(model_a, test_set)
 
     model_b = _build_model(config, seed=int(model_seeds[1]))
-    model_b.fit(trainset)
-    metrics_b = _compute_model_metrics(model_b, testset)
+    model_b.fit(train_set)
+    metrics_b = _compute_model_metrics(model_b, test_set)
 
-    abnormal_test, normal_train = _collect_reference_sets(model_a, trainset, testset)
+    abnormal_test, normal_train = _collect_reference_sets(model_a, train_set, test_set)
     if abnormal_test.shape[0] == 0:
         raise RuntimeError("No true-negative Hepatitis test instances were found")
     if normal_train.shape[0] == 0:
@@ -612,11 +612,11 @@ def main() -> None:
         abnormal_test = abnormal_test[: int(args.max_factuals)]
 
     evaluator = _ReferenceEvaluator(
-        trainset.get(target=False).to_numpy(dtype=np.float64),
+        train_set.get(target=False).to_numpy(dtype=np.float64),
         normal_train.astype(np.float64),
     )
 
-    feature_columns = trainset.get(target=False).columns
+    feature_columns = train_set.get(target=False).columns
     normal_range = pd.DataFrame(
         [
             reproduction_cfg["normal_range"]["lower"],
@@ -636,7 +636,7 @@ def main() -> None:
         explicit_lower_bounds=lower_bounds,
         explicit_upper_bounds=upper_bounds,
     )
-    method_a.fit(trainset)
+    method_a.fit(train_set)
     primary_result = _run_cemsp_for_model(
         method_a,
         evaluator,
@@ -651,7 +651,7 @@ def main() -> None:
         explicit_lower_bounds=lower_bounds,
         explicit_upper_bounds=upper_bounds,
     )
-    method_b.fit(trainset)
+    method_b.fit(train_set)
     secondary_result = _run_cemsp_for_model(
         method_b,
         evaluator,

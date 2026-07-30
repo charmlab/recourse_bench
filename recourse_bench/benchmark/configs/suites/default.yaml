@@ -23,7 +23,7 @@ models:
   - linear
   - mlp
   - mlp_bayesian
-  # - randomforest    # do forest after main run is done since it seems to take quite some time with some methods.
+  # - random_forest    # do forest after main run is done since it seems to take quite some time with some methods.
   # - sklearn_logistic_regression
 
 methods:

@@ -86,11 +86,11 @@ def _build_method(config: dict, target_model):
 
 
 def _resolve_train_test(datasets: list):
-    trainsets = [dataset for dataset in datasets if getattr(dataset, "trainset", False)]
-    testsets = [dataset for dataset in datasets if getattr(dataset, "testset", False)]
-    if len(trainsets) != 1 or len(testsets) != 1:
-        raise ValueError("Expected exactly one trainset and one testset")
-    return trainsets[0], testsets[0]
+    train_sets = [dataset for dataset in datasets if getattr(dataset, "train_set", False)]
+    test_sets = [dataset for dataset in datasets if getattr(dataset, "test_set", False)]
+    if len(train_sets) != 1 or len(test_sets) != 1:
+        raise ValueError("Expected exactly one train_set and one test_set")
+    return train_sets[0], test_sets[0]
 
 
 def _materialize_datasets(dataset, preprocess_steps: list):
@@ -138,16 +138,16 @@ def _maybe_limit_dataset(dataset, limit: int | None, flag_name: str):
 
 
 def _train_positive_reference(
-    trainset, target_model, desired_class: int | str
+    train_set, target_model, desired_class: int | str
 ) -> pd.DataFrame:
     class_to_index = target_model.get_class_to_index()
     desired_index = class_to_index[desired_class]
     predicted = (
-        target_model.predict(trainset, batch_size=512).argmax(dim=1).cpu().numpy()
+        target_model.predict(train_set, batch_size=512).argmax(dim=1).cpu().numpy()
     )
-    true_indices = _target_indices(trainset, class_to_index)
+    true_indices = _target_indices(train_set, class_to_index)
     mask = (predicted == desired_index) & (true_indices == desired_index)
-    return trainset.get(target=False).loc[mask]
+    return train_set.get(target=False).loc[mask]
 
 
 def _outlier_rates(
@@ -252,42 +252,42 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
 
     dataset = _build_dataset(config)
     preprocess_steps = _build_preprocess(config)
-    trainset, testset = _materialize_datasets(dataset, preprocess_steps)
-    logger.info("Train/test sizes: %d / %d", len(trainset), len(testset))
+    train_set, test_set = _materialize_datasets(dataset, preprocess_steps)
+    logger.info("Train/test sizes: %d / %d", len(train_set), len(test_set))
 
-    effective_trainset = _maybe_limit_dataset(trainset, TRAIN_SAMPLE_LIMIT, "trainset")
+    effective_train_set = _maybe_limit_dataset(train_set, TRAIN_SAMPLE_LIMIT, "train_set")
     if TRAIN_SAMPLE_LIMIT is not None:
         logger.info(
             "Using limited train subset for reproduction run: %d rows",
-            len(effective_trainset),
+            len(effective_train_set),
         )
 
     target_model = _build_model(config)
-    target_model.fit(effective_trainset)
+    target_model.fit(effective_train_set)
     logger.info(
         "Target model trained; best_params=%s",
         getattr(getattr(target_model, "_grid_search", None), "best_params_", None),
     )
 
     method = _build_method(config, target_model)
-    method.fit(effective_trainset)
+    method.fit(effective_train_set)
 
     desired_class = config["method"]["desired_class"]
     class_to_index = target_model.get_class_to_index()
     predicted_test = (
-        target_model.predict(testset, batch_size=512).argmax(dim=1).cpu().numpy()
+        target_model.predict(test_set, batch_size=512).argmax(dim=1).cpu().numpy()
     )
     if desired_class is None:
         search_mask = np.ones_like(predicted_test, dtype=bool)
     else:
         desired_index = class_to_index[desired_class]
         search_mask = predicted_test != desired_index
-    candidate_indices = testset.get(target=False).index[search_mask]
+    candidate_indices = test_set.get(target=False).index[search_mask]
     if NCOUNTERFACTUALS is None:
         selected_indices = candidate_indices
     else:
         selected_indices = candidate_indices[:NCOUNTERFACTUALS]
-    factual_subset = _subset_dataset(testset, selected_indices, "testset")
+    factual_subset = _subset_dataset(test_set, selected_indices, "test_set")
     logger.info(
         "Selected %d / %d desired-class-mismatched test samples for search",
         len(factual_subset),
@@ -306,7 +306,7 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
     factual_success = factual_features.loc[selected_mask.to_numpy()]
     counterfactual_success = counterfactual_features.loc[selected_mask.to_numpy()]
     train_positive_reference = _train_positive_reference(
-        trainset=effective_trainset,
+        train_set=effective_train_set,
         target_model=target_model,
         desired_class=desired_class,
     )
@@ -314,8 +314,8 @@ def run_reproduction(config_path: Path = DEFAULT_CONFIG_PATH) -> pd.DataFrame:
     results = {
         "dataset": str(config["dataset"]["name"]),
         "device": device,
-        "n_train": len(trainset),
-        "n_test": len(testset),
+        "n_train": len(train_set),
+        "n_test": len(test_set),
         "n_search_candidates_total": int(search_mask.sum()),
         "n_counterfactuals_requested": len(selected_indices),
         "n_counterfactuals_evaluated": len(factual_subset),

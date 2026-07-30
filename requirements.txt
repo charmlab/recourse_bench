@@ -1,4 +1,30 @@
---extra-index-url https://download.pytorch.org/whl/cu126
+# Full development / reproduction environment: pinned versions of every solver
+# backend, so any of the 30 methods can run from a source checkout. Installing
+# the published package instead keeps the solvers optional -- see the extras
+# table in README.md.
+#
+# PyTorch is deliberately NOT pinned to a CUDA build here. Pick the build that
+# matches your machine and install it FIRST, then install this file:
+#
+#   CPU (~500 MB):
+#     pip install torch==2.10.0 torchvision==0.25.0 \
+#       --index-url https://download.pytorch.org/whl/cpu
+#
+#   CUDA 12.6 (~4.5 GB):
+#     pip install torch==2.10.0 torchvision==0.25.0 \
+#       --index-url https://download.pytorch.org/whl/cu126
+#
+#   pip install -r requirements.txt
+#
+# See https://pytorch.org/get-started/locally/ for other platforms (ROCm, other
+# CUDA versions). Use --index-url, not --extra-index-url: the latter leaves pip
+# resolving across both PyPI and the PyTorch index with no guarantee which one a
+# given package comes from.
+#
+# Skipping the first step is fine on macOS and Windows, where the default PyPI
+# wheels are already CPU-only. On Linux the default PyPI wheel is the CUDA build
+# and pulls ~3.1 GB of nvidia-* wheels with it.
+
 dice-ml==0.12
 lime==0.2.0.1
 matplotlib==3.10.8
@@ -8,8 +34,8 @@ PySMT==0.9.6
 PyYAML==6.0.3
 scikit-learn==1.8.0
 scipy==1.17.0
-torch==2.10.0+cu126
-torchvision==0.25.0+cu126
+torch==2.10.0
+torchvision==0.25.0
 tqdm==4.67.2
 z3-solver==4.16.0.0
 gurobipy==13.0.1

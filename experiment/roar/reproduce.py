@@ -76,18 +76,18 @@ def _reference_style_split(dataset, split_preprocess) -> tuple[object, object]:
         test_df = test_df.copy(deep=True)
     train_df = train_df.copy(deep=True)
 
-    trainset = dataset
-    testset = dataset.clone()
-    trainset.update("trainset", True, df=train_df)
-    testset.update("testset", True, df=test_df)
-    return trainset, testset
+    train_set = dataset
+    test_set = dataset.clone()
+    train_set.update("train_set", True, df=train_df)
+    test_set.update("test_set", True, df=test_df)
+    return train_set, test_set
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
+def _compute_model_metrics(model, test_set) -> dict[str, float]:
+    probabilities = model.predict_proba(test_set).detach().cpu()
     prediction = probabilities.argmax(dim=1)
 
-    y = testset.get(target=True).iloc[:, 0]
+    y = test_set.get(target=True).iloc[:, 0]
     class_to_index = model.get_class_to_index()
     encoded_target = torch.tensor(
         [class_to_index[int(value)] for value in y.astype(int).tolist()],
@@ -109,42 +109,42 @@ def _compute_model_metrics(model, testset) -> dict[str, float]:
     return {"test_accuracy": accuracy, "test_auc": auc}
 
 
-def _build_filtered_testset(testset, keep_mask: pd.Series):
-    filtered = testset.clone()
-    target_column = testset.target_column
-    combined = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
+def _build_filtered_test_set(test_set, keep_mask: pd.Series):
+    filtered = test_set.clone()
+    target_column = test_set.target_column
+    combined = pd.concat([test_set.get(target=False), test_set.get(target=True)], axis=1)
     filtered_df = combined.loc[keep_mask].copy(deep=True)
     filtered_df = filtered_df.loc[
-        :, [*testset.get(target=False).columns, target_column]
+        :, [*test_set.get(target=False).columns, target_column]
     ]
-    filtered.update("testset", True, df=filtered_df)
+    filtered.update("test_set", True, df=filtered_df)
     filtered.freeze()
     return filtered
 
 
-def _select_recourse_factuals(model, testset, desired_class: int | str | None):
+def _select_recourse_factuals(model, test_set, desired_class: int | str | None):
     if desired_class is None:
-        return testset
+        return test_set
 
     class_to_index = model.get_class_to_index()
     desired_index = class_to_index[desired_class]
-    predictions = model.predict(testset).argmax(dim=1).detach().cpu().numpy()
+    predictions = model.predict(test_set).argmax(dim=1).detach().cpu().numpy()
     keep_mask = pd.Series(
-        predictions != desired_index, index=testset.get(target=False).index
+        predictions != desired_index, index=test_set.get(target=False).index
     )
-    return _build_filtered_testset(testset, keep_mask)
+    return _build_filtered_test_set(test_set, keep_mask)
 
 
 def _run_current_experiment(experiment: Experiment) -> dict:
-    trainset, testset = _materialize_datasets(experiment)
+    train_set, test_set = _materialize_datasets(experiment)
 
-    experiment._target_model.fit(trainset)
-    model_metrics = _compute_model_metrics(experiment._target_model, testset)
+    experiment._target_model.fit(train_set)
+    model_metrics = _compute_model_metrics(experiment._target_model, test_set)
 
-    experiment._method.fit(trainset)
+    experiment._method.fit(train_set)
     factuals = _select_recourse_factuals(
         experiment._target_model,
-        testset,
+        test_set,
         getattr(experiment._method, "_desired_class", None),
     )
     counterfactuals = experiment._method.predict(factuals)
@@ -157,8 +157,8 @@ def _run_current_experiment(experiment: Experiment) -> dict:
     experiment._metrics = metrics
 
     return {
-        "trainset": trainset,
-        "testset": testset,
+        "train_set": train_set,
+        "test_set": test_set,
         "factuals": factuals,
         "counterfactuals": counterfactuals,
         "metrics": metrics,
@@ -167,18 +167,18 @@ def _run_current_experiment(experiment: Experiment) -> dict:
 
 
 def _run_future_model_experiment(experiment: Experiment) -> dict:
-    trainset, testset = _materialize_datasets(experiment)
-    experiment._target_model.fit(trainset)
-    model_metrics = _compute_model_metrics(experiment._target_model, testset)
+    train_set, test_set = _materialize_datasets(experiment)
+    experiment._target_model.fit(train_set)
+    model_metrics = _compute_model_metrics(experiment._target_model, test_set)
     return {
-        "trainset": trainset,
-        "testset": testset,
+        "train_set": train_set,
+        "test_set": test_set,
         "model_metrics": model_metrics,
     }
 
 
 def _compute_future_validity(
-    factuals, counterfactuals, future_model, future_testset
+    factuals, counterfactuals, future_model, future_test_set
 ) -> tuple[float, int, int]:
     (
         _factual_features,
@@ -191,7 +191,7 @@ def _compute_future_validity(
     selected_success_mask = evaluation_mask & success_mask
     successful_count = int(selected_success_mask.sum())
 
-    expected_columns = list(future_testset.get(target=False).columns)
+    expected_columns = list(future_test_set.get(target=False).columns)
     actual_columns = list(counterfactual_features.columns)
     if len(actual_columns) != len(expected_columns):
         raise ValueError(
@@ -251,7 +251,7 @@ def main() -> None:
         current_results["factuals"],
         current_results["counterfactuals"],
         future_experiment._target_model,
-        future_results["testset"],
+        future_results["test_set"],
     )
 
     current_metrics = current_results["metrics"].iloc[0].to_dict()

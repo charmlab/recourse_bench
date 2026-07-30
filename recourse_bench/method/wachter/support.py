@@ -50,13 +50,13 @@ class WachterFeatureContext:
     legality_context: FeatureTweakContext
 
 
-def build_wachter_feature_context(trainset: DatasetObject) -> WachterFeatureContext:
-    feature_df = trainset.get(target=False)
+def build_wachter_feature_context(train_set: DatasetObject) -> WachterFeatureContext:
+    feature_df = train_set.get(target=False)
     feature_names = list(feature_df.columns)
-    feature_type, _, _ = resolve_feature_metadata(trainset)
+    feature_type, _, _ = resolve_feature_metadata(train_set)
 
     try:
-        encoding_map = trainset.attr("encoding")
+        encoding_map = train_set.attr("encoding")
     except AttributeError:
         encoding_map = {}
 
@@ -106,11 +106,11 @@ def build_wachter_feature_context(trainset: DatasetObject) -> WachterFeatureCont
 
     return WachterFeatureContext(
         feature_names=feature_names,
-        target_column=trainset.target_column,
+        target_column=train_set.target_column,
         categorical_groups=categorical_groups,
         thermometer_groups=thermometer_groups,
         binary_feature_indices=binary_feature_indices,
-        legality_context=build_feature_tweak_context(trainset),
+        legality_context=build_feature_tweak_context(train_set),
     )
 
 

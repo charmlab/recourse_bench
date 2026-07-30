@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
 
 import pandas as pd
 import yaml
+
+
+#: Retired dataset flag names, mapped to the flag they were renamed to. Set by
+#: the ``split`` preprocessing step and read back by methods and evaluations;
+#: the old names still resolve through :meth:`DatasetObject.__getattr__`.
+deprecated_flags: dict[str, str] = {
+    "trainset": "train_set",
+    "testset": "test_set",
+}
 
 
 class DatasetObject(ABC):
@@ -124,6 +134,26 @@ class DatasetObject(ABC):
             self._rawdf = df.copy(deep=True)
         setattr(self, flag, deepcopy(value))
         return True
+
+    def __getattr__(self, name: str) -> object:
+        """Resolve retired flag names to their current ones.
+
+        Only consulted when normal attribute lookup fails, so a dataset that
+        never had the flag set still raises :class:`AttributeError` — keeping
+        ``getattr(dataset, "trainset", False)`` probes working as before.
+        """
+        current = deprecated_flags.get(name)
+        if current is not None and current in self.__dict__:
+            warnings.warn(
+                f"The dataset flag '{name}' was renamed to '{current}'; the old "
+                "name still works but will be removed.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return self.__dict__[current]
+        raise AttributeError(
+            f"{type(self).__name__!r} object has no attribute {name!r}"
+        )
 
     def attr(self, flag: str) -> object:
         """Return a deep copy of a public attribute (flag or metadata).

@@ -36,7 +36,7 @@ def training(
     trains VAE and saves results
     """  #
 
-    trainset = Datafeed(x_train, x_train, transform=None)
+    train_set = Datafeed(x_train, x_train, transform=None)
     valset = Datafeed(x_test, x_test, transform=None)
 
     # Honor the caller's requested device. Fall back to availability checks only
@@ -62,7 +62,7 @@ def training(
         path,
         batch_size,
         nb_epochs,
-        trainset,
+        train_set,
         valset,
         cuda=cuda,
         flat_ims=False,

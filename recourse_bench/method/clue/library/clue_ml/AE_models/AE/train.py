@@ -19,7 +19,7 @@ def train_VAE(
     name,
     batch_size,
     nb_epochs,
-    trainset,
+    train_set,
     valset,
     cuda,
     flat_ims=False,
@@ -33,7 +33,7 @@ def train_VAE(
 
     if cuda:
         trainloader = torch.utils.data.DataLoader(
-            trainset,
+            train_set,
             batch_size=batch_size,
             shuffle=True,
             pin_memory=True,
@@ -45,7 +45,7 @@ def train_VAE(
 
     else:
         trainloader = torch.utils.data.DataLoader(
-            trainset,
+            train_set,
             batch_size=batch_size,
             shuffle=True,
             pin_memory=False,

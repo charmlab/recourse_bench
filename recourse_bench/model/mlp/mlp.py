@@ -113,12 +113,12 @@ class MlpModel(ModelObject):
                     torch.nn.init.xavier_uniform_(parameter)
         return model
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for MlpModel.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for MlpModel.fit()")
 
         with seed_context(self._seed):
-            X, labels, output_dim = self.extract_training_data(trainset)
+            X, labels, output_dim = self.extract_training_data(train_set)
             if self._output_activation_name == "sigmoid":
                 if len(self.get_class_to_index()) != 2:
                     raise ValueError(

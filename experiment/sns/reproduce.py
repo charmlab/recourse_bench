@@ -95,10 +95,10 @@ def _build_reference_split(encoded_dataset, cfg: dict):
     train_scaled.loc[:, feature_columns] = (train_df.loc[:, feature_columns] - mean) / std
     test_scaled.loc[:, feature_columns] = (test_df.loc[:, feature_columns] - mean) / std
 
-    trainset = _clone_frozen_dataset(encoded_dataset, train_scaled, "trainset")
-    testset = _clone_frozen_dataset(encoded_dataset, test_scaled, "testset")
+    train_set = _clone_frozen_dataset(encoded_dataset, train_scaled, "train_set")
+    test_set = _clone_frozen_dataset(encoded_dataset, test_scaled, "test_set")
 
-    return trainset, testset, int(len(unused_positions))
+    return train_set, test_set, int(len(unused_positions))
 
 
 def _build_model_from_cfg(cfg: dict, seed: int | None = None):
@@ -110,8 +110,8 @@ def _build_model_from_cfg(cfg: dict, seed: int | None = None):
     return model_class(**model_cfg)
 
 
-def _select_factuals(testset, max_factuals: int | None, sample_seed: int) -> pd.DataFrame:
-    factuals = testset.get(target=False).copy(deep=True)
+def _select_factuals(test_set, max_factuals: int | None, sample_seed: int) -> pd.DataFrame:
+    factuals = test_set.get(target=False).copy(deep=True)
     if max_factuals is None or max_factuals >= factuals.shape[0]:
         return factuals
     rng = np.random.RandomState(sample_seed)
@@ -241,13 +241,13 @@ def _compute_invalidation_rate(
     return float(np.mean(invalidation_rates))
 
 
-def _compute_accuracy(model, testset) -> float:
-    prediction = model.predict(testset).argmax(dim=1).detach().cpu().numpy()
-    target = testset.get(target=True).iloc[:, 0].astype(int).to_numpy()
+def _compute_accuracy(model, test_set) -> float:
+    prediction = model.predict(test_set).argmax(dim=1).detach().cpu().numpy()
+    target = test_set.get(target=True).iloc[:, 0].astype(int).to_numpy()
     return float(np.mean(prediction == target))
 
 
-def _build_rs_models(config: dict, trainset, max_related_models: int | None) -> list:
+def _build_rs_models(config: dict, train_set, max_related_models: int | None) -> list:
     reproduction_cfg = config["reproduction"]
     rs_count = int(reproduction_cfg["rs_count"])
     if max_related_models is not None:
@@ -257,18 +257,18 @@ def _build_rs_models(config: dict, trainset, max_related_models: int | None) -> 
     models = []
     for offset in range(rs_count):
         model = _build_model_from_cfg(config, seed=rs_seed_start + offset)
-        model.fit(trainset)
+        model.fit(train_set)
         models.append(model)
     return models
 
 
-def _build_loo_models(config: dict, trainset, max_related_models: int | None) -> list:
+def _build_loo_models(config: dict, train_set, max_related_models: int | None) -> list:
     reproduction_cfg = config["reproduction"]
     loo_count = int(reproduction_cfg["loo_count"])
     if max_related_models is not None:
         loo_count = min(loo_count, int(max_related_models))
 
-    train_df = trainset.clone().snapshot()
+    train_df = train_set.clone().snapshot()
     rng = np.random.RandomState(int(reproduction_cfg["loo_selection_seed"]))
     sampled_positions = rng.choice(train_df.shape[0], size=loo_count, replace=False)
     sampled_indices = train_df.index[sampled_positions]
@@ -276,9 +276,9 @@ def _build_loo_models(config: dict, trainset, max_related_models: int | None) ->
     models = []
     for removed_index in sampled_indices:
         reduced_df = train_df.drop(index=removed_index).copy(deep=True)
-        reduced_trainset = _clone_frozen_dataset(trainset, reduced_df, "trainset")
+        reduced_train_set = _clone_frozen_dataset(train_set, reduced_df, "train_set")
         model = _build_model_from_cfg(config, seed=int(config["model"]["seed"]))
-        model.fit(reduced_trainset)
+        model.fit(reduced_train_set)
         models.append(model)
     return models
 
@@ -303,9 +303,9 @@ def main() -> None:
 
     experiment = Experiment(config)
     encoded_dataset = _materialize_single_dataset(experiment)
-    trainset, testset, unused_rows = _build_reference_split(encoded_dataset, config)
+    train_set, test_set, unused_rows = _build_reference_split(encoded_dataset, config)
 
-    feature_count = trainset.get(target=False).shape[1]
+    feature_count = train_set.get(target=False).shape[1]
     expected_feature_count = int(config["reproduction"]["expected_feature_count"])
     if feature_count != expected_feature_count:
         raise ValueError(
@@ -313,20 +313,20 @@ def main() -> None:
         )
 
     base_model = experiment._target_model
-    base_model.fit(trainset)
+    base_model.fit(train_set)
     method = experiment._method
-    method.fit(trainset)
+    method.fit(train_set)
 
     factuals = _select_factuals(
-        testset,
+        test_set,
         max_factuals=args.max_factuals,
         sample_seed=int(config["reproduction"]["sample_seed"]),
     )
 
     started_at = time.perf_counter()
     original_prediction, base_cfs, sns_cfs = _run_base_and_sns(method, factuals)
-    rs_models = _build_rs_models(config, trainset, args.max_related_models)
-    loo_models = _build_loo_models(config, trainset, args.max_related_models)
+    rs_models = _build_rs_models(config, train_set, args.max_related_models)
+    loo_models = _build_loo_models(config, train_set, args.max_related_models)
     runtime = float(time.perf_counter() - started_at)
 
     base_success_rate = float((~base_cfs.isna().any(axis=1)).mean())
@@ -346,10 +346,10 @@ def main() -> None:
     print("SNS German Credit Reproduction")
     print(f"device: {device}")
     print(f"encoded_feature_count: {feature_count}")
-    print(f"train_rows: {len(trainset)}")
-    print(f"test_rows: {len(testset)}")
+    print(f"train_rows: {len(train_set)}")
+    print(f"test_rows: {len(test_set)}")
     print(f"unused_rows: {unused_rows}")
-    print(f"base_model_test_accuracy: {_compute_accuracy(base_model, testset):.4f}")
+    print(f"base_model_test_accuracy: {_compute_accuracy(base_model, test_set):.4f}")
     print(f"num_factuals_evaluated: {len(factuals)}")
     print(f"rs_models_evaluated: {len(rs_models)}")
     print(f"loo_models_evaluated: {len(loo_models)}")

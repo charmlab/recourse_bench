@@ -12,6 +12,22 @@ Exceptions
 .. autoexception:: ConfigError
    :show-inheritance:
 
+.. autoexception:: MissingDependencyError
+   :show-inheritance:
+
+Optional dependencies
+---------------------
+
+.. automodule:: recourse_bench.utils.dependencies
+   :no-members:
+
+.. currentmodule:: recourse_bench.utils.dependencies
+
+.. autoclass:: optional_dependency
+   :members:
+
+.. autofunction:: require_optional
+
 Reproducibility
 ---------------
 
@@ -23,6 +39,8 @@ Caching
 -------
 
 .. currentmodule:: recourse_bench.utils.caching
+
+.. autofunction:: default_cache_dir
 
 .. autofunction:: get_cache_dir
 

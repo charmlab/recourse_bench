@@ -5,7 +5,7 @@ logger:
 caching:
   path: ./cache/
 dataset:
-  name: toydata
+  name: toy_data
 preprocess:
   - name: scale
     seed: 7

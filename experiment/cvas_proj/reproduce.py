@@ -244,8 +244,8 @@ class StratifiedSplitPreProcess(PreProcessObject):
         with seed_context(self._seed):
             from recourse_bench.preprocess.preprocess_utils import ensure_flag_absent
 
-            ensure_flag_absent(input_dataset, "trainset")
-            ensure_flag_absent(input_dataset, "testset")
+            ensure_flag_absent(input_dataset, "train_set")
+            ensure_flag_absent(input_dataset, "test_set")
 
             df = input_dataset.snapshot()
             target = df.loc[:, input_dataset.target_column]
@@ -262,18 +262,18 @@ class StratifiedSplitPreProcess(PreProcessObject):
             if self._sample is not None:
                 if self._sample > test_df.shape[0]:
                     raise ValueError(
-                        "StratifiedSplitPreProcess sample exceeds split testset size"
+                        "StratifiedSplitPreProcess sample exceeds split test_set size"
                     )
                 test_df = test_df.sample(
                     n=self._sample,
                     random_state=self._seed,
                 ).copy(deep=True)
 
-            testset = input_dataset.clone()
-            trainset = input_dataset
-            trainset.update("trainset", True, df=train_df)
-            testset.update("testset", True, df=test_df)
-            return trainset, testset
+            test_set = input_dataset.clone()
+            train_set = input_dataset
+            train_set.update("train_set", True, df=train_df)
+            test_set.update("test_set", True, df=test_df)
+            return train_set, test_set
 
 
 def _load_config(config_path: Path) -> dict:
@@ -526,9 +526,9 @@ def _prepare_future_models(
             stratify=target,
             shuffle=True,
         )
-        trainset = _build_frozen_dataset(future_dataset, train_df, "trainset")
+        train_set = _build_frozen_dataset(future_dataset, train_df, "train_set")
         future_model = _instantiate_model(future_cfg["model"])
-        future_model.fit(trainset)
+        future_model.fit(train_set)
         future_models.append(future_model)
     return future_models
 
@@ -555,7 +555,7 @@ def _build_factual_dataset(
     selected_df = factual_pool_df.iloc[predicted_indices != desired_index].copy(deep=True)
     if max_ins is not None:
         selected_df = selected_df.iloc[: int(max_ins)].copy(deep=True)
-    return _build_frozen_dataset(template_dataset, selected_df, "testset")
+    return _build_frozen_dataset(template_dataset, selected_df, "test_set")
 
 
 def _compute_instance_metrics(
@@ -668,14 +668,14 @@ def _run_single_fold(
         fold_index=fold_index,
     )
 
-    trainset = _build_frozen_dataset(
+    train_set = _build_frozen_dataset(
         shared_state["current_dataset"],
         fold_train_df,
-        "trainset",
+        "train_set",
     )
 
     current_model = _instantiate_model(current_cfg["model"])
-    current_model.fit(trainset)
+    current_model.fit(train_set)
 
     factuals = _build_factual_dataset(
         template_dataset=shared_state["current_dataset"],
@@ -690,7 +690,7 @@ def _run_single_fold(
     method_cfg["surrogate_method"] = surrogate_method
     method_cfg["rho_neg"] = 0.0 if surrogate_method == "mpm" else float(rho_neg)
     method_obj = _instantiate_method(method_cfg, current_model)
-    method_obj.fit(trainset)
+    method_obj.fit(train_set)
     raw_counterfactuals = method_obj.get_unvalidated_counterfactuals(
         factuals.get(target=False)
     )

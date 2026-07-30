@@ -138,22 +138,22 @@ class ColsMethod(MethodObject):
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ColsMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ColsMethod.fit()")
 
         with seed_context(self._seed):
-            features = trainset.get(target=False)
+            features = train_set.get(target=False)
             try:
-                feature_space = trainset.attr("cols_feature_space_df")
+                feature_space = train_set.attr("cols_feature_space_df")
             except AttributeError:
                 feature_space = features
             try:
-                state_space_overrides = trainset.attr("cols_state_space_overrides")
+                state_space_overrides = train_set.attr("cols_state_space_overrides")
             except AttributeError:
                 state_space_overrides = None
             self._feature_names = list(features.columns)
-            self._schema = build_search_schema(trainset)
+            self._schema = build_search_schema(train_set)
             self._decoded_training = decode_feature_dataframe(feature_space, self._schema)
             self._base_state_spaces = infer_base_state_spaces(
                 self._decoded_training,

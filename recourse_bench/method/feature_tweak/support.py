@@ -92,34 +92,34 @@ class FeatureTweakContext:
     groups: tuple[FeatureTweakGroup, ...]
 
 
-def build_feature_tweak_context(trainset: DatasetObject) -> FeatureTweakContext:
-    feature_df = trainset.get(target=False)
+def build_feature_tweak_context(train_set: DatasetObject) -> FeatureTweakContext:
+    feature_df = train_set.get(target=False)
     feature_names = list(feature_df.columns)
     encoded_feature_type, encoded_feature_mutability, encoded_feature_actionability = (
-        resolve_feature_metadata(trainset)
+        resolve_feature_metadata(train_set)
     )
 
     raw_feature_type = (
-        trainset.attr("raw_feature_type")
-        if dataset_has_attr(trainset, "raw_feature_type")
+        train_set.attr("raw_feature_type")
+        if dataset_has_attr(train_set, "raw_feature_type")
         else encoded_feature_type
     )
     raw_feature_mutability = (
-        trainset.attr("raw_feature_mutability")
-        if dataset_has_attr(trainset, "raw_feature_mutability")
+        train_set.attr("raw_feature_mutability")
+        if dataset_has_attr(train_set, "raw_feature_mutability")
         else encoded_feature_mutability
     )
     raw_feature_actionability = (
-        trainset.attr("raw_feature_actionability")
-        if dataset_has_attr(trainset, "raw_feature_actionability")
+        train_set.attr("raw_feature_actionability")
+        if dataset_has_attr(train_set, "raw_feature_actionability")
         else encoded_feature_actionability
     )
     encoding_map = (
-        trainset.attr("encoding") if dataset_has_attr(trainset, "encoding") else {}
+        train_set.attr("encoding") if dataset_has_attr(train_set, "encoding") else {}
     )
     encoded_value_mapping = (
-        trainset.attr("encoded_value_mapping")
-        if dataset_has_attr(trainset, "encoded_value_mapping")
+        train_set.attr("encoded_value_mapping")
+        if dataset_has_attr(train_set, "encoded_value_mapping")
         else {}
     )
 
@@ -211,7 +211,7 @@ def build_feature_tweak_context(trainset: DatasetObject) -> FeatureTweakContext:
 
     return FeatureTweakContext(
         feature_names=tuple(feature_names),
-        target_column=str(trainset.target_column),
+        target_column=str(train_set.target_column),
         groups=tuple(groups),
     )
 

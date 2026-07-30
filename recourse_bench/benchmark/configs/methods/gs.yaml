@@ -7,4 +7,4 @@ method:
   max_iter: 500
 
 compatibility:
-  allowed_models: [linear, mlp, randomforest]
+  allowed_models: [linear, mlp, random_forest]

@@ -182,11 +182,11 @@ def _reference_style_split(dataset, split_preprocess) -> tuple[object, object]:
         test_df = test_df.copy(deep=True)
     train_df = train_df.copy(deep=True)
 
-    trainset = dataset
-    testset = dataset.clone()
-    trainset.update("trainset", True, df=train_df)
-    testset.update("testset", True, df=test_df)
-    return trainset, testset
+    train_set = dataset
+    test_set = dataset.clone()
+    train_set.update("train_set", True, df=train_df)
+    test_set.update("test_set", True, df=test_df)
+    return train_set, test_set
 
 
 def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
@@ -206,11 +206,11 @@ def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
     return experiment._resolve_train_test(datasets)
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
+def _compute_model_metrics(model, test_set) -> dict[str, float]:
+    probabilities = model.predict_proba(test_set).detach().cpu()
     prediction = probabilities.argmax(dim=1)
 
-    y = testset.get(target=True).iloc[:, 0]
+    y = test_set.get(target=True).iloc[:, 0]
     class_to_index = model.get_class_to_index()
     encoded_target = torch.tensor(
         [_resolve_target_index(class_to_index, value) for value in y.tolist()],
@@ -440,22 +440,22 @@ def _run_case(case: ReproductionCase, device: str, n_cfs: int | None, monte_carl
     experiment = Experiment(config)
     logger = experiment._logger
 
-    trainset, testset = _materialize_datasets(experiment)
+    train_set, test_set = _materialize_datasets(experiment)
     logger.info("Training target model for %s", case.slug)
-    experiment._target_model.fit(trainset)
-    model_metrics = _compute_model_metrics(experiment._target_model, testset)
+    experiment._target_model.fit(train_set)
+    model_metrics = _compute_model_metrics(experiment._target_model, test_set)
 
     logger.info("Training PROBE for %s", case.slug)
-    experiment._method.fit(trainset)
+    experiment._method.fit(train_set)
 
     combined_df = pd.concat(
         [
-            pd.concat([trainset.get(target=False), trainset.get(target=True)], axis=1),
-            pd.concat([testset.get(target=False), testset.get(target=True)], axis=1),
+            pd.concat([train_set.get(target=False), train_set.get(target=True)], axis=1),
+            pd.concat([test_set.get(target=False), test_set.get(target=True)], axis=1),
         ],
         axis=0,
     )
-    combined = _build_frozen_dataset(trainset, combined_df, "reference_source")
+    combined = _build_frozen_dataset(train_set, combined_df, "reference_source")
     factuals = _select_negative_factuals(experiment._target_model, combined, n_cfs)
     logger.info("Selected %d negative factuals for %s", len(factuals), case.slug)
 

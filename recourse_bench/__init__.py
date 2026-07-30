@@ -18,8 +18,13 @@ from recourse_bench.model.model_utils import logits_to_prediction, resolve_devic
 from recourse_bench.model.model_object import ModelObject, process_nan
 from recourse_bench.preprocess.preprocess_object import PreProcessObject
 from recourse_bench.preprocess.preprocess_utils import resolve_feature_metadata
-from recourse_bench.utils.caching import get_cache_dir, set_cache_dir
-from recourse_bench.utils.exceptions import ConfigError, RecourseBenchError
+from recourse_bench.utils.caching import default_cache_dir, get_cache_dir, set_cache_dir
+from recourse_bench.utils.dependencies import optional_dependency, require_optional
+from recourse_bench.utils.exceptions import (
+    ConfigError,
+    MissingDependencyError,
+    RecourseBenchError,
+)
 from recourse_bench.utils.logger import setup_logger
 from recourse_bench.utils.registry import get_registry, register
 from recourse_bench.utils.seed import seed_context
@@ -32,7 +37,7 @@ from recourse_bench.api import (
     list_evaluations,
     list_methods,
     list_models,
-    list_preprocess,
+    list_preprocessors,
     run,
     run_config_file,
 )
@@ -77,12 +82,13 @@ __all__ = [
     "PreProcessObject",
     "utils",
     "ConfigError",
+    "MissingDependencyError",
     "RecourseBenchError",
     # Functional API
     "run",
     "run_config_file",
     "list_datasets",
-    "list_preprocess",
+    "list_preprocessors",
     "list_models",
     "list_methods",
     "list_evaluations",
@@ -92,8 +98,11 @@ __all__ = [
     "models",
     "methods",
     "evaluations",
+    "default_cache_dir",
     "get_cache_dir",
     "get_registry",
+    "optional_dependency",
+    "require_optional",
     "distance",
     "logits_to_prediction",
     "process_nan",

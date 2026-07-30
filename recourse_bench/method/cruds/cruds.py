@@ -84,9 +84,9 @@ class CrudsMethod(MethodObject):
         if self._vae_batch_size < 1:
             raise ValueError("vae_batch_size must be >= 1")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for CrudsMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for CrudsMethod.fit()")
 
         with seed_context(self._seed):
             ensure_binary_classifier(self._target_model, "CrudsMethod")
@@ -99,7 +99,7 @@ class CrudsMethod(MethodObject):
                     "desired_class is invalid for the trained target model"
                 )
 
-            train_features = trainset.get(target=False)
+            train_features = train_set.get(target=False)
             try:
                 train_features.loc[:, :].to_numpy(dtype="float32")
             except ValueError as error:
@@ -107,12 +107,12 @@ class CrudsMethod(MethodObject):
                     "CrudsMethod requires finalized numeric input features"
                 ) from error
 
-            self._feature_context = build_cruds_feature_context(trainset)
+            self._feature_context = build_cruds_feature_context(train_set)
             self._feature_names = list(self._feature_context.feature_names)
             self._adapter = CrudsTargetModelAdapter(
                 target_model=self._target_model,
                 feature_context=self._feature_context,
-                trainset=trainset,
+                train_set=train_set,
             )
             target_class = (
                 1

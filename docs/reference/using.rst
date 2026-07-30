@@ -62,7 +62,7 @@ Datasets — ``rb.datasets``
 ``boston_housing``, ``breast_cancer``, ``compas``, ``compas_carla``,
 ``compas_clue``, ``credit``, ``credit_cchvae``, ``diabetes``, ``german``,
 ``german_roar``, ``german_sns``, ``hepatitis``, ``news_popularity``,
-``synthetic_face``, ``toydata`` (variants suffixed with a method name carry the
+``synthetic_face``, ``toy_data`` (variants suffixed with a method name carry the
 features/metadata that method expects).
 
 * **Construct:** ``data = rb.datasets.credit()`` — no required arguments; the raw
@@ -84,19 +84,19 @@ finalize``).
   ``seed`` plus step-specific options.
 * **Input → output:** ``step.transform(dataset)`` takes a mutable
   :class:`~dataset.dataset_object.DatasetObject` and returns the transformed
-  dataset, or a *tuple* of datasets for steps that split (``split`` → trainset,
-  testset).
+  dataset, or a *tuple* of datasets for steps that split (``split`` → train_set,
+  test_set).
 
 Models — ``rb.models``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-*Available:* ``linear``, ``mlp``, ``mlp_bayesian``, ``randomforest``,
+*Available:* ``linear``, ``mlp``, ``mlp_bayesian``, ``random_forest``,
 ``sklearn_logistic_regression``.
 
 * **Construct:** ``model = rb.models.linear(seed=7, device="cpu")``.
-* **Inputs → outputs:** ``model.fit(trainset)`` trains on a frozen
-  :class:`~dataset.dataset_object.DatasetObject`; ``model.predict(testset)`` /
-  ``model.predict_proba(testset)`` return a ``(n_rows, n_classes)``
+* **Inputs → outputs:** ``model.fit(train_set)`` trains on a frozen
+  :class:`~dataset.dataset_object.DatasetObject`; ``model.predict(test_set)`` /
+  ``model.predict_proba(test_set)`` return a ``(n_rows, n_classes)``
   ``torch.Tensor`` of logits / probabilities; ``model.get_prediction(X,
   proba=...)`` predicts on a feature ``DataFrame``. Differentiable models also
   support ``model(X)`` / ``model.forward(X)`` on a feature tensor.
@@ -114,11 +114,11 @@ Methods — ``rb.methods``
   desired_class=1)`` — wraps a (to-be-)trained ``model``; ``desired_class``
   steers which class counterfactuals move toward (``None`` flips a binary
   label). Extra keyword arguments are method-specific hyperparameters.
-* **Inputs → outputs:** ``method.fit(trainset)`` builds any auxiliary search
+* **Inputs → outputs:** ``method.fit(train_set)`` builds any auxiliary search
   structures; ``method.get_counterfactuals(factuals)`` takes a feature
   ``DataFrame`` and returns one with the same rows and columns, with ``NaN`` rows
   where no valid counterfactual was found. The inherited
-  ``method.predict(testset)`` runs that in batches and returns a *frozen*
+  ``method.predict(test_set)`` runs that in batches and returns a *frozen*
   counterfactual :class:`~dataset.dataset_object.DatasetObject` carrying runtime,
   prediction, and target-label metadata (failed rows have ``NaN`` features and
   target ``-1``).
@@ -126,7 +126,7 @@ Methods — ``rb.methods``
 Evaluations — ``rb.evaluations``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-*Available:* ``constraints``, ``distance``, ``examples``, ``knn``, ``runtime``,
+*Available:* ``constraint``, ``distance``, ``example``, ``knn``, ``runtime``,
 ``validity``, ``ynn``.
 
 * **Construct:** ``metric = rb.evaluations.validity()`` — metric-specific options
@@ -163,7 +163,7 @@ Discover components
 
 .. autofunction:: list_datasets
 
-.. autofunction:: list_preprocess
+.. autofunction:: list_preprocessors
 
 .. autofunction:: list_models
 

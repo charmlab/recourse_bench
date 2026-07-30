@@ -59,14 +59,14 @@ class SklearnLogisticRegressionModel(ModelObject):
         if self._fit_mode not in {"grid_search", "default"}:
             raise ValueError("fit_mode must be 'grid_search' or 'default'")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
             raise ValueError(
-                "trainset is required for SklearnLogisticRegressionModel.fit()"
+                "train_set is required for SklearnLogisticRegressionModel.fit()"
             )
 
         with seed_context(self._seed):
-            X, labels, _ = self.extract_training_data(trainset)
+            X, labels, _ = self.extract_training_data(train_set)
             if self._fit_mode == "default":
                 self._model = LogisticRegression().fit(X, labels.cpu().numpy())
                 self._grid_search = None

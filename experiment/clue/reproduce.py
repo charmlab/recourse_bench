@@ -154,49 +154,49 @@ def _seed_everything(seed: int) -> None:
 
 def _build_compas_train_schema(seed: int) -> dict[str, Any]:
     dataset = CompasClueDataset()
-    trainset, testset = SplitPreProcess(seed=seed, split=0.1).transform(dataset)
+    train_set, test_set = SplitPreProcess(seed=seed, split=0.1).transform(dataset)
 
     scale = ScalePreProcess(
         seed=seed,
         scaling="standardize",
         range=True,
-        refset=trainset,
+        ref_set=train_set,
     )
-    trainset = scale.transform(trainset)
-    testset = scale.transform(testset)
+    train_set = scale.transform(train_set)
+    test_set = scale.transform(test_set)
 
     encode = EncodePreProcess(seed=seed, encoding="onehot")
-    trainset = encode.transform(trainset)
-    testset = encode.transform(testset)
+    train_set = encode.transform(train_set)
+    test_set = encode.transform(test_set)
 
     reorder = ReorderPreProcess(seed=seed, order=COMPAS_OFFICIAL_ORDER)
-    trainset = reorder.transform(trainset)
-    testset = reorder.transform(testset)
+    train_set = reorder.transform(train_set)
+    test_set = reorder.transform(test_set)
 
     finalize = FinalizePreProcess(seed=seed)
-    trainset = finalize.transform(trainset)
-    testset = finalize.transform(testset)
+    train_set = finalize.transform(train_set)
+    test_set = finalize.transform(test_set)
 
-    train_features = trainset.get(target=False)
-    test_features = testset.get(target=False)
+    train_features = train_set.get(target=False)
+    test_features = test_set.get(target=False)
     if list(train_features.columns) != COMPAS_OFFICIAL_ORDER:
         raise AssertionError(
             "Finalized train feature order does not match OFFICIAL_ORDER"
         )
     if train_features.shape[1] != 17 or test_features.shape[1] != 17:
         raise AssertionError("Finalized COMPAS feature dimension must be 17")
-    if len(trainset) != EXPECTED_TRAIN:
+    if len(train_set) != EXPECTED_TRAIN:
         raise AssertionError(
-            f"Expected COMPAS train size {EXPECTED_TRAIN}, observed {len(trainset)}"
+            f"Expected COMPAS train size {EXPECTED_TRAIN}, observed {len(train_set)}"
         )
-    if len(testset) != EXPECTED_TEST:
+    if len(test_set) != EXPECTED_TEST:
         raise AssertionError(
-            f"Expected COMPAS test size {EXPECTED_TEST}, observed {len(testset)}"
+            f"Expected COMPAS test size {EXPECTED_TEST}, observed {len(test_set)}"
         )
 
     return {
-        "trainset": trainset,
-        "testset": testset,
+        "train_set": train_set,
+        "test_set": test_set,
     }
 
 
@@ -969,11 +969,11 @@ def main() -> None:
     LOGGER.info("Using device=%s", device)
 
     schema = _build_compas_train_schema(seed=SEED)
-    trainset = schema["trainset"]
+    train_set = schema["train_set"]
     LOGGER.info(
         "Prepared finalized COMPAS schema: train=%d test=%d",
-        len(trainset),
-        len(schema["testset"]),
+        len(train_set),
+        len(schema["test_set"]),
     )
 
     target_model = MlpBayesianModel(
@@ -982,7 +982,7 @@ def main() -> None:
         layers=[200, 200],
         pretrained_path=args.bnn_art_path.as_posix(),
     )
-    target_model.fit(trainset)
+    target_model.fit(train_set)
     LOGGER.info("Loaded ART Bayesian MLP checkpoint")
 
     clue_method = ClueMethod(
@@ -991,7 +991,7 @@ def main() -> None:
         device=device,
         pretrained_path=args.vae_art_path.as_posix(),
     )
-    clue_method.fit(trainset)
+    clue_method.fit(train_set)
     LOGGER.info("Loaded ART CLUE VAE checkpoint")
 
     summary = _run_compas_reproduction(

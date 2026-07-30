@@ -307,18 +307,18 @@ class CfvaeMethod(MethodObject):
             return contextlib.nullcontext()
         return seed_context(self._seed)
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for CfvaeMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for CfvaeMethod.fit()")
         if not getattr(self._target_model, "_is_trained", False):
             raise RuntimeError("Target model must be trained before CfvaeMethod.fit()")
 
         with self._seed_guard():
-            feature_df = trainset.get(target=False).copy(deep=True)
+            feature_df = train_set.get(target=False).copy(deep=True)
             if feature_df.isna().any(axis=None):
                 raise ValueError("CfvaeMethod.fit() does not support NaN values")
 
-            feature_groups = resolve_feature_groups(trainset)
+            feature_groups = resolve_feature_groups(train_set)
             self._feature_names = list(feature_groups.feature_names)
             self._continuous_features = list(feature_groups.continuous)
             self._binary_scalar_features = list(feature_groups.binary_scalar)
@@ -350,7 +350,7 @@ class CfvaeMethod(MethodObject):
             self._continuous_ranges = {
                 self._feature_names.index(feature_name): feature_range
                 for feature_name, feature_range in resolve_continuous_ranges(
-                    trainset, self._continuous_features
+                    train_set, self._continuous_features
                 ).items()
             }
             self._binary_value_ranges = {
@@ -378,7 +378,7 @@ class CfvaeMethod(MethodObject):
                     )
                 if feature_count != self._loaded_feature_num:
                     raise ValueError(
-                        "trainset feature count does not match pretrained CFVAE checkpoint: "
+                        "train_set feature count does not match pretrained CFVAE checkpoint: "
                         f"{feature_count} != {self._loaded_feature_num}"
                     )
                 self._cf_model = self._cf_model.to(self._device)
@@ -774,12 +774,12 @@ class CfvaeMethod(MethodObject):
             desired_class=self._desired_class,
         )
 
-    def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
-        output = super().predict(testset, batch_size=batch_size)
+    def predict(self, test_set: DatasetObject, batch_size: int = 20) -> DatasetObject:
+        output = super().predict(test_set, batch_size=batch_size)
         if not self._store_sampling_artifacts:
             return output
 
-        factuals = testset.get(target=False).loc[:, self._feature_names].copy(deep=True)
+        factuals = test_set.get(target=False).loc[:, self._feature_names].copy(deep=True)
         sampling_artifacts = self._collect_sampling_artifacts(
             factuals=factuals,
             batch_size=batch_size,

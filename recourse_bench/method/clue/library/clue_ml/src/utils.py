@@ -226,16 +226,16 @@ class l1_MAD(torch.nn.Module):
     unit std. Might also not make sense if we want to detect outlier values in specific features.
     """
 
-    def __init__(self, trainset_data, median_dim=0, dim=None):
+    def __init__(self, train_set_data, median_dim=0, dim=None):
         """Median dim are those across whcih to normalise (not features)
         dim is dimension to sum (features)"""
         super(l1_MAD, self).__init__()
         self.dim = dim
-        feature_median = smooth_median(trainset_data, dim=median_dim).unsqueeze(
+        feature_median = smooth_median(train_set_data, dim=median_dim).unsqueeze(
             dim=median_dim
         )
         self.MAD = smooth_median(
-            (trainset_data - feature_median).abs(), dim=median_dim
+            (train_set_data - feature_median).abs(), dim=median_dim
         ).unsqueeze(dim=median_dim)
         self.MAD = self.MAD.clamp(min=1e-4)
 

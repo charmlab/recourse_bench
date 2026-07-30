@@ -39,9 +39,9 @@ def ensure_binary_classifier(target_model: ModelObject, method_name: str) -> Non
 
 
 def build_gravitational_feature_context(
-    trainset: DatasetObject,
+    train_set: DatasetObject,
 ) -> FeatureTweakContext:
-    return build_feature_tweak_context(trainset)
+    return build_feature_tweak_context(train_set)
 
 
 def to_feature_dataframe(

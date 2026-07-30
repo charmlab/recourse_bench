@@ -188,12 +188,12 @@ class MlpBayesianModel(ModelObject):
             self._posterior_samples_device = samples
         return self._posterior_samples_device
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for MlpBayesianModel.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for MlpBayesianModel.fit()")
 
         with seed_context(self._seed):
-            X, labels, output_dim = self.extract_training_data(trainset)
+            X, labels, output_dim = self.extract_training_data(train_set)
             input_dim = X.shape[1]
             self._output_dim = output_dim
             self._model = self._build_model(

@@ -75,9 +75,9 @@ class DiverseDistMethod(MethodObject):
         if self._gamma <= 0:
             raise ValueError("gamma must be > 0")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for DiverseDistMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for DiverseDistMethod.fit()")
 
         with seed_context(self._seed):
             class_to_index = self._target_model.get_class_to_index()
@@ -88,7 +88,7 @@ class DiverseDistMethod(MethodObject):
             if self._desired_class is not None and self._desired_class not in class_to_index:
                 raise ValueError("desired_class is invalid for the trained target model")
 
-            features = trainset.get(target=False)
+            features = train_set.get(target=False)
             if features.isna().any(axis=1).any():
                 raise ValueError("DiverseDistMethod requires non-NaN training features")
 

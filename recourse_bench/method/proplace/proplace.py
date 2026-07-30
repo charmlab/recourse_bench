@@ -7,20 +7,24 @@ from tqdm import tqdm
 
 from recourse_bench.dataset.dataset_object import DatasetObject
 from recourse_bench.method.method_object import MethodObject
-from recourse_bench.method.proplace.support import (
-    OptSolver,
-    OptSolverRC4,
-    SolverConfig,
-    TorchModelTypes,
-    build_inn,
-    build_proplace_dataset,
-    build_vertex_hull,
-    ensure_supported_target_model,
-    extract_scalar_network,
-    predict_label_indices,
-    resolve_target_index,
-    validate_counterfactual_array,
-)
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("proplace", "gurobipy") as _gurobipy:
+    from recourse_bench.method.proplace.support import (
+        OptSolver,
+        OptSolverRC4,
+        SolverConfig,
+        TorchModelTypes,
+        build_inn,
+        build_proplace_dataset,
+        build_vertex_hull,
+        ensure_supported_target_model,
+        extract_scalar_network,
+        predict_label_indices,
+        resolve_target_index,
+        validate_counterfactual_array,
+    )
+
 from recourse_bench.model.model_object import ModelObject
 from recourse_bench.utils.registry import register
 from recourse_bench.utils.seed import seed_context
@@ -45,6 +49,7 @@ class ProplaceMethod(MethodObject):
         convex_hull_prune: bool = True,
         **kwargs,
     ):
+        _gurobipy.require()
         ensure_supported_target_model(target_model, TorchModelTypes, "ProplaceMethod")
         self._target_model = target_model
         self._seed = seed
@@ -83,16 +88,16 @@ class ProplaceMethod(MethodObject):
         if solver_threads is not None and int(solver_threads) < 1:
             raise ValueError("solver_threads must be >= 1 when provided")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ProplaceMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ProplaceMethod.fit()")
         if not getattr(self._target_model, "_is_trained", False):
             raise RuntimeError("Target model must be trained before ProplaceMethod.fit()")
 
         with seed_context(self._seed):
-            self._dataset_spec, train_array = build_proplace_dataset(trainset)
+            self._dataset_spec, train_array = build_proplace_dataset(train_set)
             self._feature_names = list(self._dataset_spec.feature_names)
-            self._train_features = trainset.get(target=False).loc[:, self._feature_names].copy(
+            self._train_features = train_set.get(target=False).loc[:, self._feature_names].copy(
                 deep=True
             )
             self._train_array = train_array.astype(np.float64, copy=False)

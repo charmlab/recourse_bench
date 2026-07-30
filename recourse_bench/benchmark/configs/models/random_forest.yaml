@@ -1,5 +1,5 @@
 model:
-  name: randomforest
+  name: random_forest
   seed: 0
   device: auto
   n_estimators: 100

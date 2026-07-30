@@ -4,35 +4,53 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "recourse_bench"
-version = "0.1.2"
+version = "0.2.0"
 description = "A benchmark for algorithmic recourse methods."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
 dependencies = [
     "dice-ml==0.12",
-    "lime==0.2.0.1",
     "matplotlib==3.10.8",
     "numpy==2.4.2",
     "pandas==3.0.0",
-    "PySMT==0.9.6",
     "PyYAML==6.0.3",
     "scikit-learn==1.8.0",
     "scipy==1.17.0",
-    # CPU/default builds from PyPI. For CUDA, install torch separately:
-    #   pip install torch==2.10.0+cu126 torchvision==0.25.0+cu126 \
-    #     --extra-index-url https://download.pytorch.org/whl/cu126
+    # Unpinned as to build: a "+cu126"-style local version cannot be published
+    # to PyPI, and the right build depends on the user's machine. Install torch
+    # for your platform first (see README.md and
+    # https://pytorch.org/get-started/locally/), then install this package —
+    # these pins are satisfied by any local version of the same release, e.g.
+    # 2.10.0+cpu. Note that on Linux the *default* PyPI wheel is the CUDA build.
     "torch==2.10.0",
     "torchvision==0.25.0",
     "tqdm==4.67.2",
-    "z3-solver==4.16.0.0",
-    "gurobipy==13.0.1",
-    "adversarial-robustness-toolbox==1.20.1",
-    "clingo==5.8.0",
-    "cvxpy==1.8.2",
 ]
 
 [project.optional-dependencies]
+# Solver backends, one extra per package. Every method stays registered and
+# listed by rb.list_methods() whether or not its backend is installed;
+# constructing one without it raises MissingDependencyError naming the extra to
+# install. See recourse_bench/utils/dependencies.py.
+gurobi = ["gurobipy==13.0.1"]  # apas, proplace — needs a Gurobi license
+z3 = ["z3-solver==4.16.0.0"]  # cemsp
+smt = ["PySMT==0.9.6"]  # mace
+asp = ["clingo==5.8.0"]  # arg_ensembling
+cvx = ["cvxpy==1.8.2"]  # cvas_proj
+art = ["adversarial-robustness-toolbox==1.20.1"]  # sns, trex
+lime = ["lime==0.2.0.1"]  # roar, larr
+# Every solver backend at once, for running the full benchmark. Excludes
+# `alibi`, which downgrades numpy — install that one deliberately.
+all-methods = [
+    "gurobipy==13.0.1",
+    "z3-solver==4.16.0.0",
+    "PySMT==0.9.6",
+    "clingo==5.8.0",
+    "cvxpy==1.8.2",
+    "adversarial-robustness-toolbox==1.20.1",
+    "lime==0.2.0.1",
+]
 # alibi pins an older numpy that conflicts with numpy==2.4.2 required above.
 # Installing this extra will downgrade numpy; only needed for certain methods
 # (e.g. diverse_dist). See requirements.txt.

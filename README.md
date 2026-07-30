@@ -2,13 +2,66 @@
 ## Code for _RecourseBench: A Modular Framework for Reproducible Algorithmic Recourse Evaluation_
 
 ## Install
+Install PyTorch for your machine first, then RecourseBench. Which torch build
+you pick dominates the install size, so it is a deliberate step rather than
+something this project decides for you.
+
 ```bash
 conda create -n recoursebench python=3.12
 conda activate recoursebench
+
+# 1. PyTorch — pick ONE (skip on macOS/Windows, where PyPI wheels are CPU-only)
+pip install torch==2.10.0 torchvision==0.25.0 \
+  --index-url https://download.pytorch.org/whl/cpu     # ~500 MB
+pip install torch==2.10.0 torchvision==0.25.0 \
+  --index-url https://download.pytorch.org/whl/cu126   # ~4.5 GB, needs an NVIDIA GPU
+
+# 2. RecourseBench and the rest
 pip install -r requirements.txt
 # If you want to run diverse_dist, then override install alibi:
 pip install alibi==0.9.6
 ```
+
+See <https://pytorch.org/get-started/locally/> for ROCm and other CUDA versions.
+Use `--index-url`, not `--extra-index-url` — the latter leaves pip resolving
+across both PyPI and the PyTorch index with no guarantee which one a given
+package comes from.
+
+`requirements.txt` installs every solver backend, which is what you want for a
+source checkout or to reproduce the full benchmark. Installing the package
+itself keeps the solvers optional:
+
+```bash
+pip install recourse_bench                 # core, no solver backends
+pip install recourse_bench[all-methods]    # + every solver backend
+pip install recourse_bench[gurobi,lime]    # + just the backends you need
+```
+
+| Extra | Package | Methods |
+| --- | --- | --- |
+| `gurobi` | gurobipy (needs a Gurobi license) | `apas`, `proplace` |
+| `z3` | z3-solver | `cemsp` |
+| `smt` | PySMT | `mace` |
+| `asp` | clingo | `arg_ensembling` |
+| `cvx` | cvxpy | `cvas_proj` |
+| `art` | adversarial-robustness-toolbox | `sns`, `trex` |
+| `lime` | lime | `roar`, `larr` |
+
+Every method stays registered and listed by `rb.list_methods()` whether or not
+its backend is installed — constructing one without it raises
+`MissingDependencyError` naming the extra to install.
+
+**On Linux, skipping the torch step above gives you the CUDA build**: PyPI's
+default `torch` wheel pulls ~3.1 GB of `nvidia-*` wheels, taking the install from
+~500 MB to ~4.5 GB. If you do not have an NVIDIA GPU, that is ~4 GB you will
+never use.
+
+## Where the cache goes
+
+Trained models and other derived artifacts are cached outside the working
+directory, under (in order) `$RECOURSE_BENCH_CACHE`,
+`$XDG_CACHE_HOME/recourse_bench`, or `~/.cache/recourse_bench`. Set
+`caching.path` in a config to keep a run's cache alongside its outputs instead.
 
 ## Documentation
 
@@ -28,7 +81,7 @@ sphinx-build -b html docs docs/_build/html
 ## Supported Components
 ### Datasets
 
-`adult`, `adult_cfrl`, `adult_cfvae`, `adult_cogs`, `boston_housing`, `breast_cancer`, `compas`, `compas_carla`, `compas_clue`, `credit`, `credit_cchvae`, `diabetes`, `german`, `german_roar`, `german_sns`, `hepatitis`, `news_popularity`, `synthetic_face`, `toydata`.
+`adult`, `adult_cfrl`, `adult_cfvae`, `adult_cogs`, `boston_housing`, `breast_cancer`, `compas`, `compas_carla`, `compas_clue`, `credit`, `credit_cchvae`, `diabetes`, `german`, `german_roar`, `german_sns`, `hepatitis`, `news_popularity`, `synthetic_face`, `toy_data`.
 
 Each dataset lives under `dataset/<name>/` and should provide an offline data file plus metadata YAML. Dataset objects are initialized as raw, non-encoded, non-scaled datasets; encoding, scaling, splitting, freezing, ... belong to preprocessing.
 
@@ -40,7 +93,7 @@ Typical usage is a pipeline such as `balance -> encode -> scale -> split -> fina
 
 ### Target Models
 
-`linear`, `mlp`, `mlp_bayesian`, `randomforest`, `sklearn_logistic_regression`.
+`linear`, `mlp`, `mlp_bayesian`, `random_forest`, `sklearn_logistic_regression`.
 
 Torch models expose `forward()` for gradient-based methods. Tree/sklearn models generally do not support differentiable recourse. `model.device` and `method.device` must match.
 
@@ -52,7 +105,7 @@ Method compatibility depends on the paper and implementation: some methods requi
 
 ### Evaluation
 
-`validity`, `distance`, `constraints`, `knn`, `examples`.
+`validity`, `distance`, `constraint`, `knn`, `example`.
 
 Evaluation receives the finalized factual dataset and the counterfactual dataset returned by `MethodObject.predict()`. Failed counterfactual rows are represented with `NaN` feature values and target `-1`.
 
@@ -130,7 +183,7 @@ class CustomModel(ModelObject):
         # Save more setting args and do whatever you want
         ...
 
-    def fit(self, trainset: DatasetObject):
+    def fit(self, train_set: DatasetObject):
         ...
         self._is_trained = True
 
@@ -166,7 +219,7 @@ class CustomMethod(MethodObject):
         # Save more setting args and do whatever you want
         ...
 
-    def fit(self, trainset: DatasetObject):
+    def fit(self, train_set: DatasetObject):
         ...
         self._is_trained = True
 

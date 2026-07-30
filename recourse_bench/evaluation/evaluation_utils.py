@@ -349,10 +349,10 @@ def resolve_evaluation_inputs(
     return factual_features, counterfactual_features, evaluation_mask, success_mask
 
 
-def resolve_ref_df(refset: DatasetObject) -> pd.DataFrame:
-    if getattr(refset, "_freeze", False):
-        return pd.concat([refset.get(target=False), refset.get(target=True)], axis=1)
-    return refset.snapshot()
+def resolve_ref_df(ref_set: DatasetObject) -> pd.DataFrame:
+    if getattr(ref_set, "_freeze", False):
+        return pd.concat([ref_set.get(target=False), ref_set.get(target=True)], axis=1)
+    return ref_set.snapshot()
 
 
 def to_float_tensor(df: pd.DataFrame) -> torch.Tensor:

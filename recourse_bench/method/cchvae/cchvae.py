@@ -110,14 +110,14 @@ class CchvaeMethod(MethodObject):
 
     def _resolve_cchvae_feature_type(
         self,
-        trainset: DatasetObject,
+        train_set: DatasetObject,
     ) -> dict[str, str]:
         try:
-            typed_feature_type = trainset.attr("cchvae_feature_type")
+            typed_feature_type = train_set.attr("cchvae_feature_type")
         except AttributeError:
             typed_feature_type = None
 
-        raw_feature_type, _, _ = resolve_feature_metadata(trainset)
+        raw_feature_type, _, _ = resolve_feature_metadata(train_set)
         resolved: dict[str, str] = {}
         for feature_name in self._feature_names:
             if typed_feature_type is not None and feature_name in typed_feature_type:
@@ -140,14 +140,14 @@ class CchvaeMethod(MethodObject):
             resolved[feature_name] = likelihood
         return resolved
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for CchvaeMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for CchvaeMethod.fit()")
 
         with seed_context(self._seed):
-            feature_df = trainset.get(target=False)
+            feature_df = train_set.get(target=False)
             self._feature_names = list(feature_df.columns)
-            _, feature_mutability, _ = resolve_feature_metadata(trainset)
+            _, feature_mutability, _ = resolve_feature_metadata(train_set)
             self._conditionals = [
                 feature_name
                 for feature_name in self._feature_names
@@ -160,7 +160,7 @@ class CchvaeMethod(MethodObject):
             ]
             if not self._free_features:
                 raise ValueError("CchvaeMethod requires at least one mutable feature")
-            self._typed_feature_type = self._resolve_cchvae_feature_type(trainset)
+            self._typed_feature_type = self._resolve_cchvae_feature_type(train_set)
 
             self._adapter = RecourseModelAdapter(
                 self._target_model, self._feature_names
@@ -185,7 +185,7 @@ class CchvaeMethod(MethodObject):
                 self._model.parameters(), lr=self._learning_rate
             )
 
-            train_features = trainset.get(target=False).loc[:, self._feature_names]
+            train_features = train_set.get(target=False).loc[:, self._feature_names]
             free_array = train_features.loc[:, self._free_features].to_numpy(
                 dtype="float32"
             )
@@ -416,13 +416,13 @@ class CchvaeMethod(MethodObject):
             desired_class=self._desired_class,
         )
 
-    def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
+    def predict(self, test_set: DatasetObject, batch_size: int = 20) -> DatasetObject:
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
-        if getattr(testset, "counterfactual", False):
-            raise ValueError("testset must not already be marked as counterfactual")
+        if getattr(test_set, "counterfactual", False):
+            raise ValueError("test_set must not already be marked as counterfactual")
 
-        factuals = testset.get(target=False).loc[:, self._feature_names]
+        factuals = test_set.get(target=False).loc[:, self._feature_names]
         full_counterfactuals = pd.DataFrame(
             np.nan,
             index=factuals.index,
@@ -435,7 +435,7 @@ class CchvaeMethod(MethodObject):
             class_to_index = self._target_model.get_class_to_index()
             target_index = class_to_index[self._desired_class]
             predicted_label = (
-                self._target_model.predict(testset, batch_size=batch_size)
+                self._target_model.predict(test_set, batch_size=batch_size)
                 .argmax(dim=1)
                 .cpu()
                 .numpy()
@@ -453,7 +453,7 @@ class CchvaeMethod(MethodObject):
                 self.get_counterfactuals(search_factuals)
             )
 
-        target_column = testset.target_column
+        target_column = test_set.target_column
         counterfactual_target = pd.DataFrame(
             -1.0,
             index=full_counterfactuals.index,
@@ -461,9 +461,9 @@ class CchvaeMethod(MethodObject):
         )
         counterfactual_df = pd.concat(
             [full_counterfactuals, counterfactual_target], axis=1
-        ).reindex(columns=testset.ordered_features())
+        ).reindex(columns=test_set.ordered_features())
 
-        output = testset.clone()
+        output = test_set.clone()
         output.update("counterfactual", True, df=counterfactual_df)
         if evaluation_filter is not None:
             output.update("evaluation_filter", evaluation_filter)

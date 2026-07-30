@@ -139,19 +139,19 @@ class FaceMethod(MethodObject):
             values = values.reshape(1, -1)
         return np.exp(self._density_estimator.score_samples(values))
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for FaceMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for FaceMethod.fit()")
 
         with seed_context(self._seed):
-            self._feature_groups = resolve_feature_groups(trainset)
+            self._feature_groups = resolve_feature_groups(train_set)
             self._feature_names = list(self._feature_groups.feature_names)
-            self._constraints = resolve_actionability_rules(trainset)
+            self._constraints = resolve_actionability_rules(train_set)
             self._adapter = RecourseModelAdapter(
                 self._target_model, self._feature_names
             )
 
-            train_features = trainset.get(target=False).copy(deep=True)
+            train_features = train_set.get(target=False).copy(deep=True)
             self._train_features = self._maybe_subsample_features(train_features)
             self._train_values = self._train_features.to_numpy(dtype=np.float64)
 
@@ -388,15 +388,15 @@ class FaceMethod(MethodObject):
         candidates, _ = self._build_counterfactuals_and_metadata(factuals)
         return candidates
 
-    def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
+    def predict(self, test_set: DatasetObject, batch_size: int = 20) -> DatasetObject:
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
-        if getattr(testset, "counterfactual", False):
-            raise ValueError("testset must not already be marked as counterfactual")
+        if getattr(test_set, "counterfactual", False):
+            raise ValueError("test_set must not already be marked as counterfactual")
 
-        factuals = testset.get(target=False)
+        factuals = test_set.get(target=False)
         counterfactual_batches: list[pd.DataFrame] = []
         metadata_batches: dict[str, list[pd.DataFrame | pd.Series]] = {
             "face_path_found": [],
@@ -436,7 +436,7 @@ class FaceMethod(MethodObject):
             combined = combined.reindex(index=factuals.index)
             combined_metadata[key] = combined
 
-        target_column = testset.target_column
+        target_column = test_set.target_column
         counterfactual_target = pd.DataFrame(
             -1.0,
             index=counterfactual_features.index,
@@ -447,17 +447,17 @@ class FaceMethod(MethodObject):
             axis=1,
         )
         counterfactual_df = counterfactual_df.reindex(
-            columns=testset.ordered_features()
+            columns=test_set.ordered_features()
         )
 
-        output = testset.clone()
+        output = test_set.clone()
         output.update("counterfactual", True, df=counterfactual_df)
         for key, value in combined_metadata.items():
             output.update(key, value)
 
         if self._desired_class is not None:
             class_to_index = self._target_model.get_class_to_index()
-            prediction = self._target_model.predict(testset, batch_size=batch_size)
+            prediction = self._target_model.predict(test_set, batch_size=batch_size)
             predicted_label = prediction.argmax(dim=1).cpu().numpy()
             evaluation_filter = pd.DataFrame(
                 predicted_label != class_to_index[self._desired_class],

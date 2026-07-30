@@ -6,10 +6,14 @@ import time
 import numpy as np
 import pandas as pd
 import torch
-from lime.lime_tabular import LimeTabularExplainer
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("larr", "lime") as _lime:
+    from lime.lime_tabular import LimeTabularExplainer
+    from recourse_bench.method.larr.library.larr import LARRecourse
+
 
 from recourse_bench.dataset.dataset_object import DatasetObject
-from recourse_bench.method.larr.library.larr import LARRecourse
 from recourse_bench.method.larr.support import (
     RecourseModelAdapter,
     TorchModelTypes,
@@ -38,6 +42,7 @@ class LarrMethod(MethodObject):
         lime_seed: int = 0,
         **kwargs,
     ):
+        _lime.require()
         ensure_supported_target_model(target_model, TorchModelTypes, "LarrMethod")
         self._target_model = target_model
         self._seed = seed
@@ -74,12 +79,12 @@ class LarrMethod(MethodObject):
         if not 0.0 <= self._beta <= 1.0:
             raise ValueError("beta must satisfy 0 <= beta <= 1")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for LarrMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for LarrMethod.fit()")
 
         with seed_context(self._seed):
-            features = trainset.get(target=False)
+            features = train_set.get(target=False)
             try:
                 training_array = features.to_numpy(dtype="float32")
             except ValueError as error:
@@ -103,7 +108,7 @@ class LarrMethod(MethodObject):
             ):
                 raise ValueError("desired_class is invalid for the trained target model")
 
-            feature_groups = resolve_feature_groups(trainset)
+            feature_groups = resolve_feature_groups(train_set)
             self._method.imm_features = [
                 self._feature_names.index(feature_name)
                 for feature_name in feature_groups.immutable
@@ -308,13 +313,13 @@ class LarrMethod(MethodObject):
 
         self._lambda_ready = True
 
-    def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
+    def predict(self, test_set: DatasetObject, batch_size: int = 20) -> DatasetObject:
         if not self._lambda_ready:
             LOGGER.info(
                 "LarrMethod predict() is triggering deferred lambda selection"
             )
         self._ensure_generation_lambda(trigger="predict()")
-        return super().predict(testset, batch_size=batch_size)
+        return super().predict(test_set, batch_size=batch_size)
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         if not self._is_trained:

@@ -457,17 +457,17 @@ class ScalePreProcess(PreProcessObject):
                 )
         return scaling_stats
 
-    def set_refset(self, refset: DatasetObject | None) -> None:
-        self._refset = refset
+    def set_ref_set(self, ref_set: DatasetObject | None) -> None:
+        self._ref_set = ref_set
         self._cached_scaling_stats = None
 
     @staticmethod
-    def _resolve_ref_df(refset: DatasetObject) -> pd.DataFrame:
-        if getattr(refset, "_freeze", False):
+    def _resolve_ref_df(ref_set: DatasetObject) -> pd.DataFrame:
+        if getattr(ref_set, "_freeze", False):
             return pd.concat(
-                [refset.get(target=False), refset.get(target=True)], axis=1
+                [ref_set.get(target=False), ref_set.get(target=True)], axis=1
             )
-        return refset.snapshot()
+        return ref_set.snapshot()
 
     def __init__(
         self,
@@ -475,14 +475,14 @@ class ScalePreProcess(PreProcessObject):
         scaling: str | None = "standardize",
         override: dict[str, str] | None = None,
         range: bool = True,
-        refset: DatasetObject | None = None,
+        ref_set: DatasetObject | None = None,
         **kwargs,
     ):
         self._seed = seed
         self._scaling: str | None = self._resolve_scaling(scaling)
         self._override: dict[str, str] | None = self._resolve_override(override)
         self._range: bool = range
-        self._refset: DatasetObject | None = refset
+        self._ref_set: DatasetObject | None = ref_set
         self._cached_scaling_stats: dict[str, dict[str, float | str]] | None = None
 
     def transform(self, input: DatasetObject) -> DatasetObject:
@@ -519,11 +519,11 @@ class ScalePreProcess(PreProcessObject):
             )
 
             scaling_stats: dict[str, dict[str, float | str]]
-            if self._refset is not None:
+            if self._ref_set is not None:
                 if self._cached_scaling_stats is None:
-                    ref_df = self._resolve_ref_df(self._refset)
-                    ref_target_column = self._refset.target_column
-                    ref_feature_type, _, _ = resolve_feature_metadata(self._refset)
+                    ref_df = self._resolve_ref_df(self._ref_set)
+                    ref_target_column = self._ref_set.target_column
+                    ref_feature_type, _, _ = resolve_feature_metadata(self._ref_set)
                     self._cached_scaling_stats = self._compute_scaling_stats(
                         df=ref_df,
                         target_column=ref_target_column,
@@ -680,8 +680,8 @@ class SplitPreProcess(PreProcessObject):
 
     def transform(self, input: DatasetObject) -> tuple[DatasetObject, DatasetObject]:
         with seed_context(self._seed):
-            ensure_flag_absent(input, "trainset")
-            ensure_flag_absent(input, "testset")
+            ensure_flag_absent(input, "train_set")
+            ensure_flag_absent(input, "test_set")
 
             df = input.snapshot()
             num_rows = int(df.shape[0])
@@ -710,20 +710,20 @@ class SplitPreProcess(PreProcessObject):
             if self._sample is None:
                 pass
             elif self._sample > test_df.shape[0]:
-                raise ValueError("SplitPreProcess sample exceeds split testset size")
+                raise ValueError("SplitPreProcess sample exceeds split test_set size")
             else:
                 sampled_positions = np.random.permutation(test_df.shape[0])[
                     : self._sample
                 ]
                 test_df = test_df.iloc[sampled_positions].copy(deep=True)
 
-            testset = input.clone()
-            trainset = input  # Reuse input
+            test_set = input.clone()
+            train_set = input  # Reuse input
 
-            trainset.update("trainset", True, df=train_df)
-            testset.update("testset", True, df=test_df)
+            train_set.update("train_set", True, df=train_df)
+            test_set.update("test_set", True, df=test_df)
 
-            return trainset, testset
+            return train_set, test_set
 
 
 @register("finalize")

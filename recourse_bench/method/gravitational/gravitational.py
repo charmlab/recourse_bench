@@ -143,9 +143,9 @@ class GravitationalMethod(MethodObject):
 
         return np.nan_to_num(x_center, nan=0.0, posinf=1e6, neginf=-1e6)
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for GravitationalMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for GravitationalMethod.fit()")
         if not getattr(self._target_model, "_is_trained", False):
             raise RuntimeError("Target model must be trained before method.fit()")
 
@@ -160,7 +160,7 @@ class GravitationalMethod(MethodObject):
                     "desired_class is invalid for the trained target model"
                 )
 
-            train_features = trainset.get(target=False)
+            train_features = train_set.get(target=False)
             try:
                 train_features.loc[:, :].to_numpy(dtype="float32")
             except ValueError as error:
@@ -168,20 +168,20 @@ class GravitationalMethod(MethodObject):
                     "GravitationalMethod requires finalized numeric input features"
                 ) from error
 
-            self._feature_context = build_gravitational_feature_context(trainset)
+            self._feature_context = build_gravitational_feature_context(train_set)
             self._feature_names = list(self._feature_context.feature_names)
             ordered_train_features = train_features.loc[:, self._feature_names].copy(
                 deep=True
             )
             encoded_target = _encode_targets(
-                trainset.get(target=True).iloc[:, 0],
+                train_set.get(target=True).iloc[:, 0],
                 class_to_index=class_to_index,
             )
 
             self._adapter = GravitationalTargetModelAdapter(
                 target_model=self._target_model,
                 feature_context=self._feature_context,
-                target_column=trainset.target_column,
+                target_column=train_set.target_column,
                 train_features=ordered_train_features,
                 train_labels=encoded_target,
             )

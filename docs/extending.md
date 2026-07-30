@@ -68,7 +68,7 @@ class CustomModel(ModelObject):
         self._need_grad = True
         self._is_trained = False
 
-    def fit(self, trainset):
+    def fit(self, train_set):
         ...
         self._is_trained = True
 
@@ -99,7 +99,7 @@ class CustomMethod(MethodObject):
         self._need_grad = True
         self._is_trained = False
 
-    def fit(self, trainset):
+    def fit(self, train_set):
         ...
         self._is_trained = True
 

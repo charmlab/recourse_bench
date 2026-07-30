@@ -14,6 +14,7 @@ from recourse_bench.method.trex.support import (
     validate_counterfactuals,
 )
 from recourse_bench.model.model_object import ModelObject
+from recourse_bench.utils.dependencies import require_optional
 from recourse_bench.utils.registry import register
 from recourse_bench.utils.seed import seed_context
 
@@ -42,6 +43,9 @@ class TrexMethod(MethodObject):
         clamp: bool | tuple[float | list[float], float | list[float]] | None = None,
         **kwargs,
     ):
+        # support.py imports ART only when generating counterfactuals; check it
+        # up front so a missing extra fails here rather than mid-run.
+        require_optional("trex", "art")
         ensure_supported_target_model(target_model, TorchModelTypes, "TrexMethod")
 
         self._target_model = target_model
@@ -136,12 +140,12 @@ class TrexMethod(MethodObject):
             ),
         )
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for TrexMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for TrexMethod.fit()")
 
         with seed_context(self._seed):
-            features = trainset.get(target=False)
+            features = train_set.get(target=False)
             self._feature_names = list(features.columns)
             self._class_to_index = self._target_model.get_class_to_index()
             if len(self._class_to_index) != 2:

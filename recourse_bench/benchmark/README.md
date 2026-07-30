@@ -1,7 +1,7 @@
 # Benchmark Batch 2x2x5
 
 This folder contains a reproducible benchmark batch with:
-- 2 datasets: `toydata`, `breast_cancer`
+- 2 datasets: `toy_data`, `breast_cancer`
 - 2 models: `linear`, `mlp`
 - 5 methods: `toy`, `wachter`, `gs`, `face`, `claproar`
 - evaluations: `validity` + `distance` (`l0`, `l1`, `l2`, `linf`) + `ynn` + `runtime_seconds`

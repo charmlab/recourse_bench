@@ -9,7 +9,7 @@ evaluation:
   - name: validity
   - name: distance
     metrics: [l0, l1, l2, linf]
-  - name: constraints
+  - name: constraint
   - name: knn
     k: 5
 

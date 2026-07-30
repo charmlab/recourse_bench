@@ -4,16 +4,20 @@ import numpy as np
 import pandas as pd
 
 from recourse_bench.dataset.dataset_object import DatasetObject
-from recourse_bench.method.apas.support import (
-    ApasContext,
-    compute_delta_max,
-    ensure_binary_mlp_target_model,
-    ensure_supported_target_model,
-    generate_apas_counterfactual,
-    prepare_apas_context,
-    resolve_target_index,
-    validate_counterfactuals,
-)
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("apas", "gurobipy") as _gurobipy:
+    from recourse_bench.method.apas.support import (
+        ApasContext,
+        compute_delta_max,
+        ensure_binary_mlp_target_model,
+        ensure_supported_target_model,
+        generate_apas_counterfactual,
+        prepare_apas_context,
+        resolve_target_index,
+        validate_counterfactuals,
+    )
+
 from recourse_bench.method.method_object import MethodObject
 from recourse_bench.model.mlp.mlp import MlpModel
 from recourse_bench.model.model_object import ModelObject
@@ -44,6 +48,7 @@ class ApasMethod(MethodObject):
         rounding: int | None = 5,
         **kwargs,
     ):
+        _gurobipy.require()
         ensure_supported_target_model(target_model, (MlpModel,), "ApasMethod")
 
         self._target_model = target_model
@@ -90,13 +95,13 @@ class ApasMethod(MethodObject):
         if self._rounding is not None and self._rounding < 0:
             raise ValueError("rounding must be >= 0 or None")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ApasMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ApasMethod.fit()")
 
         with seed_context(self._seed):
             ensure_binary_mlp_target_model(self._target_model, "ApasMethod")
-            self._context = prepare_apas_context(self._target_model, trainset)
+            self._context = prepare_apas_context(self._target_model, train_set)
             self._feature_names = list(self._context.feature_schema.feature_names)
             self._class_to_index = dict(self._context.class_to_index)
             if (

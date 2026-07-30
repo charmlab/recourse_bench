@@ -11,7 +11,7 @@ from recourse_bench.utils.registry import register
 from recourse_bench.utils.seed import seed_context
 
 
-@register("randomforest")
+@register("random_forest")
 class RandomForestModel(ModelObject):
     def __init__(
         self,
@@ -40,11 +40,11 @@ class RandomForestModel(ModelObject):
         if self._device != "cpu":
             raise ValueError("RandomForestModel only supports cpu")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for RandomForestModel.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for RandomForestModel.fit()")
         with seed_context(self._seed):
-            X, labels, _ = self.extract_training_data(trainset)
+            X, labels, _ = self.extract_training_data(train_set)
             self._model.fit(X, labels.cpu().numpy())
             self._is_trained = True
 

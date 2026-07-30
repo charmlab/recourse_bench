@@ -1,5 +1,6 @@
 include requirements.txt
 include README.md
+include CHANGELOG.md
 
 # Bundle non-Python data files that packages load at runtime.
 recursive-include recourse_bench *.csv *.yaml *.yml *.json

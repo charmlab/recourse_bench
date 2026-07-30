@@ -94,7 +94,7 @@ def _select_recourse_needed(
     return X[indices]
 
 
-def _build_model(trainset, batch_size: int) -> MlpModel:
+def _build_model(train_set, batch_size: int) -> MlpModel:
     model = MlpModel(
         seed=SEED,
         device=_resolve_device(),
@@ -107,7 +107,7 @@ def _build_model(trainset, batch_size: int) -> MlpModel:
         output_activation="sigmoid",
         save_name=None,
     )
-    model.fit(trainset)
+    model.fit(train_set)
     return model
 
 
@@ -192,8 +192,8 @@ def run_reproduction() -> tuple[float, float]:
 
     for fold_index in range(N_FOLDS):
         train_df, test_df = _split_fold(full_df, fold_index)
-        trainset = _build_frozen_dataset(dataset, train_df, "trainset")
-        model = _build_model(trainset, batch_size=len(train_df))
+        train_set = _build_frozen_dataset(dataset, train_df, "train_set")
+        model = _build_model(train_set, batch_size=len(train_df))
         adapter = ReferencePredictAdapter(model, feature_names)
 
         X_train = train_df.loc[:, feature_names]

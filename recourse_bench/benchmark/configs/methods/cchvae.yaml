@@ -8,4 +8,4 @@ method:
   max_step: 200
 
 compatibility:
-  allowed_models: [linear, mlp, randomforest, sklearn_logistic_regression]
+  allowed_models: [linear, mlp, random_forest, sklearn_logistic_regression]

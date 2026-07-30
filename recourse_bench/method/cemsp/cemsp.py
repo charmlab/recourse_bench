@@ -4,19 +4,23 @@ import numpy as np
 import pandas as pd
 
 from recourse_bench.dataset.dataset_object import DatasetObject
-from recourse_bench.method.cemsp.support import (
-    BlackBoxModelTypes,
-    CFSolver,
-    MapSolver,
-    RecourseModelAdapter,
-    build_change_mask,
-    ensure_supported_target_model,
-    find_cf,
-    parse_feature_vector,
-    resolve_feature_groups,
-    resolve_target_classes,
-    validate_counterfactuals,
-)
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("cemsp", "z3") as _z3:
+    from recourse_bench.method.cemsp.support import (
+        BlackBoxModelTypes,
+        CFSolver,
+        MapSolver,
+        RecourseModelAdapter,
+        build_change_mask,
+        ensure_supported_target_model,
+        find_cf,
+        parse_feature_vector,
+        resolve_feature_groups,
+        resolve_target_classes,
+        validate_counterfactuals,
+    )
+
 from recourse_bench.method.method_object import MethodObject
 from recourse_bench.model.model_object import ModelObject
 from recourse_bench.utils.registry import register
@@ -41,6 +45,7 @@ class CemspMethod(MethodObject):
         return_mode: str = "first",
         **kwargs,
     ):
+        _z3.require()
         ensure_supported_target_model(target_model, BlackBoxModelTypes, "CemspMethod")
         self._target_model = target_model
         self._seed = seed
@@ -101,12 +106,12 @@ class CemspMethod(MethodObject):
         elif self._replacement_policy == "positive_quantile":
             self._replacement_statistic = "quantile"
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for CemspMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for CemspMethod.fit()")
 
         with seed_context(self._seed):
-            feature_df = trainset.get(target=False)
+            feature_df = train_set.get(target=False)
             try:
                 train_array = feature_df.to_numpy(dtype=np.float64)
             except ValueError as error:
@@ -114,10 +119,10 @@ class CemspMethod(MethodObject):
                     "CemspMethod requires fully numeric input features"
                 ) from error
             if np.isnan(train_array).any():
-                raise ValueError("CemspMethod does not support NaN values in trainset")
+                raise ValueError("CemspMethod does not support NaN values in train_set")
 
             self._feature_names = list(feature_df.columns)
-            self._feature_groups = resolve_feature_groups(trainset)
+            self._feature_groups = resolve_feature_groups(train_set)
             self._adapter = RecourseModelAdapter(self._target_model, self._feature_names)
             self._feature_intervals = {
                 feature_name: np.unique(feature_df[feature_name].to_numpy(dtype=np.float64))

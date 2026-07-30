@@ -90,9 +90,9 @@ class ReviseMethod(MethodObject):
         if self._vae_batch_size < 1:
             raise ValueError("vae_batch_size must be >= 1")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ReviseMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ReviseMethod.fit()")
         if not getattr(self._target_model, "_is_trained", False):
             raise RuntimeError("Target model must be trained before method.fit()")
 
@@ -107,7 +107,7 @@ class ReviseMethod(MethodObject):
                     "desired_class is invalid for the trained target model"
                 )
 
-            train_features = trainset.get(target=False)
+            train_features = train_set.get(target=False)
             try:
                 train_features.loc[:, :].to_numpy(dtype="float32")
             except ValueError as error:
@@ -115,12 +115,12 @@ class ReviseMethod(MethodObject):
                     "ReviseMethod requires finalized numeric input features"
                 ) from error
 
-            self._feature_context = build_revise_feature_context(trainset)
+            self._feature_context = build_revise_feature_context(train_set)
             self._feature_names = list(self._feature_context.feature_names)
             self._adapter = ReviseTargetModelAdapter(
                 target_model=self._target_model,
                 feature_context=self._feature_context,
-                trainset=trainset,
+                train_set=train_set,
             )
 
             mutable_dim = int(self._feature_context.mutable_mask.sum())

@@ -177,8 +177,8 @@ class Inn:
         self.biases = biases
 
 
-def build_proplace_dataset(trainset: DatasetObject) -> tuple[ProplaceDataset, np.ndarray]:
-    feature_df = trainset.get(target=False)
+def build_proplace_dataset(train_set: DatasetObject) -> tuple[ProplaceDataset, np.ndarray]:
+    feature_df = train_set.get(target=False)
     try:
         feature_array = feature_df.to_numpy(dtype=np.float64)
     except ValueError as error:
@@ -190,7 +190,7 @@ def build_proplace_dataset(trainset: DatasetObject) -> tuple[ProplaceDataset, np
         raise ValueError("ProplaceMethod does not support NaN values")
 
     feature_names = list(feature_df.columns)
-    feature_type, _, _ = resolve_feature_metadata(trainset)
+    feature_type, _, _ = resolve_feature_metadata(train_set)
     feature_types: dict[int, DataType] = {}
     feat_var_map: dict[int, list[int]] = {}
     continuous_bounds: dict[int, tuple[float, float]] = {}

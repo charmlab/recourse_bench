@@ -78,16 +78,16 @@ def _target_indices(dataset, class_to_index: dict[int | str, int]) -> np.ndarray
     return np.asarray(resolved, dtype=np.int64)
 
 
-def _compute_model_accuracy(target_model, testset) -> float:
+def _compute_model_accuracy(target_model, test_set) -> float:
     prediction = (
-        target_model.predict(testset, batch_size=512).argmax(dim=1).cpu().numpy()
+        target_model.predict(test_set, batch_size=512).argmax(dim=1).cpu().numpy()
     )
-    y_true = _target_indices(testset, target_model.get_class_to_index())
+    y_true = _target_indices(test_set, target_model.get_class_to_index())
     return float(np.mean(prediction == y_true))
 
 
 def _select_factual_features(
-    testset,
+    test_set,
     target_model,
     desired_class: int | str,
     num_factuals: int,
@@ -96,9 +96,9 @@ def _select_factual_features(
     class_to_index = target_model.get_class_to_index()
     desired_index = int(class_to_index[desired_class])
     predicted = (
-        target_model.predict(testset, batch_size=512).argmax(dim=1).cpu().numpy()
+        target_model.predict(test_set, batch_size=512).argmax(dim=1).cpu().numpy()
     )
-    feature_df = testset.get(target=False)
+    feature_df = test_set.get(target=False)
     factual_pool = feature_df.loc[predicted != desired_index].copy(deep=True)
     if factual_pool.shape[0] < num_factuals:
         raise ValueError(
@@ -108,11 +108,11 @@ def _select_factual_features(
 
 
 def _compute_mads(
-    trainset,
+    train_set,
     continuous_indices: tuple[int, ...],
     feature_names: list[str],
 ) -> dict[int, float]:
-    feature_df = trainset.get(target=False).loc[:, feature_names]
+    feature_df = train_set.get(target=False).loc[:, feature_names]
     mads: dict[int, float] = {}
     for feature_index in continuous_indices:
         feature_name = feature_names[feature_index]
@@ -263,7 +263,7 @@ def _aggregate_boundary_metrics(
 def _build_lime_explainer(schema_method, target_model, seed: int):
     feature_names = list(schema_method._feature_names)
     train_features = (
-        schema_method._trainset_reference.get(target=False)
+        schema_method._train_set_reference.get(target=False)
         .loc[:, feature_names]
         .to_numpy(dtype=np.float32)
     )
@@ -362,7 +362,7 @@ def _evaluate_setting(
     factual_index = 1 - desired_index
 
     mads = _compute_mads(
-        trainset=dice_method._trainset_reference,
+        train_set=dice_method._train_set_reference,
         continuous_indices=continuous_indices,
         feature_names=feature_names,
     )
@@ -571,7 +571,7 @@ def _evaluate_lime_proxy(
     desired_index = int(class_to_index[desired_class])
     class_indices = tuple(sorted(int(index) for index in class_to_index.values()))
     mads = _compute_mads(
-        trainset=schema_method._trainset_reference,
+        train_set=schema_method._train_set_reference,
         continuous_indices=continuous_indices,
         feature_names=feature_names,
     )
@@ -1002,12 +1002,12 @@ def _run_candidate(
     set_cache_dir(config.get("caching", {}).get("path", "./cache/"))
 
     experiment = Experiment(config)
-    trainset, testset = _materialize_datasets(experiment)
-    logger.info("Train/test sizes: %d / %d", len(trainset), len(testset))
+    train_set, test_set = _materialize_datasets(experiment)
+    logger.info("Train/test sizes: %d / %d", len(train_set), len(test_set))
 
     target_model = experiment._target_model
-    target_model.fit(trainset)
-    accuracy = _compute_model_accuracy(target_model, testset)
+    target_model.fit(train_set)
+    accuracy = _compute_model_accuracy(target_model, test_set)
     logger.info("Target model test accuracy: %.4f", accuracy)
     logger.info(
         "DiCE defaults: init_near_query_instance=%s, respect_mutability=%s, "
@@ -1019,7 +1019,7 @@ def _run_candidate(
 
     desired_class = config["method"]["desired_class"]
     factual_features = _select_factual_features(
-        testset=testset,
+        test_set=test_set,
         target_model=target_model,
         desired_class=desired_class,
         num_factuals=num_factuals,
@@ -1028,8 +1028,8 @@ def _run_candidate(
     logger.info("Selected %d factuals for evaluation", factual_features.shape[0])
 
     schema_method = _build_method(config["method"], target_model)
-    schema_method.fit(trainset)
-    schema_method._trainset_reference = trainset
+    schema_method.fit(train_set)
+    schema_method._train_set_reference = train_set
 
     lime_df = _evaluate_lime_proxy(
         factual_features=factual_features,
@@ -1081,8 +1081,8 @@ def _run_candidate(
             method_config.update(overrides)
             method_config["num"] = requested_k
             dice_method = _build_method(method_config, target_model)
-            dice_method.fit(trainset)
-            dice_method._trainset_reference = trainset
+            dice_method.fit(train_set)
+            dice_method._train_set_reference = train_set
 
             setting_summary, setting_boundary = _evaluate_setting(
                 factual_features=factual_features,

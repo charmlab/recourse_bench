@@ -160,7 +160,7 @@ class ReferenceCompasMlpModel(MlpModel):
 
     def fit(
         self,
-        trainset,
+        train_set,
         valset=None,
         show_progress: bool = False,
         progress_desc: str = "model-fit",
@@ -168,13 +168,13 @@ class ReferenceCompasMlpModel(MlpModel):
         progress_leave: bool = False,
         heartbeat_seconds: int = 60,
     ):
-        if trainset is None:
-            raise ValueError("trainset is required for ReferenceCompasMlpModel.fit()")
+        if train_set is None:
+            raise ValueError("train_set is required for ReferenceCompasMlpModel.fit()")
         if valset is None:
             raise ValueError("valset is required for ReferenceCompasMlpModel.fit()")
 
         with seed_context(self._seed):
-            X_train, labels_train, output_dim = self.extract_training_data(trainset)
+            X_train, labels_train, output_dim = self.extract_training_data(train_set)
             input_dim = X_train.shape[1]
             self._output_dim = output_dim
             self._model = self._build_model(input_dim, output_dim).to(self._device)
@@ -1230,7 +1230,7 @@ def _evaluate_method(
     method_name: str,
     method_cfg: dict[str, Any],
     model: ReferenceCompasMlpModel,
-    trainset,
+    train_set,
     factual_encoded: pd.DataFrame,
     factual_raw: pd.DataFrame,
     user_costs: list[dict[str, np.ndarray]],
@@ -1260,7 +1260,7 @@ def _evaluate_method(
         variance=float(method_cfg["variance"]),
         invalid_cost=float(method_cfg["invalid_cost"]),
     )
-    cols_method.fit(trainset)
+    cols_method.fit(train_set)
 
     cf_sets_encoded = cols_method.get_counterfactual_sets(
         factual_encoded,
@@ -1419,12 +1419,12 @@ def _run_single_seed(
         scaling_stats,
     )
 
-    trainset = _build_frozen_dataset(
+    train_set = _build_frozen_dataset(
         template,
         train_features,
         split_artifacts.train_df[data_cfg["target_column"]],
         data_cfg,
-        "trainset",
+        "train_set",
         extra_attrs={
             "cols_feature_space_df": balanced_features,
             "cols_state_space_overrides": _build_cols_state_space_overrides(
@@ -1460,7 +1460,7 @@ def _run_single_seed(
         save_name=None,
     )
     model.fit(
-        trainset,
+        train_set,
         valset=valset,
         show_progress=_progress_enabled(progress_mode),
         progress_desc=f"seed {run_seed} train",
@@ -1539,7 +1539,7 @@ def _run_single_seed(
             method_name=str(method_cfg["name"]),
             method_cfg=method_cfg,
             model=model,
-            trainset=trainset,
+            train_set=train_set,
             factual_encoded=factual_encoded,
             factual_raw=factual_raw,
             user_costs=user_costs,

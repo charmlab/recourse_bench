@@ -111,12 +111,12 @@ class RbrMethod(MethodObject):
         if self._max_iter < 1:
             raise ValueError("max_iter must be >= 1")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for RbrMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for RbrMethod.fit()")
 
         with seed_context(self._seed):
-            features = trainset.get(target=False)
+            features = train_set.get(target=False)
             try:
                 train_data = features.to_numpy(dtype="float32")
             except ValueError as error:
@@ -125,7 +125,7 @@ class RbrMethod(MethodObject):
                 ) from error
 
             if np.isnan(train_data).any():
-                raise ValueError("RbrMethod trainset features cannot contain NaN")
+                raise ValueError("RbrMethod train_set features cannot contain NaN")
 
             self._feature_names = list(features.columns)
             self._adapter = RecourseModelAdapter(
@@ -143,7 +143,7 @@ class RbrMethod(MethodObject):
                 device=self._device,
             )
             self._onehot_feature_indices = resolve_onehot_feature_indices(
-                trainset,
+                train_set,
                 self._feature_names,
             )
             self._train_max_distance = _compute_max_l2_distance(

@@ -429,24 +429,24 @@ def load_german_reproduction_data(
         shuffle=True,
     )
 
-    trainset = _make_dataset(
+    train_set = _make_dataset(
         X_train,
         y_train,
         name="german_train_reproduction",
-        trainset=True,
+        train_set=True,
     )
-    testset = _make_dataset(
+    test_set = _make_dataset(
         X_test,
         y_test,
         name="german_test_reproduction",
-        testset=True,
+        test_set=True,
     )
 
     return {
         "raw_df": raw_df,
         "feature_order": feature_order,
-        "trainset": trainset,
-        "testset": testset,
+        "train_set": train_set,
+        "test_set": test_set,
         "train_features": X_train.copy(deep=True),
         "test_features": X_test.copy(deep=True),
         "train_target": y_train.copy(deep=True),
@@ -479,8 +479,8 @@ def _build_model(
 
 
 def train_model_bundle(
-    trainset: FrameDataset,
-    testset: FrameDataset,
+    train_set: FrameDataset,
+    test_set: FrameDataset,
     *,
     seed: int,
     device: str,
@@ -492,16 +492,16 @@ def train_model_bundle(
         device=device,
         model_cfg=model_cfg,
     )
-    model.fit(trainset)
-    _ = compute_model_metrics(model, testset)
+    model.fit(train_set)
+    _ = compute_model_metrics(model, test_set)
     return ModelBundle(model=model, seed=seed, variant=variant)
 
 
-def compute_model_metrics(model: MlpModel, testset: FrameDataset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
+def compute_model_metrics(model: MlpModel, test_set: FrameDataset) -> dict[str, float]:
+    probabilities = model.predict_proba(test_set).detach().cpu()
     prediction = probabilities.argmax(dim=1)
 
-    y = testset.get(target=True).iloc[:, 0].astype(int)
+    y = test_set.get(target=True).iloc[:, 0].astype(int)
     class_to_index = model.get_class_to_index()
     encoded_target = torch.tensor(
         [class_to_index[int(value)] for value in y.tolist()],
@@ -525,32 +525,32 @@ def compute_model_metrics(model: MlpModel, testset: FrameDataset) -> dict[str, f
 
 def select_rejected_factuals(
     model: MlpModel,
-    testset: FrameDataset,
+    test_set: FrameDataset,
     *,
     desired_class: int,
 ) -> FrameDataset:
-    probabilities = model.predict_proba(testset).detach().cpu()
+    probabilities = model.predict_proba(test_set).detach().cpu()
     predicted = probabilities.argmax(dim=1).numpy()
-    labels = testset.get(target=True).iloc[:, 0].astype(int)
+    labels = test_set.get(target=True).iloc[:, 0].astype(int)
     undesired_class = 1 - int(desired_class)
     rejected_mask = pd.Series(
         (labels.to_numpy() == undesired_class) & (predicted == undesired_class),
-        index=testset.get(target=False).index,
+        index=test_set.get(target=False).index,
         dtype=bool,
     )
 
-    factual_features = testset.get(target=False).loc[rejected_mask].copy(deep=True)
-    factual_target = testset.get(target=True).iloc[:, 0].loc[rejected_mask].copy(deep=True)
+    factual_features = test_set.get(target=False).loc[rejected_mask].copy(deep=True)
+    factual_target = test_set.get(target=True).iloc[:, 0].loc[rejected_mask].copy(deep=True)
     factuals = _make_dataset(
         factual_features,
         factual_target,
         name="german_rejected_factuals",
-        testset=True,
+        test_set=True,
     )
     return factuals
 
 
-def build_lo_trainset(
+def build_lo_train_set(
     train_features: pd.DataFrame,
     train_target: pd.Series,
     *,
@@ -569,14 +569,14 @@ def build_lo_trainset(
         lo_features,
         lo_target,
         name=f"german_lo_train_{sample_seed}",
-        trainset=True,
+        train_set=True,
     )
 
 
 def train_changed_models(
     *,
-    trainset: FrameDataset,
-    testset: FrameDataset,
+    train_set: FrameDataset,
+    test_set: FrameDataset,
     train_features: pd.DataFrame,
     train_target: pd.Series,
     wi_models: int,
@@ -596,8 +596,8 @@ def train_changed_models(
         seed = offset + 1
         wi_bundles.append(
             train_model_bundle(
-                trainset,
-                testset,
+                train_set,
+                test_set,
                 seed=seed,
                 device=device,
                 model_cfg=model_cfg,
@@ -612,15 +612,15 @@ def train_changed_models(
         leave=False,
     ):
         seed = 1001 + offset
-        lo_trainset = build_lo_trainset(
+        lo_train_set = build_lo_train_set(
             train_features,
             train_target,
             sample_seed=5001 + offset,
         )
         lo_bundles.append(
             train_model_bundle(
-                lo_trainset,
-                testset,
+                lo_train_set,
+                test_set,
                 seed=seed,
                 device=device,
                 model_cfg=model_cfg,
@@ -656,7 +656,7 @@ def _distance_mean(
 
 def _predict_counterfactuals_with_progress(
     method: TrexMethod,
-    testset: FrameDataset,
+    test_set: FrameDataset,
     *,
     batch_size: int,
     desc: str,
@@ -665,10 +665,10 @@ def _predict_counterfactuals_with_progress(
         raise RuntimeError("Method is not trained")
     if batch_size < 1:
         raise ValueError("batch_size must be >= 1")
-    if getattr(testset, "counterfactual", False):
-        raise ValueError("testset must not already be marked as counterfactual")
+    if getattr(test_set, "counterfactual", False):
+        raise ValueError("test_set must not already be marked as counterfactual")
 
-    factuals = testset.get(target=False)
+    factuals = test_set.get(target=False)
     counterfactual_batches: list[pd.DataFrame] = []
 
     with tqdm(
@@ -703,7 +703,7 @@ def _predict_counterfactuals_with_progress(
     else:
         counterfactual_features = factuals.iloc[0:0].copy(deep=True)
 
-    target_column = testset.target_column
+    target_column = test_set.target_column
     counterfactual_target = pd.DataFrame(
         -1.0,
         index=counterfactual_features.index,
@@ -713,14 +713,14 @@ def _predict_counterfactuals_with_progress(
         [counterfactual_features, counterfactual_target],
         axis=1,
     )
-    counterfactual_df = counterfactual_df.reindex(columns=testset.ordered_features())
+    counterfactual_df = counterfactual_df.reindex(columns=test_set.ordered_features())
 
-    output = testset.clone()
+    output = test_set.clone()
     output.update("counterfactual", True, df=counterfactual_df)
 
     if method._desired_class is not None:
         class_to_index = method._target_model.get_class_to_index()
-        prediction = method._target_model.predict(testset, batch_size=batch_size)
+        prediction = method._target_model.predict(test_set, batch_size=batch_size)
         predicted_label = prediction.argmax(dim=1).cpu().numpy()
         evaluation_filter = pd.DataFrame(
             predicted_label != class_to_index[method._desired_class],
@@ -764,7 +764,7 @@ def evaluate_changed_model_validity(
 def evaluate_run(
     *,
     target_model: MlpModel,
-    trainset: FrameDataset,
+    train_set: FrameDataset,
     factuals: FrameDataset,
     wi_bundles: list[ModelBundle],
     lo_bundles: list[ModelBundle],
@@ -793,7 +793,7 @@ def evaluate_run(
         batch_size=int(method_cfg["batch_size"]),
         clamp=method_cfg["clamp"],
     )
-    method.fit(trainset)
+    method.fit(train_set)
     counterfactuals = _predict_counterfactuals_with_progress(
         method,
         factuals,
@@ -821,7 +821,7 @@ def evaluate_run(
         cost = _distance_mean(factual_valid, valid_counterfactuals, norm=norm)
 
         lof = LocalOutlierFactor(n_neighbors=lof_n_neighbors, novelty=True)
-        lof.fit(trainset.get(target=False).to_numpy(dtype=np.float32))
+        lof.fit(train_set.get(target=False).to_numpy(dtype=np.float32))
         lof_value = float(
             lof.predict(valid_counterfactuals.to_numpy(dtype=np.float32)).mean()
         )
@@ -881,7 +881,7 @@ def choose_tau(
     tau_grid: list[float],
     paper_target: dict[str, float],
     target_model: MlpModel,
-    trainset: FrameDataset,
+    train_set: FrameDataset,
     pilot_factuals: FrameDataset,
     pilot_wi_bundles: list[ModelBundle],
     pilot_lo_bundles: list[ModelBundle],
@@ -899,7 +899,7 @@ def choose_tau(
     ):
         metrics = evaluate_run(
             target_model=target_model,
-            trainset=trainset,
+            train_set=train_set,
             factuals=pilot_factuals,
             wi_bundles=pilot_wi_bundles,
             lo_bundles=pilot_lo_bundles,
@@ -962,7 +962,7 @@ def _pilot_subset(factuals: FrameDataset, limit: int) -> FrameDataset:
         pilot_features,
         pilot_target,
         name="german_pilot_factuals",
-        testset=True,
+        test_set=True,
     )
 
 
@@ -979,7 +979,7 @@ def _subset_factuals(factuals: FrameDataset, limit: int | None, *, name: str) ->
         subset_features,
         subset_target,
         name=name,
-        testset=True,
+        test_set=True,
     )
 
 
@@ -1114,26 +1114,26 @@ def main() -> None:
             numeric_columns=settings["numeric_columns"],
             categorical_columns=settings["categorical_columns"],
         )
-        trainset = data["trainset"]
-        testset = data["testset"]
+        train_set = data["train_set"]
+        test_set = data["test_set"]
         stage_bar.update(1)
 
         stage_bar.set_postfix_str("train baseline")
         baseline_bundle = train_model_bundle(
-            trainset,
-            testset,
+            train_set,
+            test_set,
             seed=settings["seed"],
             device=settings["device"],
             model_cfg=settings["model"],
             variant="baseline",
         )
-        baseline_metrics = compute_model_metrics(baseline_bundle.model, testset)
+        baseline_metrics = compute_model_metrics(baseline_bundle.model, test_set)
         stage_bar.update(1)
 
         stage_bar.set_postfix_str("select factuals")
         factuals = select_rejected_factuals(
             baseline_bundle.model,
-            testset,
+            test_set,
             desired_class=int(settings["method"]["desired_class"]),
         )
         if len(factuals) == 0:
@@ -1147,8 +1147,8 @@ def main() -> None:
 
         stage_bar.set_postfix_str("train changed models")
         wi_bundles, lo_bundles = train_changed_models(
-            trainset=trainset,
-            testset=testset,
+            train_set=train_set,
+            test_set=test_set,
             train_features=data["train_features"],
             train_target=data["train_target"],
             wi_models=settings["evaluation"]["wi_models"],
@@ -1188,7 +1188,7 @@ def main() -> None:
                     tau_grid=[float(value) for value in settings["method"]["tau_grid"]],
                     paper_target=paper_target,
                     target_model=baseline_bundle.model,
-                    trainset=trainset,
+                    train_set=train_set,
                     pilot_factuals=pilot_factuals,
                     pilot_wi_bundles=pilot_wi_bundles,
                     pilot_lo_bundles=pilot_lo_bundles,
@@ -1202,7 +1202,7 @@ def main() -> None:
 
             metrics = evaluate_run(
                 target_model=baseline_bundle.model,
-                trainset=trainset,
+                train_set=train_set,
                 factuals=factuals,
                 wi_bundles=wi_bundles,
                 lo_bundles=lo_bundles,
@@ -1248,8 +1248,8 @@ def main() -> None:
             "raw_path": str(settings["raw_data_path"]),
             "data_name": settings["data_name"],
             "input_dim": data["input_dim"],
-            "train_size": int(len(trainset)),
-            "test_size": int(len(testset)),
+            "train_size": int(len(train_set)),
+            "test_size": int(len(test_set)),
             "full_target_counts": data["full_target_counts"],
             "train_target_counts": data["train_target_counts"],
             "test_target_counts": data["test_target_counts"],

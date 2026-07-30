@@ -15,7 +15,7 @@ preprocess:
     seed: 42
     split: 11893
 model:
-  name: randomforest
+  name: random_forest
   seed: 42
   device: cpu
   n_estimators: 20

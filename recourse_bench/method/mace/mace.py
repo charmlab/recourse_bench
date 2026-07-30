@@ -8,7 +8,11 @@ import pandas as pd
 from tqdm import tqdm
 
 from recourse_bench.dataset.dataset_object import DatasetObject
-from recourse_bench.method.mace.library.mace import generateExplanations
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("mace", "pysmt") as _pysmt:
+    from recourse_bench.method.mace.library.mace import generateExplanations
+
 from recourse_bench.method.mace.support import (
     BlackBoxModelTypes,
     ensure_supported_target_model,
@@ -313,6 +317,7 @@ class MaceMethod(MethodObject):
         epsilon: float = 1e-5,
         **kwargs,
     ):
+        _pysmt.require()
         ensure_supported_target_model(target_model, BlackBoxModelTypes, "MaceMethod")
         self._target_model = target_model
         self._seed = seed
@@ -327,25 +332,25 @@ class MaceMethod(MethodObject):
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for MaceMethod.fit()")
-        if not _dataset_has_attr(trainset, "mace_encoding"):
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for MaceMethod.fit()")
+        if not _dataset_has_attr(train_set, "mace_encoding"):
             raise ValueError("MaceMethod expects MaceEncodePreProcess before fit()")
-        if _dataset_has_attr(trainset, "scaling"):
+        if _dataset_has_attr(train_set, "scaling"):
             raise ValueError("MaceMethod does not support scaled datasets")
 
         with seed_context(self._seed):
-            self._feature_names = list(trainset.get(target=False).columns)
-            feature_df = trainset.get(target=False)
+            self._feature_names = list(train_set.get(target=False).columns)
+            feature_df = train_set.get(target=False)
             feature_type, mutability, actionability = self._resolve_feature_metadata(
-                trainset
+                train_set
             )
-            bounds = self._resolve_bounds(trainset, feature_df)
-            encoded_parent = trainset.attr("mace_encoded_parent")
+            bounds = self._resolve_bounds(train_set, feature_df)
+            encoded_parent = train_set.attr("mace_encoded_parent")
             dataset_name = (
-                str(trainset.attr("name"))
-                if _dataset_has_attr(trainset, "name")
+                str(train_set.attr("name"))
+                if _dataset_has_attr(train_set, "name")
                 else ""
             )
 

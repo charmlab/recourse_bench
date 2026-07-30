@@ -96,11 +96,11 @@ def _resolve_dataset_name(dataset: DatasetObject) -> str:
     return str(dataset_name)
 
 
-def build_cruds_feature_context(trainset: DatasetObject) -> CrudsFeatureContext:
-    feature_df = trainset.get(target=False)
+def build_cruds_feature_context(train_set: DatasetObject) -> CrudsFeatureContext:
+    feature_df = train_set.get(target=False)
     feature_names = list(feature_df.columns)
     feature_type, feature_mutability, feature_actionability = resolve_feature_metadata(
-        trainset
+        train_set
     )
 
     mutable_mask = np.array(
@@ -115,7 +115,7 @@ def build_cruds_feature_context(trainset: DatasetObject) -> CrudsFeatureContext:
         raise ValueError("CrudsMethod requires at least one mutable feature")
 
     try:
-        encoding_map = trainset.attr("encoding")
+        encoding_map = train_set.attr("encoding")
     except AttributeError:
         encoding_map = {}
 
@@ -152,9 +152,9 @@ def build_cruds_feature_context(trainset: DatasetObject) -> CrudsFeatureContext:
     ]
 
     return CrudsFeatureContext(
-        dataset_name=_resolve_dataset_name(trainset),
+        dataset_name=_resolve_dataset_name(train_set),
         feature_names=feature_names,
-        target_column=trainset.target_column,
+        target_column=train_set.target_column,
         mutable_mask=mutable_mask,
         categorical_groups=categorical_groups,
         binary_feature_indices=binary_feature_indices,
@@ -194,14 +194,14 @@ class CrudsTargetModelAdapter:
         self,
         target_model: ModelObject,
         feature_context: CrudsFeatureContext,
-        trainset: DatasetObject,
+        train_set: DatasetObject,
     ):
         self._target_model = target_model
         self.feature_input_order = list(feature_context.feature_names)
         self._mutable_mask = feature_context.mutable_mask.copy()
 
-        train_features = trainset.get(target=False).loc[:, self.feature_input_order]
-        target_series = trainset.get(target=True).iloc[:, 0]
+        train_features = train_set.get(target=False).loc[:, self.feature_input_order]
+        target_series = train_set.get(target=True).iloc[:, 0]
         encoded_target = _encode_targets(
             target_series=target_series,
             class_to_index=target_model.get_class_to_index(),

@@ -2,13 +2,69 @@
 
 ## Install
 
+Install PyTorch for your machine first, then RecourseBench. Which torch build
+you pick dominates the install size, so it is a deliberate step rather than
+something this project decides for you.
+
 ```bash
 conda create -n recoursebench python=3.12
 conda activate recoursebench
+
+# 1. PyTorch — pick ONE (skip on macOS/Windows, where PyPI wheels are CPU-only)
+pip install torch==2.10.0 torchvision==0.25.0 \
+  --index-url https://download.pytorch.org/whl/cpu     # ~500 MB
+pip install torch==2.10.0 torchvision==0.25.0 \
+  --index-url https://download.pytorch.org/whl/cu126   # ~4.5 GB, needs an NVIDIA GPU
+
+# 2. RecourseBench and the rest
 pip install -r requirements.txt
 # Optional: only needed for some methods (e.g. diverse_dist). Downgrades numpy.
 pip install alibi==0.9.6
 ```
+
+See <https://pytorch.org/get-started/locally/> for ROCm and other CUDA versions.
+Use `--index-url`, not `--extra-index-url` — the latter leaves pip resolving
+across both PyPI and the PyTorch index with no guarantee which one a given
+package comes from.
+
+(install-extras)=
+### Solver extras
+
+`requirements.txt` installs every solver backend, which is what you want for a
+source checkout or to reproduce the full benchmark. Installing the package
+itself keeps the solvers optional:
+
+```bash
+pip install recourse_bench                 # core, no solver backends
+pip install recourse_bench[all-methods]    # + every solver backend
+pip install recourse_bench[gurobi,lime]    # + just the backends you need
+```
+
+| Extra | Package | Methods |
+| --- | --- | --- |
+| `gurobi` | gurobipy (needs a Gurobi license) | `apas`, `proplace` |
+| `z3` | z3-solver | `cemsp` |
+| `smt` | PySMT | `mace` |
+| `asp` | clingo | `arg_ensembling` |
+| `cvx` | cvxpy | `cvas_proj` |
+| `art` | adversarial-robustness-toolbox | `sns`, `trex` |
+| `lime` | lime | `roar`, `larr` |
+
+Every method stays registered and listed by `rb.list_methods()` whether or not
+its backend is installed — constructing one without it raises
+`MissingDependencyError` naming the extra to install.
+
+**On Linux, skipping the torch step above gives you the CUDA build**: PyPI's
+default `torch` wheel pulls ~3.1 GB of `nvidia-*` wheels, taking the install from
+~500 MB to ~4.5 GB. If you do not have an NVIDIA GPU, that is ~4 GB you will
+never use.
+
+## Where the cache goes
+
+Trained models and other derived artifacts are cached outside the working
+directory, under (in order) `$RECOURSE_BENCH_CACHE`,
+`$XDG_CACHE_HOME/recourse_bench`, or `~/.cache/recourse_bench`. Set
+`caching.path` in a config to keep a run's cache alongside its outputs instead.
 
 ## Run an experiment from the CLI
 
@@ -100,7 +156,7 @@ metrics = experiment.run()
 
 model = experiment.target_model()       # the trained classifier
 cfs   = experiment.counterfactuals()    # the generated counterfactuals
-train = experiment.trainset()
+train = experiment.train_set()
 ```
 
 Configuration problems raise {class}`~utils.exceptions.ConfigError` (a subclass

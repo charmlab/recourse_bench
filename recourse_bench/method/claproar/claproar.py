@@ -63,9 +63,9 @@ class ClaproarMethod(MethodObject):
         if self._tol < 0:
             raise ValueError("tol must be >= 0")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ClaproarMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ClaproarMethod.fit()")
 
         with seed_context(self._seed):
             ensure_binary_classifier(self._target_model, "ClaproarMethod")
@@ -78,7 +78,7 @@ class ClaproarMethod(MethodObject):
                     "desired_class is invalid for the trained target model"
                 )
 
-            train_features = trainset.get(target=False)
+            train_features = train_set.get(target=False)
             try:
                 train_features.loc[:, :].to_numpy(dtype="float32")
             except ValueError as error:
@@ -90,7 +90,7 @@ class ClaproarMethod(MethodObject):
             self._adapter = ClaproarTargetModelAdapter(
                 target_model=self._target_model,
                 feature_names=self._feature_names,
-                target_column=trainset.target_column,
+                target_column=train_set.target_column,
             )
             if self._desired_class is None:
                 self._claproar_by_target = {

@@ -47,6 +47,6 @@ class PreProcessObject(ABC):
         -------
         DatasetObject or tuple of DatasetObject
             The transformed dataset, or several datasets when the step splits
-            the input (e.g. into trainset and testset).
+            the input (e.g. into train_set and test_set).
         """
         raise NotImplementedError

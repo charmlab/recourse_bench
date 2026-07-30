@@ -8,4 +8,4 @@ method:
   num_parallel_runs: 1
 
 compatibility:
-  allowed_models: [linear, mlp, randomforest]
+  allowed_models: [linear, mlp, random_forest]

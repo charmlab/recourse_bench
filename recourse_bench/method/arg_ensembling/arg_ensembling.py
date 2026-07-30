@@ -4,22 +4,26 @@ import numpy as np
 import pandas as pd
 
 from recourse_bench.dataset.dataset_object import DatasetObject
-from recourse_bench.method.arg_ensembling.support import (
-    build_baf_program,
-    build_model_adapters,
-    compute_model_accuracy_scores,
-    compute_model_simplicity_scores,
-    ensure_class_mapping_alignment,
-    ensure_supported_target_model,
-    instantiate_models_from_configs,
-    nearest_neighbor_counterfactual,
-    predict_label_indices,
-    select_best_accepted_counterfactual,
-    solve_argumentative_extension,
-    validate_ensemble_models,
-    validate_score_vector,
-    BlackBoxModelTypes,
-)
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("arg_ensembling", "clingo") as _clingo:
+    from recourse_bench.method.arg_ensembling.support import (
+        build_baf_program,
+        build_model_adapters,
+        compute_model_accuracy_scores,
+        compute_model_simplicity_scores,
+        ensure_class_mapping_alignment,
+        ensure_supported_target_model,
+        instantiate_models_from_configs,
+        nearest_neighbor_counterfactual,
+        predict_label_indices,
+        select_best_accepted_counterfactual,
+        solve_argumentative_extension,
+        validate_ensemble_models,
+        validate_score_vector,
+        BlackBoxModelTypes,
+    )
+
 from recourse_bench.method.method_object import MethodObject
 from recourse_bench.model.model_object import ModelObject
 from recourse_bench.utils.registry import register
@@ -42,6 +46,7 @@ class ArgEnsemblingMethod(MethodObject):
         simplicity_scores: list[float] | None = None,
         **kwargs,
     ):
+        _clingo.require()
         ensure_supported_target_model(
             target_model,
             BlackBoxModelTypes,
@@ -99,14 +104,14 @@ class ArgEnsemblingMethod(MethodObject):
             method_name="ArgEnsemblingMethod",
         )
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ArgEnsemblingMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ArgEnsemblingMethod.fit()")
 
         with seed_context(self._seed):
             for model in self._ensemble_models:
                 if not model._is_trained:
-                    model.fit(trainset)
+                    model.fit(train_set)
 
             validate_ensemble_models(
                 self._ensemble_models,
@@ -122,9 +127,9 @@ class ArgEnsemblingMethod(MethodObject):
             ):
                 raise ValueError("desired_class is invalid for the trained target model")
 
-            self._feature_names = list(trainset.get(target=False).columns)
+            self._feature_names = list(train_set.get(target=False).columns)
             self._train_features = (
-                trainset.get(target=False)
+                train_set.get(target=False)
                 .loc[:, self._feature_names]
                 .copy(deep=True)
             )
@@ -142,7 +147,7 @@ class ArgEnsemblingMethod(MethodObject):
                 else int(class_to_index[self._desired_class])
             )
 
-            target_series = trainset.get(target=True).iloc[:, 0]
+            target_series = train_set.get(target=True).iloc[:, 0]
             encoded_target = np.asarray(
                 [class_to_index[value] for value in target_series.tolist()],
                 dtype=np.int64,

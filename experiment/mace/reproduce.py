@@ -390,12 +390,12 @@ def _materialize_dataset(dataset_name: str):
         seed=SEED, strategy="downsample", round_to=250, shuffle=True, range=True
     ).transform(raw)
     current = MaceEncodePreProcess(seed=SEED).transform(current)
-    trainset, testset = SplitPreProcess(
+    train_set, test_set = SplitPreProcess(
         seed=SEED, split=int(DEFAULTS[dataset_name]["split"])
     ).transform(current)
-    trainset = FinalizePreProcess(seed=SEED).transform(trainset)
-    testset = FinalizePreProcess(seed=SEED).transform(testset)
-    return trainset, testset
+    train_set = FinalizePreProcess(seed=SEED).transform(train_set)
+    test_set = FinalizePreProcess(seed=SEED).transform(test_set)
+    return train_set, test_set
 
 
 def _subset_dataset(dataset_obj, indices: pd.Index, flag_name: str):
@@ -432,7 +432,7 @@ def _select_factuals(dataset_obj, target_model, desired_class, num_factuals: int
         raise ValueError(
             f"Requested {num_factuals} factuals but only found {keep_index.shape[0]}"
         )
-    return _subset_dataset(dataset_obj, keep_index[:num_factuals], "testset")
+    return _subset_dataset(dataset_obj, keep_index[:num_factuals], "test_set")
 
 
 def _build_counterfactual_dataset(factuals, counterfactual_features, desired_class):
@@ -599,13 +599,13 @@ def _validity(factuals, counterfactuals) -> float:
 
 
 def _run_single(dataset_name: str, norm_type: str, epsilon: float, num_factuals: int):
-    trainset, testset = _materialize_dataset(dataset_name)
-    encoded_dim = int(trainset.attr("mace_encoded_dim"))
+    train_set, test_set = _materialize_dataset(dataset_name)
+    encoded_dim = int(train_set.attr("mace_encoded_dim"))
     target_model = SklearnLogisticRegressionModel(fit_mode="default", device="cpu")
-    target_model.fit(trainset)
+    target_model.fit(train_set)
 
     factuals = _select_factuals(
-        testset,
+        test_set,
         target_model,
         desired_class=None,
         num_factuals=num_factuals,
@@ -617,7 +617,7 @@ def _run_single(dataset_name: str, norm_type: str, epsilon: float, num_factuals:
         norm_type=norm_type,
         epsilon=epsilon,
     )
-    method_obj.fit(trainset)
+    method_obj.fit(train_set)
 
     start = time.perf_counter()
     mace_counterfactuals = method_obj.predict(
@@ -629,7 +629,7 @@ def _run_single(dataset_name: str, norm_type: str, epsilon: float, num_factuals:
         method_obj, factuals, mace_counterfactuals
     )
 
-    observable_pool = _select_observable_pool(testset, target_model, desired_class=None)
+    observable_pool = _select_observable_pool(test_set, target_model, desired_class=None)
     mo_start = time.perf_counter()
     mo_counterfactuals = _compute_mo_counterfactuals(
         method_obj, factuals, observable_pool

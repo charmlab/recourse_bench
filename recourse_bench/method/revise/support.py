@@ -60,11 +60,11 @@ def _resolve_dataset_name(dataset: DatasetObject) -> str:
     return str(dataset_name)
 
 
-def build_revise_feature_context(trainset: DatasetObject) -> ReviseFeatureContext:
-    feature_df = trainset.get(target=False)
+def build_revise_feature_context(train_set: DatasetObject) -> ReviseFeatureContext:
+    feature_df = train_set.get(target=False)
     feature_names = list(feature_df.columns)
     feature_type, feature_mutability, feature_actionability = resolve_feature_metadata(
-        trainset
+        train_set
     )
 
     mutable_mask = np.array(
@@ -79,7 +79,7 @@ def build_revise_feature_context(trainset: DatasetObject) -> ReviseFeatureContex
         raise ValueError("ReviseMethod requires at least one mutable feature")
 
     try:
-        encoding_map = trainset.attr("encoding")
+        encoding_map = train_set.attr("encoding")
     except AttributeError:
         encoding_map = {}
 
@@ -128,14 +128,14 @@ def build_revise_feature_context(trainset: DatasetObject) -> ReviseFeatureContex
     ]
 
     return ReviseFeatureContext(
-        dataset_name=_resolve_dataset_name(trainset),
+        dataset_name=_resolve_dataset_name(train_set),
         feature_names=feature_names,
-        target_column=trainset.target_column,
+        target_column=train_set.target_column,
         mutable_mask=mutable_mask,
         categorical_groups=categorical_groups,
         thermometer_groups=thermometer_groups,
         binary_feature_indices=binary_feature_indices,
-        legality_context=build_feature_tweak_context(trainset),
+        legality_context=build_feature_tweak_context(train_set),
     )
 
 
@@ -217,7 +217,7 @@ class ReviseTargetModelAdapter:
         self,
         target_model: ModelObject,
         feature_context: ReviseFeatureContext,
-        trainset: DatasetObject,
+        train_set: DatasetObject,
     ):
         self._target_model = target_model
         self.feature_context = feature_context.legality_context
@@ -226,8 +226,8 @@ class ReviseTargetModelAdapter:
         self.backend = "pytorch"
         self.device = str(target_model._device)
 
-        train_features = trainset.get(target=False).loc[:, self.feature_input_order]
-        target_series = trainset.get(target=True).iloc[:, 0]
+        train_features = train_set.get(target=False).loc[:, self.feature_input_order]
+        target_series = train_set.get(target=True).iloc[:, 0]
         encoded_target = _encode_targets(
             target_series=target_series,
             class_to_index=target_model.get_class_to_index(),

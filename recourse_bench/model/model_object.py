@@ -84,12 +84,12 @@ class ModelObject(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def fit(self, trainset: DatasetObject | None):
+    def fit(self, train_set: DatasetObject | None):
         """Train the model on a frozen training dataset.
 
         Parameters
         ----------
-        trainset : DatasetObject or None
+        train_set : DatasetObject or None
             Finalized training data. Implementations should set
             ``self._is_trained = True`` on success.
         """
@@ -114,12 +114,12 @@ class ModelObject(ABC):
         """
         raise NotImplementedError
 
-    def predict(self, testset: DatasetObject, batch_size: int = 20) -> torch.Tensor:
+    def predict(self, test_set: DatasetObject, batch_size: int = 20) -> torch.Tensor:
         """Batched logits over a frozen dataset.
 
         Parameters
         ----------
-        testset : DatasetObject
+        test_set : DatasetObject
             Frozen dataset to predict on.
         batch_size : int, default 20
             Rows per inference batch.
@@ -136,7 +136,7 @@ class ModelObject(ABC):
         """
         if not self._is_trained:
             raise RuntimeError("Target model is not trained")
-        X = testset.get(target=False)
+        X = test_set.get(target=False)
         outputs: list[torch.Tensor] = []
         for start in range(0, len(X), batch_size):
             batch = X.iloc[start : start + batch_size]
@@ -144,13 +144,13 @@ class ModelObject(ABC):
         return torch.cat(outputs, dim=0) if outputs else torch.empty(0)
 
     def predict_proba(
-        self, testset: DatasetObject, batch_size: int = 20
+        self, test_set: DatasetObject, batch_size: int = 20
     ) -> torch.Tensor:
         """Batched class probabilities over a frozen dataset.
 
         Parameters
         ----------
-        testset : DatasetObject
+        test_set : DatasetObject
             Frozen dataset to predict on.
         batch_size : int, default 20
             Rows per inference batch.
@@ -162,7 +162,7 @@ class ModelObject(ABC):
         """
         if not self._is_trained:
             raise RuntimeError("Target model is not trained")
-        X = testset.get(target=False)
+        X = test_set.get(target=False)
         outputs: list[torch.Tensor] = []
         for start in range(0, len(X), batch_size):
             batch = X.iloc[start : start + batch_size]
@@ -191,16 +191,16 @@ class ModelObject(ABC):
 
     def extract_training_data(
         self,
-        trainset: DatasetObject,
+        train_set: DatasetObject,
     ) -> tuple[pd.DataFrame, torch.Tensor, int]:
-        """Split a trainset into features, integer labels, and output dimension.
+        """Split a train_set into features, integer labels, and output dimension.
 
         Builds and stores the class-to-index mapping used to translate model
         outputs back to dataset labels.
 
         Parameters
         ----------
-        trainset : DatasetObject
+        train_set : DatasetObject
             Frozen training dataset.
 
         Returns
@@ -208,8 +208,8 @@ class ModelObject(ABC):
         tuple[pandas.DataFrame, torch.Tensor, int]
             Features ``X``, integer ``labels``, and the number of output classes.
         """
-        X = trainset.get(target=False)
-        y = trainset.get(target=True)
+        X = train_set.get(target=False)
+        y = train_set.get(target=True)
 
         if y.shape[1] == 1:
             target = y.iloc[:, 0]

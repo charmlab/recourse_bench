@@ -11,7 +11,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest"
+        "random_forest"
       ]
     },
     "cchvae": {
@@ -19,7 +19,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest",
+        "random_forest",
         "sklearn_logistic_regression"
       ]
     },
@@ -35,7 +35,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest"
+        "random_forest"
       ]
     },
     "cfvae": {
@@ -58,7 +58,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest"
+        "random_forest"
       ]
     },
     "cols": {
@@ -66,7 +66,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest"
+        "random_forest"
       ]
     },
     "cvas_proj": {
@@ -74,7 +74,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest"
+        "random_forest"
       ]
     },
     "dice": {
@@ -95,7 +95,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest"
+        "random_forest"
       ]
     },
     "gs": {
@@ -103,7 +103,7 @@
       "allowed_models": [
         "linear",
         "mlp",
-        "randomforest"
+        "random_forest"
       ]
     },
     "larr": {
@@ -120,7 +120,7 @@
         "credit"
       ],
       "allowed_models": [
-        "randomforest"
+        "random_forest"
       ]
     },
     "probe": {

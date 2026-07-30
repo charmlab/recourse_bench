@@ -174,8 +174,8 @@ def _resolve_group_kind(
     )
 
 
-def build_feature_schema(trainset: DatasetObject) -> FeatureSchema:
-    feature_df = trainset.get(target=False)
+def build_feature_schema(train_set: DatasetObject) -> FeatureSchema:
+    feature_df = train_set.get(target=False)
     try:
         feature_df = feature_df.astype("float32")
     except ValueError as error:
@@ -183,24 +183,24 @@ def build_feature_schema(trainset: DatasetObject) -> FeatureSchema:
 
     feature_names = list(feature_df.columns)
     encoded_feature_type, encoded_feature_mutability, encoded_feature_actionability = (
-        resolve_feature_metadata(trainset)
+        resolve_feature_metadata(train_set)
     )
     raw_feature_type = (
-        trainset.attr("raw_feature_type")
-        if dataset_has_attr(trainset, "raw_feature_type")
+        train_set.attr("raw_feature_type")
+        if dataset_has_attr(train_set, "raw_feature_type")
         else encoded_feature_type
     )
     raw_feature_mutability = (
-        trainset.attr("raw_feature_mutability")
-        if dataset_has_attr(trainset, "raw_feature_mutability")
+        train_set.attr("raw_feature_mutability")
+        if dataset_has_attr(train_set, "raw_feature_mutability")
         else encoded_feature_mutability
     )
     raw_feature_actionability = (
-        trainset.attr("raw_feature_actionability")
-        if dataset_has_attr(trainset, "raw_feature_actionability")
+        train_set.attr("raw_feature_actionability")
+        if dataset_has_attr(train_set, "raw_feature_actionability")
         else encoded_feature_actionability
     )
-    encoding_map = trainset.attr("encoding") if dataset_has_attr(trainset, "encoding") else {}
+    encoding_map = train_set.attr("encoding") if dataset_has_attr(train_set, "encoding") else {}
 
     processed_to_source: dict[str, str] = {}
     for source_feature, encoded_columns in encoding_map.items():
@@ -350,10 +350,10 @@ def extract_binary_target_networks(target_model: MlpModel) -> dict[int, BinaryNe
     return target_networks
 
 
-def prepare_apas_context(target_model: ModelObject, trainset: DatasetObject) -> ApasContext:
+def prepare_apas_context(target_model: ModelObject, train_set: DatasetObject) -> ApasContext:
     ensure_binary_mlp_target_model(target_model, "APAS")
 
-    feature_schema = build_feature_schema(trainset)
+    feature_schema = build_feature_schema(train_set)
     target_networks = extract_binary_target_networks(target_model)
 
     input_dim = len(feature_schema.feature_names)

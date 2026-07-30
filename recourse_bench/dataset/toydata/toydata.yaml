@@ -1,4 +1,4 @@
-name: toydata
+name: toy_data
 target_column: approved
 feature_order:
   - age

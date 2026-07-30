@@ -64,12 +64,12 @@ class MethodObject(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def fit(self, trainset: DatasetObject | None):
+    def fit(self, train_set: DatasetObject | None):
         """Fit the method (train auxiliary models, build search structures).
 
         Parameters
         ----------
-        trainset : DatasetObject or None
+        train_set : DatasetObject or None
             Finalized training data. Methods that need no training should set
             ``self._is_trained = True`` in ``__init__``; otherwise set it here.
         """
@@ -92,7 +92,7 @@ class MethodObject(ABC):
         """
         raise NotImplementedError
 
-    def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
+    def predict(self, test_set: DatasetObject, batch_size: int = 20) -> DatasetObject:
         """Generate counterfactuals over a dataset and package the result.
 
         Calls :meth:`get_counterfactuals` in batches, validates that row count
@@ -104,7 +104,7 @@ class MethodObject(ABC):
 
         Parameters
         ----------
-        testset : DatasetObject
+        test_set : DatasetObject
             Frozen factual dataset. Must not already be a counterfactual dataset.
         batch_size : int, default 20
             Factual rows per call to :meth:`get_counterfactuals`.
@@ -112,24 +112,24 @@ class MethodObject(ABC):
         Returns
         -------
         DatasetObject
-            A frozen counterfactual dataset aligned to ``testset``.
+            A frozen counterfactual dataset aligned to ``test_set``.
 
         Raises
         ------
         RuntimeError
             If the method is not trained.
         ValueError
-            If ``batch_size < 1``, ``testset`` is already a counterfactual, or
+            If ``batch_size < 1``, ``test_set`` is already a counterfactual, or
             :meth:`get_counterfactuals` does not preserve rows/columns.
         """
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
-        if getattr(testset, "counterfactual", False):
-            raise ValueError("testset must not already be marked as counterfactual")
+        if getattr(test_set, "counterfactual", False):
+            raise ValueError("test_set must not already be marked as counterfactual")
 
-        factuals = testset.get(target=False)
+        factuals = test_set.get(target=False)
         counterfactual_batches: list[pd.DataFrame] = []
         runtime_batches: list[pd.Series] = []
 
@@ -172,7 +172,7 @@ class MethodObject(ABC):
             counterfactual_features = factuals.iloc[0:0].copy(deep=True)
             runtime_seconds = pd.Series(index=factuals.index, dtype="float64")
 
-        target_column = testset.target_column
+        target_column = test_set.target_column
         counterfactual_target = pd.DataFrame(
             -1.0,
             index=counterfactual_features.index,
@@ -182,10 +182,10 @@ class MethodObject(ABC):
             [counterfactual_features, counterfactual_target], axis=1
         )
         counterfactual_df = counterfactual_df.reindex(
-            columns=testset.ordered_features()
+            columns=test_set.ordered_features()
         )
 
-        output = testset.clone()
+        output = test_set.clone()
         output.update("counterfactual", True, df=counterfactual_df)
         output.update(
             "runtime_seconds",
@@ -193,7 +193,7 @@ class MethodObject(ABC):
         )
         output.update("runtime_total_seconds", float(runtime_seconds.sum()))
 
-        prediction = self._target_model.predict(testset, batch_size=batch_size)
+        prediction = self._target_model.predict(test_set, batch_size=batch_size)
         predicted_label = prediction.argmax(dim=1).cpu().numpy().astype(np.int64)
         output.update(
             "factual_prediction_index",

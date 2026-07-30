@@ -186,11 +186,11 @@ def _make_frozen_processed_dataset(
     return dataset
 
 
-def _compute_model_metrics(model: MlpModel, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu().numpy()
+def _compute_model_metrics(model: MlpModel, test_set) -> dict[str, float]:
+    probabilities = model.predict_proba(test_set).detach().cpu().numpy()
     prediction = probabilities.argmax(axis=1)
 
-    y = testset.get(target=True).iloc[:, 0]
+    y = test_set.get(target=True).iloc[:, 0]
     class_to_index = model.get_class_to_index()
     encoded_target = np.array(
         [class_to_index[int(value)] for value in y.astype(int).tolist()],
@@ -252,15 +252,15 @@ def _build_classifier_paper_comparison(
     }
 
 
-def _select_recourse_factuals(model: MlpModel, testset, experiment_cfg: dict):
+def _select_recourse_factuals(model: MlpModel, test_set, experiment_cfg: dict):
     factual_selection = str(experiment_cfg.get("factual_selection", "all")).lower()
     max_factuals = experiment_cfg.get("max_factuals")
     max_factuals = None if max_factuals is None else int(max_factuals)
 
-    prediction_probabilities = model.predict_proba(testset).detach().cpu().numpy()
+    prediction_probabilities = model.predict_proba(test_set).detach().cpu().numpy()
     prediction_indices = pd.Series(
         prediction_probabilities.argmax(axis=1),
-        index=testset.get(target=False).index,
+        index=test_set.get(target=False).index,
         dtype="int64",
     )
     desired_index = model.get_class_to_index()[1]
@@ -287,8 +287,8 @@ def _select_recourse_factuals(model: MlpModel, testset, experiment_cfg: dict):
     else:
         raise ValueError(f"Unsupported factual_selection: {factual_selection}")
 
-    factuals = testset.clone()
-    factual_df = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
+    factuals = test_set.clone()
+    factual_df = pd.concat([test_set.get(target=False), test_set.get(target=True)], axis=1)
     factual_df = factual_df.loc[selected_indices].copy(deep=True)
     factuals.update("reproduce_factuals", True, df=factual_df)
     factuals.freeze()
@@ -468,7 +468,7 @@ def _resolve_future_model_random_states(future_cfg: dict) -> list[int]:
     return list(range(future_model_seed_start, future_model_seed_start + num_future_models))
 
 
-def _build_future_trainsets(
+def _build_future_train_sets(
     template_dataset: GermanDataset,
     transformer: ColumnTransformer,
     feature_names: list[str],
@@ -486,7 +486,7 @@ def _build_future_trainsets(
     if arrival_fraction < 0.0 or arrival_fraction > 1.0:
         raise ValueError("arrival_fraction must satisfy 0.0 <= arrival_fraction <= 1.0")
 
-    future_trainsets = []
+    future_train_sets = []
     for random_state in _resolve_future_model_random_states(future_cfg):
         if arrival_fraction == 0.0:
             arrival_X = shifted_X.iloc[0:0].copy(deep=True)
@@ -503,17 +503,17 @@ def _build_future_trainsets(
         future_X_raw = pd.concat([current_X_train, arrival_X], ignore_index=True)
         future_y = pd.concat([current_y_train, arrival_y], ignore_index=True)
         future_X = _transform_features(transformer, future_X_raw, feature_names)
-        future_trainsets.append(
+        future_train_sets.append(
             _make_frozen_processed_dataset(
                 template_dataset=template_dataset,
                 X=future_X,
                 y=future_y,
                 feature_names=feature_names,
                 encoding_map=encoding_map,
-                dataset_flag="trainset",
+                dataset_flag="train_set",
             )
         )
-    return future_trainsets
+    return future_train_sets
 
 
 def _resolve_sweep_grid(current_cfg: dict) -> dict[str, list[float]]:
@@ -565,7 +565,7 @@ def _build_method_variants(current_cfg: dict) -> list[dict[str, Any]]:
 def _evaluate_method_variant(
     variant: dict[str, Any],
     current_model: MlpModel,
-    current_trainset,
+    current_train_set,
     factuals,
     future_models: list[MlpModel],
     device: str,
@@ -576,7 +576,7 @@ def _evaluate_method_variant(
         target_model=current_model,
         device=device,
     )
-    rbr_method.fit(current_trainset)
+    rbr_method.fit(current_train_set)
     counterfactuals = rbr_method.predict(factuals)
 
     distance_metrics, num_successful = _compute_distance_metrics(factuals, counterfactuals)
@@ -694,26 +694,26 @@ def run_reproduction(
     )
 
     current_template_dataset = GermanDataset()
-    current_trainset = _make_frozen_processed_dataset(
+    current_train_set = _make_frozen_processed_dataset(
         template_dataset=current_template_dataset,
         X=current_X_train,
         y=current_y_train,
         feature_names=feature_names,
         encoding_map=encoding_map,
-        dataset_flag="trainset",
+        dataset_flag="train_set",
     )
-    current_testset = _make_frozen_processed_dataset(
+    current_test_set = _make_frozen_processed_dataset(
         template_dataset=current_template_dataset,
         X=current_X_test,
         y=current_y_test,
         feature_names=feature_names,
         encoding_map=encoding_map,
-        dataset_flag="testset",
+        dataset_flag="test_set",
     )
 
     current_model = _build_mlp_from_config(current_cfg, device=device)
-    current_model.fit(current_trainset)
-    current_model_metrics = _compute_model_metrics(current_model, current_testset)
+    current_model.fit(current_train_set)
+    current_model_metrics = _compute_model_metrics(current_model, current_test_set)
 
     shift_experiment_cfg = future_cfg.get("experiment", {})
     shift_train_split = float(shift_experiment_cfg.get("shift_train_split", 0.8))
@@ -738,34 +738,34 @@ def run_reproduction(
         feature_names,
     )
     shifted_template_dataset = GermanRoarDataset()
-    shifted_trainset = _make_frozen_processed_dataset(
+    shifted_train_set = _make_frozen_processed_dataset(
         template_dataset=shifted_template_dataset,
         X=shifted_X_train,
         y=shifted_y_train,
         feature_names=feature_names,
         encoding_map=encoding_map,
-        dataset_flag="trainset",
+        dataset_flag="train_set",
     )
-    shifted_testset = _make_frozen_processed_dataset(
+    shifted_test_set = _make_frozen_processed_dataset(
         template_dataset=shifted_template_dataset,
         X=shifted_X_test,
         y=shifted_y_test,
         feature_names=feature_names,
         encoding_map=encoding_map,
-        dataset_flag="testset",
+        dataset_flag="test_set",
     )
 
     shifted_model = _build_mlp_from_config(future_cfg, device=device)
-    shifted_model.fit(shifted_trainset)
-    shifted_model_metrics = _compute_model_metrics(shifted_model, shifted_testset)
+    shifted_model.fit(shifted_train_set)
+    shifted_model_metrics = _compute_model_metrics(shifted_model, shifted_test_set)
 
     factuals = _select_recourse_factuals(
         current_model,
-        current_testset,
+        current_test_set,
         current_experiment_cfg,
     )
 
-    future_trainsets = _build_future_trainsets(
+    future_train_sets = _build_future_train_sets(
         template_dataset=current_template_dataset,
         transformer=transformer,
         feature_names=feature_names,
@@ -777,12 +777,12 @@ def run_reproduction(
     )
     future_models: list[MlpModel] = []
     future_model_metrics_on_present_test: list[dict[str, float]] = []
-    for future_trainset in future_trainsets:
+    for future_train_set in future_train_sets:
         future_model = _build_mlp_from_config(future_cfg, device=device)
-        future_model.fit(future_trainset)
+        future_model.fit(future_train_set)
         future_models.append(future_model)
         future_model_metrics_on_present_test.append(
-            _compute_model_metrics(future_model, current_testset)
+            _compute_model_metrics(future_model, current_test_set)
         )
 
     if future_model_metrics_on_present_test:
@@ -813,7 +813,7 @@ def run_reproduction(
         _evaluate_method_variant(
             variant=variant,
             current_model=current_model,
-            current_trainset=current_trainset,
+            current_train_set=current_train_set,
             factuals=factuals,
             future_models=future_models,
             device=device,

@@ -26,7 +26,7 @@ def _to_python_scalar(value: object) -> object:
     return value
 
 
-@register("examples")
+@register("example")
 class ExamplesEvaluation(EvaluationObject):
     def __init__(
         self,

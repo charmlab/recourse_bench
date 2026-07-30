@@ -5,7 +5,11 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 import torch
-from lime.lime_tabular import LimeTabularExplainer
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("roar", "lime") as _lime:
+    from lime.lime_tabular import LimeTabularExplainer
+
 from sklearn.linear_model import LogisticRegression
 
 from recourse_bench.dataset.dataset_object import DatasetObject
@@ -37,6 +41,7 @@ class RoarMethod(MethodObject):
         sample_around_instance: bool = True,
         **kwargs,
     ):
+        _lime.require()
         self._target_model = target_model
         self._seed = seed
         self._device = device.lower()
@@ -69,12 +74,12 @@ class RoarMethod(MethodObject):
         if self._loss_type not in {"BCE", "MSE"}:
             raise ValueError("loss_type must be either 'BCE' or 'MSE'")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for RoarMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for RoarMethod.fit()")
 
         with seed_context(self._seed):
-            features = trainset.get(target=False)
+            features = train_set.get(target=False)
             try:
                 training_array = features.to_numpy(dtype="float32")
             except ValueError as error:
@@ -83,21 +88,21 @@ class RoarMethod(MethodObject):
                 ) from error
 
             self._feature_names = list(features.columns)
-            if hasattr(trainset, "encoded_feature_type"):
-                self._feature_type = deepcopy(trainset.attr("encoded_feature_type"))
+            if hasattr(train_set, "encoded_feature_type"):
+                self._feature_type = deepcopy(train_set.attr("encoded_feature_type"))
                 self._feature_mutability = deepcopy(
-                    trainset.attr("encoded_feature_mutability")
+                    train_set.attr("encoded_feature_mutability")
                 )
                 self._feature_actionability = deepcopy(
-                    trainset.attr("encoded_feature_actionability")
+                    train_set.attr("encoded_feature_actionability")
                 )
             else:
-                self._feature_type = deepcopy(trainset.attr("raw_feature_type"))
+                self._feature_type = deepcopy(train_set.attr("raw_feature_type"))
                 self._feature_mutability = deepcopy(
-                    trainset.attr("raw_feature_mutability")
+                    train_set.attr("raw_feature_mutability")
                 )
                 self._feature_actionability = deepcopy(
-                    trainset.attr("raw_feature_actionability")
+                    train_set.attr("raw_feature_actionability")
                 )
 
             self._class_to_index = self._target_model.get_class_to_index()

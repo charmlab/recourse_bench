@@ -414,7 +414,7 @@ def _is_actionability_violation(
     return counterfactual_value >= (factual_value - tolerance)
 
 
-@register("constraints")
+@register("constraint")
 class ConstraintsEvaluation(EvaluationObject):
     def __init__(self, tolerance: float = 1e-6, **kwargs):
         self._tolerance = float(tolerance)

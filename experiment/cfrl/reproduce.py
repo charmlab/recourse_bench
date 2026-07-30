@@ -163,18 +163,18 @@ class CfrlAdultStratifiedSplitPreProcess(PreProcessObject):
             full_test_df.iloc[sample_idx].reset_index(drop=True).copy(deep=True)
         )
 
-        trainset = input
-        testset = input.clone()
+        train_set = input
+        test_set = input.clone()
 
-        trainset.update("trainset", True, df=train_df)
-        trainset.update("cfrl_full_train_df", train_df)
-        trainset.update("cfrl_full_test_df", full_test_df)
+        train_set.update("train_set", True, df=train_df)
+        train_set.update("cfrl_full_train_df", train_df)
+        train_set.update("cfrl_full_test_df", full_test_df)
 
-        testset.update("testset", True, df=sampled_test_df)
-        testset.update("cfrl_full_train_df", train_df)
-        testset.update("cfrl_full_test_df", full_test_df)
+        test_set.update("test_set", True, df=sampled_test_df)
+        test_set.update("cfrl_full_train_df", train_df)
+        test_set.update("cfrl_full_test_df", full_test_df)
 
-        return trainset, testset
+        return train_set, test_set
 
 
 @register("cfrl_adult_rf")
@@ -201,16 +201,16 @@ class CfrlAdultRandomForestModel(ModelObject):
         self._feature_names: list[str] = []
         self._class_to_index = {0: 0, 1: 1}
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
             raise ValueError(
-                "trainset is required for CfrlAdultRandomForestModel.fit()"
+                "train_set is required for CfrlAdultRandomForestModel.fit()"
             )
 
-        X = trainset.get(target=False)
-        y = trainset.get(target=True).iloc[:, 0].astype(int).to_numpy()
+        X = train_set.get(target=False)
+        y = train_set.get(target=True).iloc[:, 0].astype(int).to_numpy()
         self._feature_names, categorical_ids, numerical_ids, _ = _feature_layout(
-            trainset
+            train_set
         )
 
         cat_transf = OneHotEncoder(

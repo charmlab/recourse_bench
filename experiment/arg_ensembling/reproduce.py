@@ -65,11 +65,11 @@ class SklearnMlpModel(ModelObject):
         self._is_trained = False
         self._class_to_index = None
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for SklearnMlpModel.fit()")
-        X = trainset.get(target=False)
-        y = trainset.get(target=True).iloc[:, 0]
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for SklearnMlpModel.fit()")
+        X = train_set.get(target=False)
+        y = train_set.get(target=True).iloc[:, 0]
         self.fit_frames(X, y)
 
     def fit_frames(self, X: pd.DataFrame, y: pd.Series | np.ndarray):

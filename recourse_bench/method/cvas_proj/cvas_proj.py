@@ -4,21 +4,25 @@ import numpy as np
 import pandas as pd
 
 from recourse_bench.dataset.dataset_object import DatasetObject
-from recourse_bench.method.cvas_proj.support import (
-    BlackBoxModelTypes,
-    RecourseModelAdapter,
-    compute_max_distance,
-    derive_row_seed,
-    ensure_supported_target_model,
-    find_boundary_point,
-    fit_local_surrogate,
-    resolve_projection_features,
-    resolve_target_indices,
-    sample_uniform_ball,
-    select_nearest_training_points,
-    solve_l1_projection,
-    validate_counterfactuals,
-)
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("cvas_proj", "cvxpy") as _cvxpy:
+    from recourse_bench.method.cvas_proj.support import (
+        BlackBoxModelTypes,
+        RecourseModelAdapter,
+        compute_max_distance,
+        derive_row_seed,
+        ensure_supported_target_model,
+        find_boundary_point,
+        fit_local_surrogate,
+        resolve_projection_features,
+        resolve_target_indices,
+        sample_uniform_ball,
+        select_nearest_training_points,
+        solve_l1_projection,
+        validate_counterfactuals,
+    )
+
 from recourse_bench.method.method_object import MethodObject
 from recourse_bench.model.model_object import ModelObject
 from recourse_bench.utils.registry import register
@@ -47,6 +51,7 @@ class CvasProjMethod(MethodObject):
         row_seed_strategy: str = "row_hash",
         **kwargs,
     ):
+        _cvxpy.require()
         ensure_supported_target_model(
             target_model,
             BlackBoxModelTypes,
@@ -94,12 +99,12 @@ class CvasProjMethod(MethodObject):
         if self._row_seed_strategy not in {"row_hash", "fixed"}:
             raise ValueError("row_seed_strategy must be one of ['row_hash', 'fixed']")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for CvasProjMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for CvasProjMethod.fit()")
 
         with seed_context(self._seed):
-            feature_df = trainset.get(target=False)
+            feature_df = train_set.get(target=False)
             if feature_df.isna().any(axis=None):
                 raise ValueError("CvasProjMethod does not support NaN training features")
 
@@ -110,7 +115,7 @@ class CvasProjMethod(MethodObject):
                     "CvasProjMethod requires fully numeric input features"
                 ) from error
 
-            projection_features = resolve_projection_features(trainset)
+            projection_features = resolve_projection_features(train_set)
             self._feature_names = list(projection_features.feature_names)
             self._boolean_feature_indices = list(
                 projection_features.boolean_feature_indices

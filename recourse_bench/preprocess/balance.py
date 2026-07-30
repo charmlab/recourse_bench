@@ -71,7 +71,7 @@ class BalancePreProcess(PreProcessObject):
 
     def transform(self, input: DatasetObject) -> DatasetObject:
         with seed_context(self._seed):
-            if getattr(input, "testset", False):
+            if getattr(input, "test_set", False):
                 return input
 
             ensure_flag_absent(input, "balanced")

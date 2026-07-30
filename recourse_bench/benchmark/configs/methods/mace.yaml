@@ -6,5 +6,5 @@ method:
   epsilon: 1.0e-3
 
 compatibility:
-  allowed_models: [randomforest, sklearn_logistic_regression]
+  allowed_models: [random_forest, sklearn_logistic_regression]
   allowed_datasets: [adult, compas, credit]

@@ -8,7 +8,7 @@ from recourse_bench.dataset.dataset_object import DatasetObject
 from recourse_bench.utils.registry import register
 
 
-@register("toydata")
+@register("toy_data")
 class ToydataDataset(DatasetObject):
     def __init__(self, path: str = "./dataset/toydata/", **kwargs):
         dataset_path = Path(path)

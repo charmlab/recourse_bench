@@ -140,7 +140,7 @@ def _select_negative_factuals(model, dataset):
         index=dataset.get(target=False).index,
         dtype=bool,
     )
-    return _build_filtered_dataset(dataset, keep_mask, "testset")
+    return _build_filtered_dataset(dataset, keep_mask, "test_set")
 
 
 def _compute_model_accuracy(model, dataset) -> float:
@@ -208,7 +208,7 @@ def _build_query_dataset(dataset, x1: float, x2: float, y: int = 0):
     query_df = pd.DataFrame(
         [{"x1": float(x1), "x2": float(x2), dataset.target_column: int(y)}]
     )
-    query_dataset.update("testset", True, df=query_df)
+    query_dataset.update("test_set", True, df=query_df)
     query_dataset.freeze()
     return query_dataset
 
@@ -216,7 +216,7 @@ def _build_query_dataset(dataset, x1: float, x2: float, y: int = 0):
 def _build_triptych_query(
     run_group_results: list[dict],
 ) -> tuple[tuple[float, float], list[dict]]:
-    template_dataset = run_group_results[0]["testset"]
+    template_dataset = run_group_results[0]["test_set"]
     model = run_group_results[0]["experiment"]._target_model
     desired_index = model.get_class_to_index()[DESIRED_CLASS]
     query_dataset = _build_query_dataset(
@@ -314,13 +314,13 @@ def _plot_face_triptych(
 
 def _run_single_experiment(run_cfg: dict) -> dict:
     experiment = Experiment(_build_config(run_cfg))
-    trainset, testset = _materialize_datasets(experiment)
+    train_set, test_set = _materialize_datasets(experiment)
 
-    experiment._target_model.fit(trainset)
-    model_accuracy = _compute_model_accuracy(experiment._target_model, testset)
+    experiment._target_model.fit(train_set)
+    model_accuracy = _compute_model_accuracy(experiment._target_model, test_set)
 
-    experiment._method.fit(trainset)
-    factuals = _select_negative_factuals(experiment._target_model, testset)
+    experiment._method.fit(train_set)
+    factuals = _select_negative_factuals(experiment._target_model, test_set)
     counterfactuals = experiment._method.predict(factuals)
 
     evaluation_results = [
@@ -347,8 +347,8 @@ def _run_single_experiment(run_cfg: dict) -> dict:
     return {
         "summary": summary_row,
         "experiment": experiment,
-        "trainset": trainset,
-        "testset": testset,
+        "train_set": train_set,
+        "test_set": test_set,
         "factuals": factuals,
         "counterfactuals": counterfactuals,
         "metrics": metrics,
@@ -425,7 +425,7 @@ def run_reproduction() -> pd.DataFrame:
         ["mode", "epsilon", "k_neighbors"], na_position="last"
     ).reset_index(drop=True)
 
-    background_dataset = grouped_results["kde"][0]["testset"]
+    background_dataset = grouped_results["kde"][0]["test_set"]
     background_df = pd.concat(
         [background_dataset.get(target=False), background_dataset.get(target=True)],
         axis=1,

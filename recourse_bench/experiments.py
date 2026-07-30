@@ -6,6 +6,7 @@ import importlib.metadata
 import logging
 import os
 import subprocess
+import warnings
 from copy import deepcopy
 from datetime import datetime, timezone
 
@@ -18,10 +19,10 @@ import recourse_bench.evaluation  # noqa: F401
 import recourse_bench.method  # noqa: F401
 import recourse_bench.model  # noqa: F401
 import recourse_bench.preprocess  # noqa: F401
-from recourse_bench.utils.caching import set_cache_dir
+from recourse_bench.utils.caching import default_cache_dir, set_cache_dir
 from recourse_bench.utils.exceptions import ConfigError, RecourseBenchError
 from recourse_bench.utils.logger import setup_logger
-from recourse_bench.utils.registry import get_registry
+from recourse_bench.utils.registry import get_registry, resolve_name
 
 
 class Experiment:
@@ -60,8 +61,8 @@ class Experiment:
     _method: object
     _evaluation: list
     _metrics: pd.DataFrame | None = None
-    _trainset: object = None
-    _testset: object = None
+    _train_set: object = None
+    _test_set: object = None
     _counterfactuals: object = None
 
     def __init__(self, config: dict):
@@ -82,7 +83,7 @@ class Experiment:
         )
 
         caching_cfg = self._cfg.get("caching", {})
-        set_cache_dir(caching_cfg.get("path", "./cache/"))
+        set_cache_dir(caching_cfg.get("path") or default_cache_dir())
 
         self._raw_dataset = self._build_dataset()
         self._preprocess = self._build_preprocess()
@@ -102,7 +103,23 @@ class Experiment:
             preprocess_cfg.append({"name": "finalize"})
         self._cfg["preprocess"] = preprocess_cfg
 
+        self._canonicalize_names()
         self._propagate_seed()
+
+    def _canonicalize_names(self) -> None:
+        """Rewrite retired component names to their current registry names.
+
+        Keeps configs written against an older release running; the rename is
+        reported once per name through a ``DeprecationWarning``.
+        """
+        for section in ("dataset", "model", "method"):
+            block = self._cfg.get(section)
+            if isinstance(block, dict) and isinstance(block.get("name"), str):
+                block["name"] = resolve_name(section, block["name"])
+        for section in ("preprocess", "evaluation"):
+            for item in self._cfg.get(section, []):
+                if isinstance(item, dict) and isinstance(item.get("name"), str):
+                    item["name"] = resolve_name(section, item["name"])
 
     def _propagate_seed(self) -> None:
         """Fill in a per-component ``seed`` from the top-level ``seed``.
@@ -208,41 +225,49 @@ class Experiment:
         for cfg in self._cfg.get("evaluation", []):
             item_cfg = deepcopy(cfg)
             name = item_cfg.pop("name")
-            uses_default_refset = False
-            if name == "knn" and "refset" not in item_cfg:
-                item_cfg["refset"] = self._raw_dataset
-                uses_default_refset = True
+            if "refset" in item_cfg:
+                warnings.warn(
+                    "The 'refset' option was renamed to 'ref_set'; the old name "
+                    "still works but will be removed.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                item_cfg.setdefault("ref_set", item_cfg.pop("refset"))
+            uses_default_ref_set = False
+            if name == "knn" and "ref_set" not in item_cfg:
+                item_cfg["ref_set"] = self._raw_dataset
+                uses_default_ref_set = True
 
             evaluation_object = registry[name](**item_cfg)
-            if uses_default_refset:
-                setattr(evaluation_object, "_default_refset", True)
+            if uses_default_ref_set:
+                setattr(evaluation_object, "_default_ref_set", True)
             evaluation_objects.append(evaluation_object)
         return evaluation_objects
 
-    def _bind_evaluation_context(self, trainset) -> None:
+    def _bind_evaluation_context(self, train_set) -> None:
         for evaluation_step in self._evaluation:
-            if not getattr(evaluation_step, "_default_refset", False):
+            if not getattr(evaluation_step, "_default_ref_set", False):
                 continue
-            if not hasattr(evaluation_step, "set_refset"):
+            if not hasattr(evaluation_step, "set_ref_set"):
                 continue
-            evaluation_step.set_refset(trainset)
+            evaluation_step.set_ref_set(train_set)
 
     def _resolve_train_test(self, datasets: list):
-        trainsets = [
-            dataset for dataset in datasets if getattr(dataset, "trainset", False)
+        train_sets = [
+            dataset for dataset in datasets if getattr(dataset, "train_set", False)
         ]
-        testsets = [
-            dataset for dataset in datasets if getattr(dataset, "testset", False)
+        test_sets = [
+            dataset for dataset in datasets if getattr(dataset, "test_set", False)
         ]
 
-        if len(trainsets) > 1 or len(testsets) > 1:
+        if len(train_sets) > 1 or len(test_sets) > 1:
             self._fatal(
-                "Experiment currently expects at most one trainset and one testset"
+                "Experiment currently expects at most one train_set and one test_set"
             )
 
-        if trainsets and testsets:
-            self._bind_evaluation_context(trainsets[0])
-            return trainsets[0], testsets[0]
+        if train_sets and test_sets:
+            self._bind_evaluation_context(train_sets[0])
+            return train_sets[0], test_sets[0]
         if len(datasets) == 1:
             self._logger.warning(
                 "No split preprocess found; using the same frozen dataset for train and test"
@@ -259,7 +284,7 @@ class Experiment:
         fitting, counterfactual generation, and all evaluations. The trained
         model, fitted method, resolved datasets, and counterfactuals are kept
         for inspection via :meth:`target_model`, :meth:`recourse_method`,
-        :meth:`trainset`, :meth:`testset`, and :meth:`counterfactuals`.
+        :meth:`train_set`, :meth:`test_set`, and :meth:`counterfactuals`.
 
         Returns
         -------
@@ -285,23 +310,23 @@ class Experiment:
                 "Completed preprocess: %s", preprocess_step.__class__.__name__
             )
 
-        trainset, testset = self._resolve_train_test(datasets)
-        self._trainset = trainset
-        self._testset = testset
+        train_set, test_set = self._resolve_train_test(datasets)
+        self._train_set = train_set
+        self._test_set = test_set
 
         self._logger.info(
             "Training target model: %s", self._target_model.__class__.__name__
         )
-        self._target_model.fit(trainset)
+        self._target_model.fit(train_set)
         self._logger.info("Completed target model training")
 
         self._logger.info(
             "Training recourse method: %s", self._method.__class__.__name__
         )
-        self._method.fit(trainset)
+        self._method.fit(train_set)
         self._logger.info("Completed recourse method training")
 
-        factuals = testset
+        factuals = test_set
 
         self._logger.info("Generating counterfactuals")
         counterfactuals = self._method.predict(factuals)
@@ -367,13 +392,33 @@ class Experiment:
         """Return the (fitted, after :meth:`run`) recourse MethodObject."""
         return self._method
 
-    def trainset(self):
+    def train_set(self):
         """Return the finalized training DatasetObject (available after :meth:`run`)."""
-        return self._trainset
+        return self._train_set
+
+    def test_set(self):
+        """Return the finalized test/factual DatasetObject (available after :meth:`run`)."""
+        return self._test_set
+
+    def trainset(self):
+        """Deprecated alias for :meth:`train_set`."""
+        warnings.warn(
+            "Experiment.trainset() was renamed to Experiment.train_set(); the old "
+            "name still works but will be removed.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.train_set()
 
     def testset(self):
-        """Return the finalized test/factual DatasetObject (available after :meth:`run`)."""
-        return self._testset
+        """Deprecated alias for :meth:`test_set`."""
+        warnings.warn(
+            "Experiment.testset() was renamed to Experiment.test_set(); the old "
+            "name still works but will be removed.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.test_set()
 
     def counterfactuals(self):
         """Return the counterfactual DatasetObject produced by :meth:`run`."""

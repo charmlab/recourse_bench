@@ -152,10 +152,10 @@ class CfvaeAdultBlackBoxModel(ModelObject):
         self._model = _load_blackbox_network(self._pretrained_path, self._device)
         self._is_trained = True
 
-    def fit(self, trainset):
-        if trainset is None:
-            raise ValueError("trainset is required for CfvaeAdultBlackBoxModel.fit()")
-        feature_count = trainset.get(target=False).shape[1]
+    def fit(self, train_set):
+        if train_set is None:
+            raise ValueError("train_set is required for CfvaeAdultBlackBoxModel.fit()")
+        feature_count = train_set.get(target=False).shape[1]
         if feature_count != 29:
             raise ValueError(
                 "CfvaeAdultBlackBoxModel expects 29 encoded features, "

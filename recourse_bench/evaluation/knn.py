@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 import pandas as pd
 import torch
 
@@ -20,28 +22,36 @@ from recourse_bench.utils.registry import register
 class KnnEvaluation(EvaluationObject):
     def __init__(
         self,
-        refset: DatasetObject,
+        ref_set: DatasetObject | None = None,
         k: int = 5,
         restore_categorical: bool | str = False,
         restore_numerical: bool | str = False,
         **kwargs,
     ):
-        if refset is None:
-            raise ValueError("refset must not be None")
+        if ref_set is None and "refset" in kwargs:
+            warnings.warn(
+                "The 'refset' argument was renamed to 'ref_set'; the old name "
+                "still works but will be removed.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            ref_set = kwargs.pop("refset")
+        if ref_set is None:
+            raise ValueError("ref_set must not be None")
         if int(k) < 1:
             raise ValueError("k must be >= 1")
 
-        self._refset = refset
+        self._ref_set = ref_set
         self._k = int(k)
         (
             self._binarize_categorical,
             self._restore_mode,
         ) = resolve_restore_mode(restore_categorical, restore_numerical)
 
-    def set_refset(self, refset: DatasetObject) -> None:
-        if refset is None:
-            raise ValueError("refset must not be None")
-        self._refset = refset
+    def set_ref_set(self, ref_set: DatasetObject) -> None:
+        if ref_set is None:
+            raise ValueError("ref_set must not be None")
+        self._ref_set = ref_set
 
     def evaluate(
         self, factuals: DatasetObject, counterfactuals: DatasetObject
@@ -58,13 +68,13 @@ class KnnEvaluation(EvaluationObject):
         if selected_mask.sum() == 0:
             return pd.DataFrame([{result_column: float("nan")}])
 
-        ref_df = resolve_ref_df(self._refset)
-        ref_features = ref_df.loc[:, ref_df.columns != self._refset.target_column]
+        ref_df = resolve_ref_df(self._ref_set)
+        ref_features = ref_df.loc[:, ref_df.columns != self._ref_set.target_column]
         if ref_features.shape[0] == 0:
-            raise ValueError("refset must contain at least one row")
+            raise ValueError("ref_set must contain at least one row")
         if list(ref_features.columns) != list(counterfactual_features.columns):
             raise ValueError(
-                "refset features must match counterfactual feature columns"
+                "ref_set features must match counterfactual feature columns"
             )
 
         counterfactual_success = counterfactual_features.loc[selected_mask.to_numpy()]
@@ -75,7 +85,7 @@ class KnnEvaluation(EvaluationObject):
             )
             counterfactuals_clone.freeze()
             ref_features, counterfactual_features = restore_features(
-                self._refset, counterfactuals_clone, mode=self._restore_mode
+                self._ref_set, counterfactuals_clone, mode=self._restore_mode
             )
             counterfactual_success = counterfactual_features.loc[
                 selected_mask.to_numpy()

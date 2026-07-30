@@ -13,12 +13,13 @@ import torch
 import yaml
 
 from recourse_bench.experiments import Experiment
+from recourse_bench.utils.caching import default_cache_dir
 
 # Bundled config tree, resolved relative to the installed package.
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_ROOT = PACKAGE_ROOT / "benchmark" / "configs"
 DEFAULT_SUITE_PATH = CONFIG_ROOT / "suites" / "default.yaml"
-CPU_ONLY_MODELS = {"randomforest", "sklearn_logistic_regression"}
+CPU_ONLY_MODELS = {"random_forest", "sklearn_logistic_regression"}
 RESERVED_SUITE_KEYS = {"base_config", "datasets", "methods", "models", "name", "output_csv"}
 DEFAULT_PREDICTION_BATCH_SIZE = 512
 DEFAULT_METHOD_BATCH_SIZE = 20
@@ -250,7 +251,8 @@ def _apply_model_cache_config(run_cfg: dict) -> None:
 
     model_name = str(run_cfg["model"]["name"])
     extension = SUPPORTED_MODEL_CACHE_EXTENSIONS[model_name]
-    cache_root = Path(run_cfg.get("caching", {}).get("path", "./cache/")) / "models"
+    cache_path = run_cfg.get("caching", {}).get("path") or default_cache_dir()
+    cache_root = Path(cache_path) / "models"
 
     run_cfg["model"]["save_name"] = save_name
     run_cfg["model"]["pretrained_path"] = (
@@ -371,8 +373,8 @@ def _plan_runs(
     return planned_runs, output_path
 
 
-def _resolve_eligible_indices(testset, target_model, benchmark_cfg: dict) -> pd.Index:
-    feature_df = testset.get(target=False)
+def _resolve_eligible_indices(test_set, target_model, benchmark_cfg: dict) -> pd.Index:
+    feature_df = test_set.get(target=False)
     factual_filter = str(benchmark_cfg["factual_filter"]).lower()
     if factual_filter == "all_test":
         return pd.Index(feature_df.index)
@@ -387,7 +389,7 @@ def _resolve_eligible_indices(testset, target_model, benchmark_cfg: dict) -> pd.
 
     prediction_batch_size = int(benchmark_cfg["prediction_batch_size"])
     predictions = (
-        target_model.predict(testset, batch_size=prediction_batch_size)
+        target_model.predict(test_set, batch_size=prediction_batch_size)
         .argmax(dim=1)
         .detach()
         .cpu()
@@ -397,8 +399,8 @@ def _resolve_eligible_indices(testset, target_model, benchmark_cfg: dict) -> pd.
     return pd.Index(feature_df.index[predictions != desired_index])
 
 
-def _sample_factuals(testset, target_model, benchmark_cfg: dict) -> tuple[object | None, dict]:
-    eligible_indices = _resolve_eligible_indices(testset, target_model, benchmark_cfg)
+def _sample_factuals(test_set, target_model, benchmark_cfg: dict) -> tuple[object | None, dict]:
+    eligible_indices = _resolve_eligible_indices(test_set, target_model, benchmark_cfg)
     eligible_count = int(eligible_indices.shape[0])
     sample_target = int(benchmark_cfg["sample_target"])
     min_factuals = int(benchmark_cfg["min_factuals"])
@@ -419,7 +421,7 @@ def _sample_factuals(testset, target_model, benchmark_cfg: dict) -> tuple[object
         metadata["actual_factual_count"] = 0
         return None, metadata
 
-    feature_df = testset.get(target=False).loc[eligible_indices]
+    feature_df = test_set.get(target=False).loc[eligible_indices]
     if sampled_count < eligible_count:
         sampled_features = feature_df.sample(
             n=sampled_count,
@@ -429,7 +431,7 @@ def _sample_factuals(testset, target_model, benchmark_cfg: dict) -> tuple[object
     else:
         sampled_indices = pd.Index(feature_df.index)
 
-    sampled_dataset = _subset_dataset(testset, sampled_indices)
+    sampled_dataset = _subset_dataset(test_set, sampled_indices)
     return sampled_dataset, metadata
 
 
@@ -541,8 +543,8 @@ def _execute_run(run_id: str, config: dict) -> list[dict[str, object]]:
         logger = experiment._logger
         logger.info("Starting benchmark run: %s", run_id)
 
-        trainset, testset = _materialize_train_test(experiment)
-        logger.info("Resolved train/test sizes: %d / %d", len(trainset), len(testset))
+        train_set, test_set = _materialize_train_test(experiment)
+        logger.info("Resolved train/test sizes: %d / %d", len(train_set), len(test_set))
 
         model_pretrained_path = experiment.get_config()["model"].get("pretrained_path")
         if model_pretrained_path:
@@ -552,11 +554,11 @@ def _execute_run(run_id: str, config: dict) -> list[dict[str, object]]:
             else:
                 logger.info("Target model cache miss; will train and save to %s", model_cache_path)
 
-        experiment._target_model.fit(trainset)
-        experiment._method.fit(trainset)
+        experiment._target_model.fit(train_set)
+        experiment._method.fit(train_set)
 
         factuals, sampling_metadata = _sample_factuals(
-            testset,
+            test_set,
             experiment._target_model,
             config["benchmark"],
         )

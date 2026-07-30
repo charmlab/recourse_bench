@@ -64,11 +64,11 @@ def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
     return experiment._resolve_train_test(datasets)
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
+def _compute_model_metrics(model, test_set) -> dict[str, float]:
+    probabilities = model.predict_proba(test_set).detach().cpu()
     prediction = probabilities.argmax(dim=1)
 
-    y = testset.get(target=True).iloc[:, 0].astype(int)
+    y = test_set.get(target=True).iloc[:, 0].astype(int)
     class_to_index = model.get_class_to_index()
     encoded_target = torch.tensor(
         [class_to_index[int(value)] for value in y.tolist()],
@@ -93,22 +93,22 @@ def _build_frozen_dataset(template, df: pd.DataFrame, marker: str):
     return dataset
 
 
-def _limit_factuals(testset, limit: int | None):
+def _limit_factuals(test_set, limit: int | None):
     if limit is None:
-        return testset
+        return test_set
     if limit < 1:
         raise ValueError("factual limit must be >= 1")
 
-    combined = pd.concat([testset.get(target=False), testset.get(target=True)], axis=1)
+    combined = pd.concat([test_set.get(target=False), test_set.get(target=True)], axis=1)
     if limit > combined.shape[0]:
         raise ValueError("factual limit exceeds available test rows")
     sampled = combined.sample(n=limit, random_state=SEED).copy(deep=True)
-    return _build_frozen_dataset(testset, sampled, "selected_for_gs")
+    return _build_frozen_dataset(test_set, sampled, "selected_for_gs")
 
 
-def _select_best_n_estimators(trainset, logger) -> int:
-    X = trainset.get(target=False)
-    y = trainset.get(target=True).iloc[:, 0].astype(int)
+def _select_best_n_estimators(train_set, logger) -> int:
+    X = train_set.get(target=False)
+    y = train_set.get(target=True).iloc[:, 0].astype(int)
     splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
 
     best_score = -math.inf
@@ -237,16 +237,16 @@ def run_reproduction(
     experiment = Experiment(final_config)
     logger = experiment._logger
 
-    trainset, testset = _materialize_datasets(experiment)
+    train_set, test_set = _materialize_datasets(experiment)
     logger.info("Training target model")
-    experiment._target_model.fit(trainset)
-    model_metrics = _compute_model_metrics(experiment._target_model, testset)
+    experiment._target_model.fit(train_set)
+    model_metrics = _compute_model_metrics(experiment._target_model, test_set)
     logger.info("Test accuracy: %.4f", model_metrics["test_accuracy"])
     logger.info("Test AUC: %.4f", model_metrics["test_auc"])
 
-    factuals = _limit_factuals(testset, factual_limit)
+    factuals = _limit_factuals(test_set, factual_limit)
     logger.info("Training GS")
-    experiment._method.fit(trainset)
+    experiment._method.fit(train_set)
 
     logger.info("Generating counterfactuals for %s factual rows", len(factuals))
     start_time = perf_counter()

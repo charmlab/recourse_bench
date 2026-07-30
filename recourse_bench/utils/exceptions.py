@@ -13,3 +13,13 @@ class RecourseBenchError(Exception):
 
 class ConfigError(RecourseBenchError):
     """Raised when an experiment configuration is missing or invalid."""
+
+
+class MissingDependencyError(RecourseBenchError):
+    """Raised when a component needs a package from an uninstalled extra.
+
+    Methods backed by a heavy or separately licensed solver keep their
+    third-party import optional: the method stays registered and discoverable,
+    and this is raised only when one is actually constructed. See
+    :mod:`recourse_bench.utils.dependencies`.
+    """

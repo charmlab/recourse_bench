@@ -48,25 +48,25 @@ class ToyMethod(MethodObject):
         if not self._target_model._need_grad:
             raise ValueError("ToyMethod requires a gradient-enabled target model")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ToyMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ToyMethod.fit()")
 
         with seed_context(self._seed):
-            features = trainset.get(target=False)
-            if hasattr(trainset, "encoded_feature_type"):
-                feature_type = deepcopy(trainset.attr("encoded_feature_type"))
+            features = train_set.get(target=False)
+            if hasattr(train_set, "encoded_feature_type"):
+                feature_type = deepcopy(train_set.attr("encoded_feature_type"))
                 feature_mutability = deepcopy(
-                    trainset.attr("encoded_feature_mutability")
+                    train_set.attr("encoded_feature_mutability")
                 )
                 feature_actionability = deepcopy(
-                    trainset.attr("encoded_feature_actionability")
+                    train_set.attr("encoded_feature_actionability")
                 )
             else:
-                feature_type = deepcopy(trainset.attr("raw_feature_type"))
-                feature_mutability = deepcopy(trainset.attr("raw_feature_mutability"))
+                feature_type = deepcopy(train_set.attr("raw_feature_type"))
+                feature_mutability = deepcopy(train_set.attr("raw_feature_mutability"))
                 feature_actionability = deepcopy(
-                    trainset.attr("raw_feature_actionability")
+                    train_set.attr("raw_feature_actionability")
                 )
 
             self._feature_names = list(features.columns)
@@ -92,7 +92,7 @@ class ToyMethod(MethodObject):
                     "ToyMethod could not find any mutable numerical features"
                 )
 
-            output = self._target_model.predict(trainset)
+            output = self._target_model.predict(train_set)
             if output.shape[1] < 2:
                 raise ValueError(
                     "ToyMethod requires a target model with at least two classes"

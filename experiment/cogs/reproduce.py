@@ -34,7 +34,7 @@ def _load_config(config_path: Path) -> dict:
 def _apply_device(config: dict, device: str) -> dict:
     cfg = deepcopy(config)
     model_name = str(cfg["model"]["name"]).lower()
-    resolved_device = "cpu" if model_name == "randomforest" else device
+    resolved_device = "cpu" if model_name == "random_forest" else device
     cfg["model"]["device"] = resolved_device
     cfg["method"]["device"] = resolved_device
     return cfg
@@ -59,11 +59,11 @@ def _reference_style_split(dataset, split_preprocess) -> tuple[object, object]:
         test_df = test_df.copy(deep=True)
     train_df = train_df.copy(deep=True)
 
-    trainset = dataset
-    testset = dataset.clone()
-    trainset.update("trainset", True, df=train_df)
-    testset.update("testset", True, df=test_df)
-    return trainset, testset
+    train_set = dataset
+    test_set = dataset.clone()
+    train_set.update("train_set", True, df=train_df)
+    test_set.update("test_set", True, df=test_df)
+    return train_set, test_set
 
 
 def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
@@ -83,11 +83,11 @@ def _materialize_datasets(experiment: Experiment) -> tuple[object, object]:
     return experiment._resolve_train_test(datasets)
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    probabilities = model.predict_proba(testset).detach().cpu()
+def _compute_model_metrics(model, test_set) -> dict[str, float]:
+    probabilities = model.predict_proba(test_set).detach().cpu()
     predictions = probabilities.argmax(dim=1)
 
-    target = testset.get(target=True).iloc[:, 0]
+    target = test_set.get(target=True).iloc[:, 0]
     class_to_index = model.get_class_to_index()
     encoded_target = torch.tensor(
         [class_to_index[int(value)] for value in target.astype(int).tolist()],
@@ -96,7 +96,7 @@ def _compute_model_metrics(model, testset) -> dict[str, float]:
     accuracy = float((predictions == encoded_target).to(dtype=torch.float32).mean())
     return {
         "test_accuracy": accuracy,
-        "num_test_rows": int(len(testset)),
+        "num_test_rows": int(len(test_set)),
     }
 
 
@@ -106,22 +106,22 @@ def _build_subset_dataset(dataset, index: pd.Index) -> object:
     combined = pd.concat([dataset.get(target=False), dataset.get(target=True)], axis=1)
     filtered = combined.loc[index].copy(deep=True)
     filtered = filtered.loc[:, [*dataset.get(target=False).columns, target_column]]
-    subset.update("testset", True, df=filtered)
+    subset.update("test_set", True, df=filtered)
     subset.freeze()
     return subset
 
 
 def _select_factuals(
     model,
-    testset,
+    test_set,
     desired_class: int | str,
     sample_seed: int,
     num_factuals: int | None,
 ):
     class_to_index = model.get_class_to_index()
     desired_index = int(class_to_index[desired_class])
-    predictions = model.predict(testset).argmax(dim=1).detach().cpu().numpy()
-    features = testset.get(target=False)
+    predictions = model.predict(test_set).argmax(dim=1).detach().cpu().numpy()
+    features = test_set.get(target=False)
 
     candidate_mask = predictions != desired_index
     candidate_index = features.index[candidate_mask]
@@ -138,7 +138,7 @@ def _select_factuals(
             len(candidate_index), size=sample_size, replace=False
         )
         sampled_index = candidate_index[np.sort(sampled_positions)]
-    factuals = _build_subset_dataset(testset, sampled_index)
+    factuals = _build_subset_dataset(test_set, sampled_index)
     return factuals, {
         "candidate_pool_size": int(len(candidate_index)),
         "sampled_factuals": int(sample_size),
@@ -226,14 +226,14 @@ def _search_best_counterfactual(
     return best_cf, best_runtime
 
 
-def _fit_reproduction_random_forest(experiment: Experiment, trainset, reproduction_cfg: dict):
+def _fit_reproduction_random_forest(experiment: Experiment, train_set, reproduction_cfg: dict):
     search_cfg = deepcopy(reproduction_cfg.get("rf_search", {}))
     if not bool(search_cfg.get("enabled", False)):
-        experiment._target_model.fit(trainset)
+        experiment._target_model.fit(train_set)
         return experiment._target_model, None
 
-    features = trainset.get(target=False).to_numpy(dtype=np.float64)
-    target_series = trainset.get(target=True).iloc[:, 0].astype(int)
+    features = train_set.get(target=False).to_numpy(dtype=np.float64)
+    target_series = train_set.get(target=True).iloc[:, 0].astype(int)
     labels = target_series.to_numpy(dtype=np.int64)
     seed = int(experiment._cfg["model"].get("seed", 0))
     cv_folds = int(search_cfg.get("cv_folds", 5))
@@ -263,7 +263,7 @@ def _fit_reproduction_random_forest(experiment: Experiment, trainset, reproducti
     model_cfg["max_features"] = gcv.best_params_["max_features"]
     model_class = get_registry("model")[model_name]
     searched_model = model_class(**model_cfg)
-    searched_model.fit(trainset)
+    searched_model.fit(train_set)
     return searched_model, {
         "best_params": dict(gcv.best_params_),
         "best_cv_score": float(gcv.best_score_),
@@ -284,21 +284,21 @@ def main() -> None:
     config = _apply_device(_load_config(config_path), device)
 
     experiment = Experiment(config)
-    trainset, testset = _materialize_datasets(experiment)
+    train_set, test_set = _materialize_datasets(experiment)
 
     reproduction_cfg = deepcopy(config["reproduction"])
     target_model, rf_search_summary = _fit_reproduction_random_forest(
         experiment,
-        trainset,
+        train_set,
         reproduction_cfg,
     )
-    model_metrics = _compute_model_metrics(target_model, testset)
+    model_metrics = _compute_model_metrics(target_model, test_set)
 
     num_factuals = int(args.max_factuals) if args.max_factuals is not None else None
     desired_class = reproduction_cfg["desired_class"]
     factuals, factual_summary = _select_factuals(
         target_model,
-        testset,
+        test_set,
         desired_class=desired_class,
         sample_seed=int(reproduction_cfg["sample_seed"]),
         num_factuals=num_factuals,
@@ -308,7 +308,7 @@ def main() -> None:
     method_name = method_cfg.pop("name")
     method_class = get_registry("method")[method_name]
     method = method_class(target_model=target_model, **method_cfg)
-    method.fit(trainset)
+    method.fit(train_set)
 
     factual_features = factuals.get(target=False)
     n_reps = int(reproduction_cfg.get("n_reps", 1))
@@ -345,7 +345,7 @@ def main() -> None:
 
     print("CoGS Adult Reproduction")
     print(f"device: {device}")
-    print(f"train_rows: {len(trainset)}")
+    print(f"train_rows: {len(train_set)}")
     print(f"test_rows: {model_metrics['num_test_rows']}")
     print(f"test_accuracy: {model_metrics['test_accuracy']:.4f}")
     if rf_search_summary is not None:

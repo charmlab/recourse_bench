@@ -241,9 +241,9 @@ class CfrlMethod(MethodObject):
         self._encoder.eval()
         self._decoder.eval()
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for CfrlMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for CfrlMethod.fit()")
         if not getattr(self._target_model, "_is_trained", False):
             raise RuntimeError("Target model must be trained before CfrlMethod.fit()")
         if not self._train_enabled:
@@ -254,12 +254,12 @@ class CfrlMethod(MethodObject):
         with seed_context(self._seed):
             set_seed(self._seed if self._seed is not None else 13)
 
-            feature_df = trainset.get(target=False).copy(deep=True)
+            feature_df = train_set.get(target=False).copy(deep=True)
             if feature_df.isna().any(axis=None):
                 raise ValueError("CfrlMethod.fit() does not support NaN values")
 
             self._feature_columns = list(feature_df.columns)
-            self._schema = build_cfrl_schema(trainset)
+            self._schema = build_cfrl_schema(train_set)
             self._feature_names = list(self._schema.feature_names)
 
             X_zero = frame_to_cfrl_array(feature_df, self._schema).astype(np.float32)
@@ -407,17 +407,17 @@ class CfrlMethod(MethodObject):
             _, _, validated = self._generate_counterfactual_batch(factuals)
         return validated.reindex(index=factuals.index, columns=self._feature_columns)
 
-    def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
+    def predict(self, test_set: DatasetObject, batch_size: int = 20) -> DatasetObject:
         if not self._store_reproduction_artifacts:
-            return super().predict(testset, batch_size=batch_size)
+            return super().predict(test_set, batch_size=batch_size)
 
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
-        if getattr(testset, "counterfactual", False):
-            raise ValueError("testset must not already be marked as counterfactual")
+        if getattr(test_set, "counterfactual", False):
+            raise ValueError("test_set must not already be marked as counterfactual")
 
         factuals = (
-            testset.get(target=False).loc[:, self._feature_columns].copy(deep=True)
+            test_set.get(target=False).loc[:, self._feature_columns].copy(deep=True)
         )
         with seed_context(self._seed):
             set_seed(self._seed if self._seed is not None else 13)
@@ -425,7 +425,7 @@ class CfrlMethod(MethodObject):
                 self._generate_counterfactual_batch(factuals)
             )
 
-        target_column = testset.target_column
+        target_column = test_set.target_column
         counterfactual_target = pd.DataFrame(
             -1.0,
             index=validated.index,
@@ -433,15 +433,15 @@ class CfrlMethod(MethodObject):
         )
         counterfactual_df = pd.concat([validated, counterfactual_target], axis=1)
         counterfactual_df = counterfactual_df.reindex(
-            columns=testset.ordered_features()
+            columns=test_set.ordered_features()
         )
 
-        output = testset.clone()
+        output = test_set.clone()
         output.update("counterfactual", True, df=counterfactual_df)
 
         if self._desired_class is not None:
             class_to_index = self._target_model.get_class_to_index()
-            prediction = self._target_model.predict(testset, batch_size=batch_size)
+            prediction = self._target_model.predict(test_set, batch_size=batch_size)
             predicted_label = prediction.argmax(dim=1).cpu().numpy()
             evaluation_filter = pd.DataFrame(
                 predicted_label != class_to_index[self._desired_class],

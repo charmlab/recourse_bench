@@ -31,7 +31,7 @@ def list_datasets() -> list[str]:
     return sorted(get_registry("dataset"))
 
 
-def list_preprocess() -> list[str]:
+def list_preprocessors() -> list[str]:
     """Return the names of all registered preprocessing steps."""
     return sorted(get_registry("preprocess"))
 

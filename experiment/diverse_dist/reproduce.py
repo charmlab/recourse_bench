@@ -92,8 +92,8 @@ def _split_dataset(dataset_obj, split_seed: int, test_size: float):
     test_df = test_df.reset_index(drop=True)
 
     return (
-        _clone_with_df(dataset_obj, train_df, "trainset"),
-        _clone_with_df(dataset_obj, test_df, "testset"),
+        _clone_with_df(dataset_obj, train_df, "train_set"),
+        _clone_with_df(dataset_obj, test_df, "test_set"),
     )
 
 
@@ -234,8 +234,8 @@ def _load_target_metrics(config: dict) -> dict[Condition, dict[str, float]]:
 
 def _evaluate_condition(
     config: dict,
-    trainset,
-    testset,
+    train_set,
+    test_set,
     model_obj,
     feature_names: list[str],
     train_min: np.ndarray,
@@ -247,7 +247,7 @@ def _evaluate_condition(
     method_config["norm"] = int(condition.norm)
     method_config["opt"] = bool(condition.opt)
     method_obj = _build_object("method", method_config, target_model=model_obj)
-    method_obj.fit(trainset)
+    method_obj.fit(train_set)
 
     adapter = DiverseDistModelAdapter(model_obj, feature_names)
     reproduction_config = config["reproduction"]
@@ -258,7 +258,7 @@ def _evaluate_condition(
     noise_seed = int(reproduction_config["noise_seed"])
     show_progress = bool(reproduction_config.get("show_progress", True))
 
-    test_features = testset.get(target=False).reset_index(drop=True)
+    test_features = test_set.get(target=False).reset_index(drop=True)
     selected = test_features.iloc[start_index : start_index + num_inputs].copy(deep=True)
     rng = np.random.RandomState(noise_seed)
 
@@ -469,23 +469,23 @@ def main() -> None:
     )
 
     dataset_obj = _materialize_dataset(config)
-    trainset, testset = _split_dataset(
+    train_set, test_set = _split_dataset(
         dataset_obj,
         split_seed=int(config["reproduction"]["split_seed"]),
         test_size=float(config["reproduction"]["test_size"]),
     )
     model_obj = _build_object("model", config["model"])
-    model_obj.fit(trainset)
+    model_obj.fit(train_set)
 
-    train_features = trainset.get(target=False)
+    train_features = train_set.get(target=False)
     train_array = train_features.to_numpy(dtype=np.float32)
     train_min = train_array.min(axis=0)
     train_max = train_array.max(axis=0)
     feature_names = list(train_features.columns)
 
     adapter = DiverseDistModelAdapter(model_obj, feature_names)
-    test_features = testset.get(target=False)
-    test_targets = testset.get(target=True).iloc[:, 0].to_numpy(dtype=np.int64)
+    test_features = test_set.get(target=False)
+    test_targets = test_set.get(target=True).iloc[:, 0].to_numpy(dtype=np.int64)
     test_predictions = adapter.predict_label_indices(test_features)
     test_accuracy = float(np.mean(test_predictions == test_targets))
 
@@ -508,8 +508,8 @@ def main() -> None:
             )
             observed_results[condition] = _evaluate_condition(
                 config=config,
-                trainset=trainset,
-                testset=testset,
+                train_set=train_set,
+                test_set=test_set,
                 model_obj=model_obj,
                 feature_names=feature_names,
                 train_min=train_min,

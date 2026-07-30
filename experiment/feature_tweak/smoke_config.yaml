@@ -23,7 +23,7 @@ preprocess:
     split: 0.3
     sample: 16
 model:
-  name: randomforest
+  name: random_forest
   seed: 54321
   device: cpu
   n_estimators: 5

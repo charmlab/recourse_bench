@@ -1,5 +1,5 @@
 dataset:
-  name: toydata
+  name: toy_data
   path: ./dataset/toydata/
 
 preprocess:

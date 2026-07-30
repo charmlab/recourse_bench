@@ -5,16 +5,20 @@ import pandas as pd
 
 from recourse_bench.dataset.dataset_object import DatasetObject
 from recourse_bench.method.method_object import MethodObject
-from recourse_bench.method.sns.support import (
-    TorchModelTypes,
-    build_art_classifier,
-    ensure_supported_target_model,
-    min_l2_search,
-    resolve_feature_groups,
-    resolve_target_indices,
-    sns_search,
-    validate_counterfactuals,
-)
+from recourse_bench.utils.dependencies import optional_dependency
+
+with optional_dependency("sns", "art") as _art:
+    from recourse_bench.method.sns.support import (
+        TorchModelTypes,
+        build_art_classifier,
+        ensure_supported_target_model,
+        min_l2_search,
+        resolve_feature_groups,
+        resolve_target_indices,
+        sns_search,
+        validate_counterfactuals,
+    )
+
 from recourse_bench.model.model_object import ModelObject
 from recourse_bench.utils.registry import register
 from recourse_bench.utils.seed import seed_context
@@ -42,6 +46,7 @@ class SnsMethod(MethodObject):
         n_interpolations: int = 10,
         **kwargs,
     ):
+        _art.require()
         ensure_supported_target_model(target_model, TorchModelTypes, "SnsMethod")
         self._target_model = target_model
         self._seed = seed
@@ -90,13 +95,13 @@ class SnsMethod(MethodObject):
         if self._n_interpolations < 1:
             raise ValueError("n_interpolations must be >= 1")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for SnsMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for SnsMethod.fit()")
         with seed_context(self._seed):
-            feature_groups = resolve_feature_groups(trainset)
+            feature_groups = resolve_feature_groups(train_set)
             self._feature_names = list(feature_groups.feature_names)
-            features = trainset.get(target=False).loc[:, self._feature_names].copy(deep=True)
+            features = train_set.get(target=False).loc[:, self._feature_names].copy(deep=True)
             try:
                 train_array = features.to_numpy(dtype=np.float64)
             except ValueError as error:

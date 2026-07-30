@@ -119,12 +119,12 @@ class ProbeMethod(MethodObject):
 
         raise ValueError("y_target must contain one or two numeric values")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ProbeMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ProbeMethod.fit()")
 
         with seed_context(self._seed):
-            features = trainset.get(target=False)
+            features = train_set.get(target=False)
             try:
                 feature_array = features.to_numpy(dtype="float32")
             except ValueError as error:
@@ -163,11 +163,11 @@ class ProbeMethod(MethodObject):
                 )
 
             try:
-                encoding_map = trainset.attr("encoding")
+                encoding_map = train_set.attr("encoding")
             except AttributeError:
                 encoding_map = None
 
-            feature_type, _, _ = resolve_feature_metadata(trainset)
+            feature_type, _, _ = resolve_feature_metadata(train_set)
             self._feature_names = list(features.columns)
             self._categorical_groups = infer_categorical_groups(
                 self._feature_names,

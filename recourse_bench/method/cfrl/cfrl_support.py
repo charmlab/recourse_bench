@@ -94,27 +94,27 @@ class CfrlSchema:
         raise KeyError(f"Unknown CFRL feature alias: {name}")
 
 
-def build_cfrl_schema(trainset: DatasetObject) -> CfrlSchema:
-    feature_df = trainset.get(target=False)
+def build_cfrl_schema(train_set: DatasetObject) -> CfrlSchema:
+    feature_df = train_set.get(target=False)
     output_columns = list(feature_df.columns)
-    raw_feature_type = trainset.attr("raw_feature_type")
-    raw_feature_mutability = trainset.attr("raw_feature_mutability")
-    raw_feature_actionability = trainset.attr("raw_feature_actionability")
+    raw_feature_type = train_set.attr("raw_feature_type")
+    raw_feature_mutability = train_set.attr("raw_feature_mutability")
+    raw_feature_actionability = train_set.attr("raw_feature_actionability")
     category_values_map = (
-        trainset.attr("cfrl_category_values")
-        if dataset_has_attr(trainset, "cfrl_category_values")
+        train_set.attr("cfrl_category_values")
+        if dataset_has_attr(train_set, "cfrl_category_values")
         else {}
     )
     encoding_map = (
-        trainset.attr("encoding") if dataset_has_attr(trainset, "encoding") else {}
+        train_set.attr("encoding") if dataset_has_attr(train_set, "encoding") else {}
     )
     encoded_value_mapping = (
-        trainset.attr("encoded_value_mapping")
-        if dataset_has_attr(trainset, "encoded_value_mapping")
+        train_set.attr("encoded_value_mapping")
+        if dataset_has_attr(train_set, "encoded_value_mapping")
         else {}
     )
     scaling_map = (
-        trainset.attr("scaling") if dataset_has_attr(trainset, "scaling") else {}
+        train_set.attr("scaling") if dataset_has_attr(train_set, "scaling") else {}
     )
 
     output_to_source: dict[str, str] = {}

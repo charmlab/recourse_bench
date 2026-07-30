@@ -51,9 +51,9 @@ REFERENCE_PROPLACE_ROW = {
 class ReferenceCompasData:
     full_dataset: object
     x1_dataset: object
-    x1_trainset: object
-    x1_testset: object
-    x2_trainset: object
+    x1_train_set: object
+    x1_test_set: object
+    x2_train_set: object
     X1: pd.DataFrame
     y1: pd.DataFrame
     X1_train: pd.DataFrame
@@ -442,16 +442,16 @@ def _build_reference_splits(
     )
 
     x1_dataset = _build_dataset_clone(processed_dataset, X1, y1, "reference_x1")
-    x1_trainset = _build_dataset_clone(processed_dataset, X1_train, y1_train, "trainset")
-    x1_testset = _build_dataset_clone(processed_dataset, X1_test, y1_test, "testset")
-    x2_trainset = _build_dataset_clone(processed_dataset, X2_train, y2_train, "reference_x2_train")
+    x1_train_set = _build_dataset_clone(processed_dataset, X1_train, y1_train, "train_set")
+    x1_test_set = _build_dataset_clone(processed_dataset, X1_test, y1_test, "test_set")
+    x2_train_set = _build_dataset_clone(processed_dataset, X2_train, y2_train, "reference_x2_train")
 
     return ReferenceCompasData(
         full_dataset=processed_dataset,
         x1_dataset=x1_dataset,
-        x1_trainset=x1_trainset,
-        x1_testset=x1_testset,
-        x2_trainset=x2_trainset,
+        x1_train_set=x1_train_set,
+        x1_test_set=x1_test_set,
+        x2_train_set=x2_train_set,
         X1=X1,
         y1=y1,
         X1_train=X1_train,
@@ -473,9 +473,9 @@ def _predict_positive_probability(model, features: pd.DataFrame) -> np.ndarray:
     return probabilities[:, 1]
 
 
-def _compute_model_metrics(model, testset) -> dict[str, float]:
-    features = testset.get(target=False)
-    target = testset.get(target=True).iloc[:, 0].astype(int).to_numpy()
+def _compute_model_metrics(model, test_set) -> dict[str, float]:
+    features = test_set.get(target=False)
+    target = test_set.get(target=True).iloc[:, 0].astype(int).to_numpy()
     prediction = _predict_binary_labels(model, features)
     probability = _predict_positive_probability(model, features)
     metrics = {"test_accuracy": float(accuracy_score(target, prediction))}
@@ -505,11 +505,11 @@ def _train_retrained_models(
 
     union_X = pd.concat([data.X1_train, data.X2_train], axis=0).copy(deep=True)
     union_y = pd.concat([data.y1_train, data.y2_train], axis=0).copy(deep=True)
-    union_trainset = _build_dataset_clone(
+    union_train_set = _build_dataset_clone(
         data.full_dataset,
         union_X,
         union_y,
-        "reference_union_trainset",
+        "reference_union_train_set",
     )
 
     models = []
@@ -533,7 +533,7 @@ def _train_retrained_models(
             epochs=retrain_epochs,
             save_name=None,
         )
-        model.fit(union_trainset)
+        model.fit(union_train_set)
         models.append(model)
 
     leave_fraction = float(ensemble_cfg["leave_out_fraction"])
@@ -546,11 +546,11 @@ def _train_retrained_models(
     )
     X1_train_leave = data.X1_train.drop(drop_indices)
     y1_train_leave = data.y1_train.drop(drop_indices)
-    leave_trainset = _build_dataset_clone(
+    leave_train_set = _build_dataset_clone(
         data.full_dataset,
         X1_train_leave,
         y1_train_leave,
-        "reference_leave_out_trainset",
+        "reference_leave_out_train_set",
     )
 
     leave_count = int(ensemble_cfg["leave_out_count"])
@@ -570,7 +570,7 @@ def _train_retrained_models(
             epochs=retrain_epochs,
             save_name=None,
         )
-        model.fit(leave_trainset)
+        model.fit(leave_train_set)
         models.append(model)
 
     return models
@@ -833,8 +833,8 @@ def main() -> None:
 
     print("Training main reference model...", flush=True)
     main_model = _build_model(config)
-    main_model.fit(data.x1_trainset)
-    main_model_metrics = _compute_model_metrics(main_model, data.x1_testset)
+    main_model.fit(data.x1_train_set)
+    main_model_metrics = _compute_model_metrics(main_model, data.x1_test_set)
 
     print("Training retrained M2 ensemble...", flush=True)
     m2s = _train_retrained_models(data, config, device)

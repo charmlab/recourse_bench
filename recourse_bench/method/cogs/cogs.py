@@ -93,12 +93,12 @@ class CogsMethod(MethodObject):
         if self._fitness_name != "gower":
             raise ValueError("fitness_name must currently be 'gower'")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for CogsMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for CogsMethod.fit()")
 
         with seed_context(self._seed):
-            feature_df = trainset.get(target=False)
+            feature_df = train_set.get(target=False)
             try:
                 train_array = feature_df.to_numpy(dtype=np.float64)
             except ValueError as error:
@@ -108,9 +108,9 @@ class CogsMethod(MethodObject):
                 ) from error
 
             if np.isnan(train_array).any():
-                raise ValueError("CogsMethod does not support NaN values in trainset")
+                raise ValueError("CogsMethod does not support NaN values in train_set")
 
-            feature_groups = resolve_feature_groups(trainset)
+            feature_groups = resolve_feature_groups(train_set)
             self._feature_names = list(feature_groups.feature_names)
             self._adapter = RecourseModelAdapter(self._target_model, self._feature_names)
             self._indices_categorical_features = [

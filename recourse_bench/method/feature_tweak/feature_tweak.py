@@ -51,9 +51,9 @@ class FeatureTweakMethod(MethodObject):
         if self._eps <= 0:
             raise ValueError("eps must be > 0")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for FeatureTweakMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for FeatureTweakMethod.fit()")
         if not getattr(self._target_model, "_is_trained", False):
             raise RuntimeError("Target model must be trained before method.fit()")
 
@@ -68,7 +68,7 @@ class FeatureTweakMethod(MethodObject):
                     "desired_class is invalid for the trained target model"
                 )
 
-            train_features = trainset.get(target=False)
+            train_features = train_set.get(target=False)
             try:
                 train_features.loc[:, :].to_numpy(dtype="float64")
             except ValueError as error:
@@ -76,7 +76,7 @@ class FeatureTweakMethod(MethodObject):
                     "FeatureTweakMethod requires finalized numeric input features"
                 ) from error
 
-            self._feature_context = build_feature_tweak_context(trainset)
+            self._feature_context = build_feature_tweak_context(train_set)
             self._feature_names = list(self._feature_context.feature_names)
             self._adapter = FeatureTweakTargetModelAdapter(
                 target_model=self._target_model,

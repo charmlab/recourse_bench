@@ -164,15 +164,15 @@ class ClueMethod(MethodObject):
         self._register_checkpoint_aliases()
         self._vae.load(checkpoint_path.as_posix())
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for ClueMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for ClueMethod.fit()")
 
         with seed_context(self._seed):
-            self._feature_names = resolve_feature_names(trainset)
-            self._input_dim_vec = resolve_input_dim_vec(trainset)
+            self._feature_names = resolve_feature_names(train_set)
+            self._input_dim_vec = resolve_input_dim_vec(train_set)
 
-            train_features_df = trainset.get(target=False).loc[:, self._feature_names]
+            train_features_df = train_set.get(target=False).loc[:, self._feature_names]
             try:
                 train_features = train_features_df.to_numpy(dtype="float32")
             except ValueError as error:
@@ -180,7 +180,7 @@ class ClueMethod(MethodObject):
                     "ClueMethod requires numeric finalized features"
                 ) from error
 
-            dataset_name = getattr(trainset, "name", "dataset")
+            dataset_name = getattr(train_set, "name", "dataset")
             self._build_or_load_vae(train_features, str(dataset_name))
             self._is_trained = True
 

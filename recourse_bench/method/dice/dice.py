@@ -125,14 +125,14 @@ class DiceMethod(MethodObject):
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
 
-    def fit(self, trainset: DatasetObject | None):
-        if trainset is None:
-            raise ValueError("trainset is required for DiceMethod.fit()")
+    def fit(self, train_set: DatasetObject | None):
+        if train_set is None:
+            raise ValueError("train_set is required for DiceMethod.fit()")
 
         with seed_context(self._seed):
             ensure_binary_classifier(self._target_model, "DiceMethod")
 
-            feature_groups = resolve_feature_groups(trainset)
+            feature_groups = resolve_feature_groups(train_set)
             self._feature_names = list(feature_groups.feature_names)
             self._feature_names_tuple = tuple(self._feature_names)
             self._adapter = RecourseModelAdapter(
@@ -140,11 +140,11 @@ class DiceMethod(MethodObject):
             )
 
             train_features = (
-                trainset.get(target=False).loc[:, self._feature_names].copy(deep=True)
+                train_set.get(target=False).loc[:, self._feature_names].copy(deep=True)
             )
-            feature_type, _, _ = resolve_feature_metadata(trainset)
+            feature_type, _, _ = resolve_feature_metadata(train_set)
             categorical_groups = resolve_categorical_groups(
-                trainset, self._feature_names
+                train_set, self._feature_names
             )
             binary_feature_value_map = resolve_binary_feature_value_map(
                 train_features=train_features,
