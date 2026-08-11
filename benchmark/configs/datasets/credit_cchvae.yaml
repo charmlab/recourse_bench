@@ -3,6 +3,8 @@ dataset:
   path: ./dataset/credit_cchvae/
 
 preprocess:
+  - name: normalize_binary
+    seed: 0
   - name: scale
     seed: 0
     scaling: normalize

@@ -16,6 +16,82 @@ from utils.registry import register
 from utils.seed import seed_context
 
 
+@register("normalize_binary")
+class NormalizeBinaryPreProcess(PreProcessObject):
+    def __init__(self, seed: int | None = None, **kwargs):
+        self._seed = seed
+
+    @staticmethod
+    def _binary_feature_names(dataset: DatasetObject, df: pd.DataFrame) -> list[str]:
+        raw_feature_type = dataset.attr("raw_feature_type")
+        target_column = dataset.target_column
+        return [
+            column
+            for column in df.columns
+            if column != target_column
+            and str(raw_feature_type.get(column, "")).lower() == "binary"
+        ]
+
+    @staticmethod
+    def _normalize_series(series: pd.Series, feature_name: str) -> pd.Series:
+        numeric = pd.to_numeric(series, errors="raise").astype("float64")
+        values = np.sort(numeric.dropna().unique())
+        if values.shape[0] > 2:
+            raise ValueError(
+                "NormalizeBinaryPreProcess expects binary features to have at most "
+                f"two distinct values; {feature_name} has {values.tolist()}"
+            )
+        if values.shape[0] < 2:
+            return pd.Series(0.0, index=series.index, name=series.name)
+        if np.allclose(values, np.array([0.0, 1.0]), atol=1e-12):
+            return numeric
+
+        low_value, high_value = float(values[0]), float(values[1])
+        normalized = numeric.map({low_value: 0.0, high_value: 1.0})
+        if normalized.isna().any():
+            raise ValueError(
+                f"NormalizeBinaryPreProcess could not normalize {feature_name}"
+            )
+        return normalized.astype("float64")
+
+    def transform(self, input: DatasetObject) -> DatasetObject:
+        with seed_context(self._seed):
+            ensure_flag_absent(input, "binary_normalization")
+
+            df = input.snapshot()
+            binary_features = self._binary_feature_names(input, df)
+            if not binary_features:
+                input.update("binary_normalization", {})
+                return input
+
+            normalized_df = df.copy(deep=True)
+            normalization_map: dict[str, dict[float, float]] = {}
+            for feature_name in binary_features:
+                original = pd.to_numeric(
+                    normalized_df[feature_name],
+                    errors="raise",
+                ).astype("float64")
+                normalized = self._normalize_series(original, feature_name)
+                normalized_df[feature_name] = normalized
+
+                original_values = np.sort(original.dropna().unique())
+                normalized_values = np.sort(normalized.dropna().unique())
+                normalization_map[feature_name] = {
+                    float(original_value): float(normalized_value)
+                    for original_value, normalized_value in zip(
+                        original_values,
+                        normalized_values,
+                    )
+                }
+
+            input.update(
+                "binary_normalization",
+                normalization_map,
+                df=normalized_df,
+            )
+            return input
+
+
 @register("encode")
 class EncodePreProcess(PreProcessObject):
     @staticmethod

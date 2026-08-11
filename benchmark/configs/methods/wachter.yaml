@@ -1,0 +1,15 @@
+method:
+  name: wachter
+  seed: 0
+  device: auto
+  desired_class: 1
+  learning_rate: 0.01
+  lambda_: 0.01
+  max_iter: 100
+  max_minutes: 0.05
+  norm: 1
+  clamp: true
+  loss_type: BCE
+
+compatibility:
+  allowed_models: [linear, mlp]

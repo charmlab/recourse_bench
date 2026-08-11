@@ -1,0 +1,15 @@
+method:
+  name: gravitational
+  seed: 0
+  device: auto
+  desired_class: 1
+  prediction_loss_lambda: 1.0
+  original_dist_lambda: 0.5
+  grav_penalty_lambda: 1.5
+  learning_rate: 0.01
+  num_steps: 100
+  scheduler_step_size: 100
+  scheduler_gamma: 0.5
+
+compatibility:
+  allowed_models: [linear, mlp]

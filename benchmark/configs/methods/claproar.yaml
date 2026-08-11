@@ -1,0 +1,13 @@
+method:
+  name: claproar
+  seed: 0
+  device: auto
+  desired_class: 1
+  individual_cost_lambda: 0.1
+  external_cost_lambda: 0.1
+  learning_rate: 0.01
+  max_iter: 100
+  tol: 1.0e-4
+
+compatibility:
+  allowed_models: [linear, mlp]

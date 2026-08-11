@@ -1,0 +1,61 @@
+name: all_possible
+base_config: base.yaml
+output_csv: ./benchmark/results/all_possible_results.csv
+
+datasets:
+  - adult
+  - adult_cogs
+  - boston_housing
+  - breast_cancer
+  - compas
+  - compas_carla
+  - compas_clue
+  - credit
+  - credit_cchvae
+  - diabetes
+  - german
+  - german_roar
+  - german_sns
+  - news_popularity
+  - synthetic_face
+  - toydata
+
+models:
+  - linear
+  - mlp
+  - mlp_bayesian
+  - randomforest
+  - sklearn_logistic_regression
+
+methods:
+  - apas
+  - arg_ensembling
+  - cchvae
+  - cemsp
+  - cfrl
+  - cfvae
+  - claproar
+  - clue
+  - cogs
+  - cols
+  - cruds
+  - cvas_proj
+  - dice
+  - diverse_dist
+  - face
+  - feature_tweak
+  - gravitational
+  - gs
+  - larr
+  - mace
+  - probe
+  - proplace
+  - rbr
+  - revise
+  - roar
+  - sns
+  - trex
+  - wachter
+
+benchmark:
+  continue_on_error: true
