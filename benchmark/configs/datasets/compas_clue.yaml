@@ -15,6 +15,7 @@ preprocess:
   - name: split
     seed: 0
     split: 0.2
+    stratify: true
 
 benchmark:
   desired_class: 1

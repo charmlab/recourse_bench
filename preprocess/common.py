@@ -748,11 +748,107 @@ class SplitPreProcess(PreProcessObject):
         seed: int | None = None,
         split: float | int = 0.2,
         sample: int | None = None,
+        stratify: bool = False,
         **kwargs,
     ):
         self._seed = seed
         self._split: float | int = self._resolve_split(split)
         self._sample: int | None = self._resolve_sample(sample)
+        self._stratify = bool(stratify)
+
+    @staticmethod
+    def _stratified_positions(
+        df: pd.DataFrame,
+        target_column: str,
+        test_size: int,
+        seed: int | None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if target_column not in df.columns:
+            raise KeyError(f"Unknown target column: {target_column}")
+
+        target = df[target_column]
+        class_counts = target.value_counts().sort_index()
+        if class_counts.shape[0] < 2:
+            raise ValueError("Stratified split requires at least two target classes")
+
+        allocations = class_counts.astype("float64") / float(df.shape[0]) * test_size
+        test_counts = np.floor(allocations).astype(int)
+        remainders = allocations - test_counts
+        remaining = int(test_size - test_counts.sum())
+
+        for class_value in remainders.sort_values(ascending=False).index[:remaining]:
+            test_counts.loc[class_value] += 1
+
+        for class_value, class_count in class_counts.items():
+            if int(test_counts.loc[class_value]) < 1:
+                test_counts.loc[class_value] = 1
+            if int(test_counts.loc[class_value]) >= int(class_count):
+                test_counts.loc[class_value] = int(class_count) - 1
+
+        delta = int(test_counts.sum() - test_size)
+        if delta > 0:
+            for class_value in test_counts.sort_values(ascending=False).index:
+                reducible = int(test_counts.loc[class_value]) - 1
+                if reducible <= 0:
+                    continue
+                reduction = min(delta, reducible)
+                test_counts.loc[class_value] -= reduction
+                delta -= reduction
+                if delta == 0:
+                    break
+        elif delta < 0:
+            needed = -delta
+            capacity = class_counts - test_counts - 1
+            for class_value in capacity.sort_values(ascending=False).index:
+                addable = int(capacity.loc[class_value])
+                if addable <= 0:
+                    continue
+                addition = min(needed, addable)
+                test_counts.loc[class_value] += addition
+                needed -= addition
+                if needed == 0:
+                    break
+
+        if int(test_counts.sum()) != test_size:
+            raise ValueError("Could not allocate stratified split with requested size")
+
+        test_positions: list[int] = []
+        rng = np.random.default_rng(seed)
+        for class_value, class_count in test_counts.items():
+            positions = np.flatnonzero(target.to_numpy() == class_value)
+            sampled = rng.choice(
+                positions,
+                size=int(class_count),
+                replace=False,
+            )
+            test_positions.extend(int(position) for position in sampled)
+
+        test_positions_array = np.asarray(test_positions, dtype=int)
+        rng.shuffle(test_positions_array)
+        train_mask = np.ones(df.shape[0], dtype=bool)
+        train_mask[test_positions_array] = False
+        train_positions_array = np.flatnonzero(train_mask)
+        rng.shuffle(train_positions_array)
+        return train_positions_array, test_positions_array
+
+    @staticmethod
+    def _stratified_sample_df(
+        df: pd.DataFrame,
+        target_column: str,
+        sample_size: int,
+        seed: int | None,
+    ) -> pd.DataFrame:
+        if sample_size >= df.shape[0]:
+            return df.sample(frac=1.0, random_state=seed).copy(deep=True)
+
+        train_positions, sampled_positions = SplitPreProcess._stratified_positions(
+            df=df,
+            target_column=target_column,
+            test_size=sample_size,
+            seed=seed,
+        )
+        del train_positions
+        return df.iloc[sampled_positions].copy(deep=True)
 
     def transform(self, input: DatasetObject) -> tuple[DatasetObject, DatasetObject]:
         with seed_context(self._seed):
@@ -776,9 +872,17 @@ class SplitPreProcess(PreProcessObject):
                     "SplitPreProcess requires at least one training sample"
                 )
 
-            shuffled_positions = np.random.permutation(num_rows)
-            test_positions = shuffled_positions[:test_size]
-            train_positions = shuffled_positions[test_size:]
+            if self._stratify:
+                train_positions, test_positions = self._stratified_positions(
+                    df=df,
+                    target_column=input.target_column,
+                    test_size=test_size,
+                    seed=self._seed,
+                )
+            else:
+                shuffled_positions = np.random.permutation(num_rows)
+                test_positions = shuffled_positions[:test_size]
+                train_positions = shuffled_positions[test_size:]
 
             train_df = df.iloc[train_positions].copy(deep=True)
             test_df = df.iloc[test_positions].copy(deep=True)
@@ -787,6 +891,13 @@ class SplitPreProcess(PreProcessObject):
                 pass
             elif self._sample > test_df.shape[0]:
                 raise ValueError("SplitPreProcess sample exceeds split testset size")
+            elif self._stratify:
+                test_df = self._stratified_sample_df(
+                    df=test_df,
+                    target_column=input.target_column,
+                    sample_size=self._sample,
+                    seed=self._seed,
+                )
             else:
                 sampled_positions = np.random.permutation(test_df.shape[0])[
                     : self._sample
