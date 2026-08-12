@@ -1,41 +1,31 @@
-Level Badge
-No value available.
+**Scope of Reproducibility**
 
-Reason
-No value available.
+We aim to reproduce the CLAPROAR claims from `reference/gravitaional-claproar.pdf`:
 
-Method
-CLAPROAR
+1. We generate recourse while accounting for how recourse actions can affect future model training : [Quantitative] : [Repeated-retraining simulation]
+2. We reduce model deterioration compared with standard individual recourse baselines : [Quantitative] : [Group-level simulation results]
+3. We preserve useful individual recourse quality while improving long-term population outcomes : [Quantitative] : [Validity, distance, and model-shift metrics]
 
-Reproduction Summary
-- Smoke script: `experiment/claproar/smoke.py`
-- Smoke configuration: `experiment/claproar/credit_linear_claproar_smoke.yaml`
+**Methodology**
 
-Reference Scope
-- dataset: credit
-- model: linear
-- method: claproar
-- desired_class: 1
-- split sample: 256
-- evaluations: validity and distance
+We run two levels of coverage:
 
-Observed Result
-No value available.
+1. `experiment/claproar/smoke.py` with `experiment/claproar/smoke_config.yaml`, which remains a small Credit + linear-model executability check in the current RecourseBench environment.
+2. `experiment/claproar/test_claproar_reproduce.py`, a deterministic scoped toy check anchored to the ClaPROAR classifier-preserving penalty in Eq. 6 and the Section VII mitigation discussion. This script compares a baseline with `external_cost_lambda = 0.0` against a ClaPROAR-style variant with `external_cost_lambda = 0.5` on four synthetic factuals and writes `experiment/claproar/reproduction_report.json`.
 
-Reproduction Assessment
-No value available.
+The scoped script is not the original repeated-retraining experiment and does not use paper-scale datasets or baselines. It is intended to validate the local mechanism behind the paper claim under limited resources.
 
-Paper Result
-No value available.
+**Results**
 
-Scalar Result Coverage
-No value available.
+Claim 1 is partially validated at mechanism level: the scoped script explicitly includes the external classifier-preserving term that accounts for how recourse points affect the classifier loss. It does not validate the full future-retraining loop.
 
-Reproducibility Criterion
-No value available.
+Claim 2 is partially validated only as a local trend, not as paper-scale model deterioration. Both variants achieved validity 1.0. The ClaPROAR-style variant reduced mean recourse distance from 1.4486 to 0.8141 and reduced mean positive logit from 1.9236 to 0.3176, consistent with avoiding unnecessarily decisive counterfactuals. However, the script does not retrain a population model, so downstream F-score deterioration, parameter perturbation, and PP-MMD are not reproduced.
 
-Notes / Caveats
-- The initial repository contains a smoke script and configuration but no recorded smoke execution result.
+Claim 3 is partially validated for individual recourse quality because validity remained 1.0 while the recourse movement decreased. Long-term population outcomes are not reproduced.
 
-Next Steps
-No value available.
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Add the paper's repeated-retraining simulation using the available code/data.
+- Recreate the baseline generators and endogenous model-update loop.
+- Add scalar targets for model deterioration, group outcomes, validity, and cost.
+- Keep `smoke.py` as an executability check and `test_claproar_reproduce.py` as scoped mechanism evidence unless a full reproduction is added.

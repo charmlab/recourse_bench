@@ -1,66 +1,23 @@
-Level Badge
-Level 1: Minimal Reproduction
+**Scope of Reproducibility**
 
-Reason
-We are able to run the compas only experiment, with metric values that are congruent with the main paper results.
+We aim to reproduce the CLUE claims from `reference/clue.pdf`:
 
-Method
-CLUE benchmark reproduction
+1. We generate counterfactual explanations by minimizing predictive uncertainty in latent space : [Quantitative] : [COMPAS uncertainty tables]
+2. We reduce epistemic and aleatoric uncertainty relative to the original factual inputs : [Quantitative] : [Tables 1 and 2]
+3. We extend the method to image-style examples : [Quantitative] : [Image experiments and figures]
+4. We show that the explanations are useful to users : [Qualitative] : [User-study section]
 
-Reproduction Summary
-No value available.
+**Methodology**
 
-Reference Scope
-No value available.
+We reproduce the tabular CLUE artifact path with `experiment/clue/test_clue_reproduce.py` using stored BNN/VAE-style artifacts. Code/experiments and data are available, but the current benchmark run focuses on COMPAS tabular uncertainty metrics and does not cover image experiments or the user study.
 
-Observed Result
-{
-    "device": "cuda",
-  "paper_style_abs_errors": {
-    "table1_aleatoric": 0.040275508348581485,
-    "table1_epistemic": 0.0028932188134525028,
-    "table2_aleatoric": 0.044,
-    "table2_epistemic": 0.0001067811865474999
-  },
-  "paper_style_comparison": {
-    "table1_aleatoric": 0.22027550834858148,
-    "table1_epistemic": 0.7071067811865475,
-    "table2_aleatoric": 0.0,
-    "table2_epistemic": 0.7071067811865475
-  },
-  "paper_style_targets": {
-    "table1_aleatoric": 0.18,
-    "table1_epistemic": 0.71,
-    "table2_aleatoric": 0.044,
-    "table2_epistemic": 0.707
-  },
-  "selected_counts": {
-    "aleatoric": 327,
-    "epistemic": 103
-  }
-}
+**Results**
 
-Reproduction Assessment
-No value available.
+Claims 1 and 2 are partially reproduced. Epistemic uncertainty is very close: Table 1 reference 0.71 versus reproduced 0.7071, relative delta 0.004; Table 2 reference 0.707 versus reproduced 0.7071, relative delta 0.00015. Aleatoric uncertainty is weaker: Table 1 reference 0.18 versus reproduced 0.2203, relative delta 0.183; Table 2 reference 0.044 versus reproduced 0.0, relative delta 1.0. Claims 3 and 4 are not reproduced by the current script.
 
-Paper Result
-- `COMPAS_PAPER_RESULTS` in `experiment/clue/test_clue_reproduce.py`:
-  - table1_epistemic = 0.71
-  - table1_aleatoric = 0.18
-  - table2_epistemic = 0.707
-  - table2_aleatoric = 0.044
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-No value available.
+- Verify exact BNN, VAE, VAEAC, and uncertainty artifacts.
+- Investigate the aleatoric uncertainty mismatches.
+- Add image experiment coverage if visual claims remain in scope.
+- Treat user-study claims as separate evidence unless original study artifacts are available.

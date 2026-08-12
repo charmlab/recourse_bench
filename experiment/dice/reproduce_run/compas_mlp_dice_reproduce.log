@@ -1,0 +1,538 @@
+2026-07-26 15:37:12 | INFO | compas_mlp_dice_reproduce | Experiment config:
+name: compas_mlp_dice_reproduce
+logger:
+  level: INFO
+  path: C:\Users\hashi\OneDrive\Desktop\UniversityOfWaterloo\ECE_masters\recourse_bench\experiment\dice\reproduce_run\compas_mlp_dice_reproduce.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+preprocess:
+- name: scale
+  seed: 42
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 42
+  encoding: onehot
+- name: split
+  seed: 42
+  split: 0.2
+- name: balance
+  seed: 42
+  strategy: upsample
+  shuffle: true
+- name: finalize
+model:
+  name: mlp
+  seed: 42
+  device: cuda
+  epochs: 160
+  learning_rate: 0.01
+  batch_size: 16
+  layers:
+  - 20
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: compas_mlp_dice_reproduce
+method:
+  name: dice
+  seed: 42
+  device: cuda
+  desired_class: 0
+  num: 4
+  algorithm: DiverseCF
+  yloss_type: hinge_loss
+  diversity_loss_type: dpp_style:inverse_dist
+  feature_weights: inverse_mad
+  proximity_weight: 0.5
+  diversity_weight: 1.0
+  categorical_penalty: 0.1
+  optimizer: adam
+  learning_rate: 0.05
+  min_iter: 500
+  max_iter: 5000
+  project_iter: 0
+  loss_diff_thres: 1.0e-05
+  loss_converge_maxiter: 2
+  init_near_query_instance: false
+  tie_random: false
+  stopping_threshold: 0.5
+  posthoc_sparsity_param: 0.1
+  posthoc_sparsity_algorithm: linear
+  posthoc_sparsity_enabled: false
+  respect_mutability: false
+evaluation:
+- name: validity
+- name: distance
+assertions:
+  enabled: true
+  accuracy_target: 0.67
+  accuracy_tolerance: 0.05
+  compare_ks:
+  - 2
+  - 4
+  diverse_validity_floor:
+    2: 0.9
+    4: 0.8
+  diversity_epsilon: 0.02
+  categorical_proximity_ratio_floor: 0.7
+  randominit_validity_margin_k4: 0.1
+  boundary_compare_radius: 0.5
+  boundary_compare_ks:
+  - 4
+  boundary_f1_floor: 0.35
+  boundary_lime_ratio_floor: 0.6
+  lime_num_samples: 5000
+autorepro:
+  enabled: true
+  screening_num_factuals: 2
+  screening_boundary_samples: 20
+  acceptance_num_factuals: 2
+  acceptance_boundary_samples: 20
+  screening_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  acceptance_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  max_runs: 8
+
+2026-07-26 15:37:12 | INFO | compas_mlp_dice_reproduce | Train/test sizes: 4470 / 1056
+2026-07-26 15:38:42 | INFO | model.model_utils | Saved model checkpoint to cache/models/compas_mlp_dice_reproduce.pt
+2026-07-26 15:38:42 | INFO | compas_mlp_dice_reproduce | Target model test accuracy: 0.6534
+2026-07-26 15:38:42 | INFO | compas_mlp_dice_reproduce | DiCE defaults: init_near_query_instance=False, respect_mutability=False, posthoc_sparsity_enabled=False
+2026-07-26 15:38:42 | INFO | compas_mlp_dice_reproduce | Selected 500 factuals for evaluation
+2026-07-26 15:39:50 | INFO | compas_mlp_dice_reproduce | Experiment config:
+name: compas_mlp_dice_reproduce
+logger:
+  level: INFO
+  path: /mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/dice/reproduce_run/compas_mlp_dice_reproduce.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+preprocess:
+- name: scale
+  seed: 42
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 42
+  encoding: onehot
+- name: split
+  seed: 42
+  split: 0.2
+- name: balance
+  seed: 42
+  strategy: upsample
+  shuffle: true
+- name: finalize
+model:
+  name: mlp
+  seed: 42
+  device: cuda
+  epochs: 160
+  learning_rate: 0.01
+  batch_size: 16
+  layers:
+  - 20
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: compas_mlp_dice_reproduce
+method:
+  name: dice
+  seed: 42
+  device: cuda
+  desired_class: 0
+  num: 4
+  algorithm: DiverseCF
+  yloss_type: hinge_loss
+  diversity_loss_type: dpp_style:inverse_dist
+  feature_weights: inverse_mad
+  proximity_weight: 0.5
+  diversity_weight: 1.0
+  categorical_penalty: 0.1
+  optimizer: adam
+  learning_rate: 0.05
+  min_iter: 500
+  max_iter: 5000
+  project_iter: 0
+  loss_diff_thres: 1.0e-05
+  loss_converge_maxiter: 2
+  init_near_query_instance: false
+  tie_random: false
+  stopping_threshold: 0.5
+  posthoc_sparsity_param: 0.1
+  posthoc_sparsity_algorithm: linear
+  posthoc_sparsity_enabled: false
+  respect_mutability: false
+evaluation:
+- name: validity
+- name: distance
+assertions:
+  enabled: true
+  accuracy_target: 0.67
+  accuracy_tolerance: 0.05
+  compare_ks:
+  - 2
+  - 4
+  diverse_validity_floor:
+    2: 0.9
+    4: 0.8
+  diversity_epsilon: 0.02
+  categorical_proximity_ratio_floor: 0.7
+  randominit_validity_margin_k4: 0.1
+  boundary_compare_radius: 0.5
+  boundary_compare_ks:
+  - 4
+  boundary_f1_floor: 0.35
+  boundary_lime_ratio_floor: 0.6
+  lime_num_samples: 5000
+autorepro:
+  enabled: true
+  screening_num_factuals: 2
+  screening_boundary_samples: 20
+  acceptance_num_factuals: 2
+  acceptance_boundary_samples: 20
+  screening_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  acceptance_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  max_runs: 8
+
+2026-07-26 15:39:51 | INFO | compas_mlp_dice_reproduce | Train/test sizes: 4470 / 1056
+2026-07-26 15:41:02 | INFO | model.model_utils | Saved model checkpoint to cache/models/compas_mlp_dice_reproduce.pt
+2026-07-26 15:41:02 | INFO | compas_mlp_dice_reproduce | Target model test accuracy: 0.6534
+2026-07-26 15:41:02 | INFO | compas_mlp_dice_reproduce | DiCE defaults: init_near_query_instance=False, respect_mutability=False, posthoc_sparsity_enabled=False
+2026-07-26 15:41:02 | INFO | compas_mlp_dice_reproduce | Selected 500 factuals for evaluation
+2026-07-26 15:43:29 | INFO | compas_mlp_dice_reproduce | Experiment config:
+name: compas_mlp_dice_reproduce
+logger:
+  level: INFO
+  path: /mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/dice/reproduce_run/compas_mlp_dice_reproduce.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+preprocess:
+- name: scale
+  seed: 42
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 42
+  encoding: onehot
+- name: split
+  seed: 42
+  split: 0.2
+- name: balance
+  seed: 42
+  strategy: upsample
+  shuffle: true
+- name: finalize
+model:
+  name: mlp
+  seed: 42
+  device: cuda
+  epochs: 160
+  learning_rate: 0.01
+  batch_size: 16
+  layers:
+  - 20
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: compas_mlp_dice_reproduce
+method:
+  name: dice
+  seed: 42
+  device: cuda
+  desired_class: 0
+  num: 4
+  algorithm: DiverseCF
+  yloss_type: hinge_loss
+  diversity_loss_type: dpp_style:inverse_dist
+  feature_weights: inverse_mad
+  proximity_weight: 0.5
+  diversity_weight: 1.0
+  categorical_penalty: 0.1
+  optimizer: adam
+  learning_rate: 0.05
+  min_iter: 500
+  max_iter: 5000
+  project_iter: 0
+  loss_diff_thres: 1.0e-05
+  loss_converge_maxiter: 2
+  init_near_query_instance: false
+  tie_random: false
+  stopping_threshold: 0.5
+  posthoc_sparsity_param: 0.1
+  posthoc_sparsity_algorithm: linear
+  posthoc_sparsity_enabled: false
+  respect_mutability: false
+evaluation:
+- name: validity
+- name: distance
+assertions:
+  enabled: true
+  accuracy_target: 0.67
+  accuracy_tolerance: 0.05
+  compare_ks:
+  - 2
+  - 4
+  diverse_validity_floor:
+    2: 0.9
+    4: 0.8
+  diversity_epsilon: 0.02
+  categorical_proximity_ratio_floor: 0.7
+  randominit_validity_margin_k4: 0.1
+  boundary_compare_radius: 0.5
+  boundary_compare_ks:
+  - 4
+  boundary_f1_floor: 0.35
+  boundary_lime_ratio_floor: 0.6
+  lime_num_samples: 5000
+autorepro:
+  enabled: true
+  screening_num_factuals: 2
+  screening_boundary_samples: 20
+  acceptance_num_factuals: 2
+  acceptance_boundary_samples: 20
+  screening_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  acceptance_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  max_runs: 8
+
+2026-07-26 15:43:29 | INFO | compas_mlp_dice_reproduce | Train/test sizes: 4470 / 1056
+2026-07-26 15:44:31 | INFO | model.model_utils | Saved model checkpoint to cache/models/compas_mlp_dice_reproduce.pt
+2026-07-26 15:44:31 | INFO | compas_mlp_dice_reproduce | Target model test accuracy: 0.6534
+2026-07-26 15:44:31 | INFO | compas_mlp_dice_reproduce | DiCE defaults: init_near_query_instance=False, respect_mutability=False, posthoc_sparsity_enabled=False
+2026-07-26 15:44:31 | INFO | compas_mlp_dice_reproduce | Selected 500 factuals for evaluation
+2026-07-26 15:45:03 | INFO | compas_mlp_dice_reproduce | Evaluating setting: DiverseCF
+2026-07-26 15:45:03 | INFO | compas_mlp_dice_reproduce | Generating counterfactuals for k=1
+2026-07-26 15:49:49 | INFO | compas_mlp_dice_reproduce | Experiment config:
+name: compas_mlp_dice_reproduce
+logger:
+  level: INFO
+  path: C:\Users\hashi\OneDrive\Desktop\UniversityOfWaterloo\ECE_masters\recourse_bench\experiment\dice\reproduce_run\compas_mlp_dice_reproduce.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+preprocess:
+- name: scale
+  seed: 42
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 42
+  encoding: onehot
+- name: split
+  seed: 42
+  split: 0.2
+- name: balance
+  seed: 42
+  strategy: upsample
+  shuffle: true
+- name: finalize
+model:
+  name: mlp
+  seed: 42
+  device: cuda
+  epochs: 160
+  learning_rate: 0.01
+  batch_size: 16
+  layers:
+  - 20
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: compas_mlp_dice_reproduce
+method:
+  name: dice
+  seed: 42
+  device: cuda
+  desired_class: 0
+  num: 4
+  algorithm: DiverseCF
+  yloss_type: hinge_loss
+  diversity_loss_type: dpp_style:inverse_dist
+  feature_weights: inverse_mad
+  proximity_weight: 0.5
+  diversity_weight: 1.0
+  categorical_penalty: 0.1
+  optimizer: adam
+  learning_rate: 0.05
+  min_iter: 500
+  max_iter: 5000
+  project_iter: 0
+  loss_diff_thres: 1.0e-05
+  loss_converge_maxiter: 2
+  init_near_query_instance: false
+  tie_random: false
+  stopping_threshold: 0.5
+  posthoc_sparsity_param: 0.1
+  posthoc_sparsity_algorithm: linear
+  posthoc_sparsity_enabled: false
+  respect_mutability: false
+evaluation:
+- name: validity
+- name: distance
+assertions:
+  enabled: true
+  accuracy_target: 0.67
+  accuracy_tolerance: 0.05
+  compare_ks:
+  - 2
+  - 4
+  diverse_validity_floor:
+    2: 0.9
+    4: 0.8
+  diversity_epsilon: 0.02
+  categorical_proximity_ratio_floor: 0.7
+  randominit_validity_margin_k4: 0.1
+  boundary_compare_radius: 0.5
+  boundary_compare_ks:
+  - 4
+  boundary_f1_floor: 0.35
+  boundary_lime_ratio_floor: 0.6
+  lime_num_samples: 5000
+autorepro:
+  enabled: true
+  screening_num_factuals: 2
+  screening_boundary_samples: 20
+  acceptance_num_factuals: 2
+  acceptance_boundary_samples: 20
+  screening_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  acceptance_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  max_runs: 8
+
+2026-07-26 15:49:49 | INFO | compas_mlp_dice_reproduce | Train/test sizes: 4470 / 1056
+2026-07-26 15:51:10 | INFO | model.model_utils | Saved model checkpoint to cache/models/compas_mlp_dice_reproduce.pt
+2026-07-26 15:51:10 | INFO | compas_mlp_dice_reproduce | Target model test accuracy: 0.6534
+2026-07-26 15:51:10 | INFO | compas_mlp_dice_reproduce | DiCE defaults: init_near_query_instance=False, respect_mutability=False, posthoc_sparsity_enabled=False
+2026-07-26 15:51:10 | INFO | compas_mlp_dice_reproduce | Selected 500 factuals for evaluation
+2026-07-26 15:51:29 | INFO | compas_mlp_dice_reproduce | Evaluating setting: DiverseCF
+2026-07-26 15:51:29 | INFO | compas_mlp_dice_reproduce | Generating counterfactuals for k=1
+2026-07-26 20:10:04 | INFO | compas_mlp_dice_reproduce | Experiment config:
+name: compas_mlp_dice_reproduce
+logger:
+  level: INFO
+  path: C:\Users\hashi\OneDrive\Desktop\UniversityOfWaterloo\ECE_masters\recourse_bench\experiment\dice\reproduce_run\compas_mlp_dice_reproduce.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+preprocess:
+- name: scale
+  seed: 42
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 42
+  encoding: onehot
+- name: split
+  seed: 42
+  split: 0.2
+- name: balance
+  seed: 42
+  strategy: upsample
+  shuffle: true
+- name: finalize
+model:
+  name: mlp
+  seed: 42
+  device: cuda
+  epochs: 160
+  learning_rate: 0.01
+  batch_size: 16
+  layers:
+  - 20
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+  save_name: compas_mlp_dice_reproduce
+method:
+  name: dice
+  seed: 42
+  device: cuda
+  desired_class: 0
+  num: 4
+  algorithm: DiverseCF
+  yloss_type: hinge_loss
+  diversity_loss_type: dpp_style:inverse_dist
+  feature_weights: inverse_mad
+  proximity_weight: 0.5
+  diversity_weight: 1.0
+  categorical_penalty: 0.1
+  optimizer: adam
+  learning_rate: 0.05
+  min_iter: 500
+  max_iter: 5000
+  project_iter: 0
+  loss_diff_thres: 1.0e-05
+  loss_converge_maxiter: 2
+  init_near_query_instance: false
+  tie_random: false
+  stopping_threshold: 0.5
+  posthoc_sparsity_param: 0.1
+  posthoc_sparsity_algorithm: linear
+  posthoc_sparsity_enabled: false
+  respect_mutability: false
+evaluation:
+- name: validity
+- name: distance
+assertions:
+  enabled: true
+  accuracy_target: 0.67
+  accuracy_tolerance: 0.05
+  compare_ks:
+  - 2
+  - 4
+  diverse_validity_floor:
+    2: 0.9
+    4: 0.8
+  diversity_epsilon: 0.02
+  categorical_proximity_ratio_floor: 0.7
+  randominit_validity_margin_k4: 0.1
+  boundary_compare_radius: 0.5
+  boundary_compare_ks:
+  - 4
+  boundary_f1_floor: 0.35
+  boundary_lime_ratio_floor: 0.6
+  lime_num_samples: 5000
+autorepro:
+  enabled: true
+  screening_num_factuals: 2
+  screening_boundary_samples: 20
+  acceptance_num_factuals: 2
+  acceptance_boundary_samples: 20
+  screening_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  acceptance_method_overrides:
+    min_iter: 100
+    max_iter: 1000
+  max_runs: 8
+
+2026-07-26 20:10:05 | INFO | compas_mlp_dice_reproduce | Train/test sizes: 4470 / 1056
+2026-07-26 20:11:37 | INFO | model.model_utils | Saved model checkpoint to cache/models/compas_mlp_dice_reproduce.pt
+2026-07-26 20:11:38 | INFO | compas_mlp_dice_reproduce | Target model test accuracy: 0.6534
+2026-07-26 20:11:38 | INFO | compas_mlp_dice_reproduce | DiCE defaults: init_near_query_instance=False, respect_mutability=False, posthoc_sparsity_enabled=False
+2026-07-26 20:11:38 | INFO | compas_mlp_dice_reproduce | Selected 500 factuals for evaluation
+2026-07-26 20:11:52 | INFO | compas_mlp_dice_reproduce | Evaluating setting: DiverseCF
+2026-07-26 20:11:52 | INFO | compas_mlp_dice_reproduce | Generating counterfactuals for k=1
+2026-07-27 04:37:33 | INFO | compas_mlp_dice_reproduce | Generating counterfactuals for k=2
+2026-07-27 14:54:48 | INFO | compas_mlp_dice_reproduce | Generating counterfactuals for k=4

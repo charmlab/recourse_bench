@@ -1,54 +1,22 @@
-Level Badge
-Level 2: Partial Reproduction
+**Scope of Reproducibility**
 
-Reason
-The implementation reproduces the ProPlace COMPAS experiment with exact or very close agreement on most reported metrics for this setting, but the full set of ProPlace paper experiments has not been validated in this repository.
+We aim to reproduce the ProPlace claims from `reference/proplace.pdf`:
 
-Method
-ProPlace COMPAS reproduction for the benchmark implementation under `experiment/proplace/`, using the shared benchmark pipeline and a reference-style metric comparison.
+1. We generate plausible robust recourse under model multiplicity or model uncertainty : [Quantitative] : [Table 1]
+2. We provide soundness/completeness-style guarantees for the optimization formulation : [Qualitative] : [Proof section]
+3. We improve or preserve validity, delta-validity, M2-validity, L1 cost, and LOF across tabular datasets : [Quantitative] : [Adult, COMPAS, GMC, and HELOC Table 1 metrics]
 
-Reproduction Summary
-No value available.
+**Methodology**
 
-Reference Scope
-- dataset: COMPAS
-- method: ProPlace
-- reproduction style: benchmark-native reproduction with reference metric comparison
+We reproduce ProPlace with `experiment/proplace/test_proplace_reproduce.py` and `experiment/proplace/config.yaml`. Code/experiments and data are available. Gurobi and optimization-stack details are important dependencies in the current RecourseBench environment.
 
-Observed Result
-- test_accuracy = 0.846029
-- test_auc = 0.855299
-- validity = 1.000000
-- delta_validity = 1.000000
-- m2_validity = 0.950000
-- l1 = 0.035989
-- pct_inlier_class_1 = 0.860000
-- lof_class_1 = 1.248171
-- avg_bound = 0.006398
-- valid_counterfactual_count = 50
+**Results**
 
-Reproduction Assessment
-No value available.
+Claims 1 and 3 are largely reproduced for Table 1: 18 of 20 scalar comparisons are within the 15% relative-delta threshold. COMPAS L1 is reference 0.039 versus reproduced 0.0357, relative delta 0.084, and COMPAS LOF is reference 1.24 versus reproduced 1.1548, relative delta 0.069. The main discrepancies are Adult L1, relative delta 0.342, and HELOC L1, relative delta 0.227. Claim 2 is proof-level evidence.
 
-Paper Result
-- `REFERENCE_PROPLACE_ROW` in `experiment/proplace/test_proplace_reproduce.py`: validity = 1.0, delta_validity = 1.0, m2_validity = 1.0, l1 = 0.039, pct_inlier_class_1 = 0.86, lof_class_1 = 1.241.
-- validity matched exactly at 1.0.
-- delta_validity matched exactly at 1.0.
-- pct_inlier_class_1 matched exactly at 0.86.
-- l1 is very close at 0.035989 versus the reference 0.039.
-- lof_class_1 is very close at 1.248171 versus the reference 1.241.
-- m2_validity is slightly low at 0.95 versus the reference 1.0.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-No value available.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-- Investigate the remaining `m2_validity` gap.
-- Reconfirm whether the small remaining drift comes from model randomness, split alignment, or proximity / robustness evaluation details.
-- Extend validation beyond this single ProPlace setting before claiming Level 3 reproduction.
+- Record Gurobi version, license mode, solver tolerances, and hardware.
+- Investigate Adult and HELOC L1 cost discrepancies.
+- Add proof-inspection notes for soundness/completeness claims.
+- Expand scalar coverage if the paper has additional ablations.

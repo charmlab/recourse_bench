@@ -24,42 +24,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.41688457131385803,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.060891997467255946,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 11.490384615384615,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.6244241716987028,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.8989792305689591,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -76,42 +84,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.36533915996551514,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.006187895145381637,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 3.5673076923076925,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.5669777129495582,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.9566851246815461,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -128,42 +144,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.2768280804157257,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.02235056506256392,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 9.951923076923077,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.6054950926682475,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.8712890497767009,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -180,42 +204,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.26348212361335754,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.12763064996992118,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 2.125,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.6142533232644289,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.9164791175952325,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -232,42 +264,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.3476351201534271,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.10771411586593585,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 1.8076923076923077,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.638126564728213,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.934112946001383,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -284,42 +324,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.7966039180755615,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.03670653976418854,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 1.3942307692307692,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.4892837318544027,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.9999861700030473,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -336,42 +384,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 0.1346153846153846,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.08012568950653076,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 0.1346153846153846,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.25362060768504774,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 2.2142857142857144,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.626126039856026,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.8976722274507795,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -388,42 +444,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 0.6153846153846154,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.22704967856407166,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 0.6153846153846154,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.714915787289687,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 12.703125,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.6341712347815501,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.8248066091910005,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -440,42 +504,50 @@
         "train_accuracy": {
           "original": null,
           "reproduced": 0.9538461538461539,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.4009547531604767,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "reachability": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_cost_mean": {
           "original": null,
           "reproduced": 0.6040646208779633,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "path_hops_mean": {
           "original": null,
           "reproduced": 15.173076923076923,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_density_mean": {
           "original": null,
           "reproduced": 0.6317697844567908,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "endpoint_confidence_mean": {
           "original": null,
           "reproduced": 0.8131385921285703,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     }

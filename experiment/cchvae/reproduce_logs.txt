@@ -1,39 +1,22 @@
-Level Badge
-Level 1: Minimal Reproduction
+**Scope of Reproducibility**
 
-Reason
-Is able to accurately reproduce several metrics for a single experiment
+We aim to reproduce the C-CHVAE claims from `reference/cchvae.pdf`:
 
-Method
-CCHVAE benchmark reproduction
+1. We generate counterfactuals in a learned latent space using a classifier-agnostic VAE-based search : [Quantitative] : [Main empirical recourse experiments]
+2. We improve realism/faithfulness by searching in high-density connected regions of the data manifold : [Quantitative] : [Outlier, connectedness, and candidate-search metrics]
+3. We study the trade-off between recourse difficulty, validity, and data-manifold faithfulness : [Quantitative] : [Paper tables/figures on faithfulness versus difficulty]
 
-Reproduction Summary
-No value available.
+**Methodology**
 
-Reference Scope
-No value available.
+We reproduce the C-CHVAE pipeline with `experiment/cchvae/test_cchvae_reproduce.py` on a Credit-focused configuration in the current RecourseBench environment. Code/experiments and data are available, but the current report does not include original scalar targets for the most important manifold-faithfulness metrics.
 
-Observed Result
-dataset device  n_train  n_test  n_search_candidates_total  n_counterfactuals_requested  n_counterfactuals_evaluated  n_counterfactuals_success  validity  outlier_rate_k_1  predicted_local_outliers_pct_k_1  outlier_rate_k_5  predicted_local_outliers_pct_k_5  outlier_rate_k_10  predicted_local_outliers_pct_k_10  outlier_rate_k_15  predicted_local_outliers_pct_k_15  outlier_rate_k_20  predicted_local_outliers_pct_k_20  connectedness_reference_rows  not_connected_rate_eps_1  not_connected_pct_eps_1  not_connected_rate_eps_5  not_connected_pct_eps_5  not_connected_rate_eps_10  not_connected_pct_eps_10  not_connected_rate_eps_15  not_connected_pct_eps_15  not_connected_rate_eps_20  not_connected_pct_eps_20
-credit_cchvae    cpu    96215   24054                        139                           25                           25                         25       1.0               0.0                               0.0              0.04                               4.0               0.04                                4.0               0.04                                4.0               0.04                                4.0                         89261                       1.0                    100.0                      0.72                     72.0                       0.08                       8.0                        0.0                       0.0                        0.0                       0.0
+**Results**
 
-Reproduction Assessment
-No value available.
+Claims 1 and 2 are partially reproduced because the script runs the intended C-CHVAE workflow and records validity, outlier-rate, connectedness-style metrics, search candidates, and counterfactual success. Delta validation is incomplete because original paper scalar values are missing from the current report. Claim 3 is not fully reproduced because the full faithfulness-versus-difficulty scope is not covered.
 
-Paper Result
-No value available.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-No value available.
+- Recover exact paper datasets, classifier settings, VAE checkpoints, and hyperparameters from the available artifacts.
+- Add original scalar targets for outlier rate, connectedness, validity, and candidate counts.
+- Expand beyond the current Credit-focused run.
+- Report multiple seeds to separate sampling variance from implementation drift.

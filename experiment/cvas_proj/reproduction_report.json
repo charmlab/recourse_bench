@@ -30,37 +30,44 @@
         "cost_mean": {
           "original": 1.04,
           "reproduced": 0.943845832422124,
-          "delta": 0.09245593036334229
+          "delta": 0.09245593036334229,
+          "cv_star": 0.07711302025115843
         },
         "cost_std": {
           "original": 0.02,
           "reproduced": 0.046343173086334025,
-          "delta": 0.5684369742498765
+          "delta": 0.5684369742498765,
+          "cv_star": 0.6317414405537121
         },
         "current_validity_mean": {
           "original": 0.94,
           "reproduced": 0.9099999999999999,
-          "delta": 0.03191489361702131
+          "delta": 0.03191489361702131,
+          "cv_star": 0.025799842016265947
         },
         "current_validity_std": {
           "original": 0.03,
           "reproduced": 0.0317804971641414,
-          "delta": 0.05602483670867091
+          "delta": 0.05602483670867091,
+          "cv_star": 0.045851907511060615
         },
         "future_validity_mean": {
           "original": 0.79,
           "reproduced": 0.7834099999999999,
-          "delta": 0.008341772151898855
+          "delta": 0.008341772151898855,
+          "cv_star": 0.006663632364128667
         },
         "future_validity_std": {
           "original": 0.01,
           "reproduced": 0.02886954104242046,
-          "delta": 0.6536141677726655
+          "delta": 0.6536141677726655,
+          "cv_star": 0.7723594145973133
         },
         "feasibility_mean": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -76,37 +83,44 @@
         "cost_mean": {
           "original": 1.72,
           "reproduced": 1.7217721394699486,
-          "delta": 0.0010292531917110374
+          "delta": 0.0010292531917110374,
+          "cv_star": 0.000819187476006013
         },
         "cost_std": {
           "original": 0.13,
           "reproduced": 0.11146434220155249,
-          "delta": 0.14258198306498088
+          "delta": 0.14258198306498088,
+          "cv_star": 0.12213004499113318
         },
         "current_validity_mean": {
           "original": 1.0,
           "reproduced": 0.999,
-          "delta": 0.0010000000000000009
+          "delta": 0.0010000000000000009,
+          "cv_star": 0.0007958930753725528
         },
         "current_validity_std": {
           "original": 0.0,
           "reproduced": 0.0020000000000000018,
-          "delta": 1.0
+          "delta": 1.0,
+          "cv_star": 1.5909902576697321
         },
         "future_validity_mean": {
           "original": 0.97,
           "reproduced": 0.9889199999999999,
-          "delta": 0.019131982364599703
+          "delta": 0.019131982364599703,
+          "cv_star": 0.015366393561304812
         },
         "future_validity_std": {
           "original": 0.02,
           "reproduced": 0.0033344564774487914,
-          "delta": 0.8332771761275604
+          "delta": 0.8332771761275604,
+          "cv_star": 1.136290335657683
         },
         "feasibility_mean": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -122,37 +136,44 @@
         "cost_mean": {
           "original": 2.34,
           "reproduced": 2.4808233635714037,
-          "delta": 0.05676476835846704
+          "delta": 0.05676476835846704,
+          "cv_star": 0.04647517293153933
         },
         "cost_std": {
           "original": 0.2,
           "reproduced": 0.21903819535965366,
-          "delta": 0.08691723983752489
+          "delta": 0.08691723983752489,
+          "cv_star": 0.07228358578345107
         },
         "current_validity_mean": {
           "original": 0.95,
           "reproduced": 0.9617647058823529,
-          "delta": 0.012232415902140631
+          "delta": 0.012232415902140631,
+          "cv_star": 0.009790709277967546
         },
         "current_validity_std": {
           "original": 0.03,
           "reproduced": 0.029190343001881187,
-          "delta": 0.026988566603960408
+          "delta": 0.026988566603960408,
+          "cv_star": 0.021762948662423034
         },
         "future_validity_mean": {
           "original": 0.8,
           "reproduced": 0.9221617647058823,
-          "delta": 0.13247324860063459
+          "delta": 0.13247324860063459,
+          "cv_star": 0.11285709710318301
         },
         "future_validity_std": {
           "original": 0.06,
           "reproduced": 0.04504276610674252,
-          "delta": 0.24928723155429125
+          "delta": 0.24928723155429125,
+          "cv_star": 0.22654404760893557
         },
         "feasibility_mean": {
           "original": null,
           "reproduced": 0.961764705882353,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     }

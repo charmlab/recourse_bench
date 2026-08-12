@@ -27,72 +27,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 1.1356122951450993,
           "reproduced": 0.8649971091647942,
-          "delta": 0.23829892220894638
+          "delta": 0.23829892220894638,
+          "cv_star": 0.21520748805070433
         },
         "k_distance_std": {
           "original": 0.4345114915961585,
           "reproduced": 0.31976473908589226,
-          "delta": 0.26408220433652785
+          "delta": 0.26408220433652785,
+          "cv_star": 0.24203462593272168
         },
         "k_diversity_mean": {
           "original": 1.3891334020759285,
           "reproduced": 1.021514725069205,
-          "delta": 0.2646388579076367
+          "delta": 0.2646388579076367,
+          "cv_star": 0.24262260720223328
         },
         "k_diversity_std": {
           "original": 0.46404387689018917,
           "reproduced": 0.34439219817143973,
-          "delta": 0.25784561477375917
+          "delta": 0.25784561477375917,
+          "cv_star": 0.23547273684050682
         },
         "set_distance_sum_mean": {
           "original": 0.21001440954026088,
           "reproduced": 0.2674551821753072,
-          "delta": 0.21476784322464912
+          "delta": 0.21476784322464912,
+          "cv_star": 0.19140006241449017
         },
         "set_distance_sum_std": {
           "original": 0.20520751186424946,
           "reproduced": 0.20008669151752578,
-          "delta": 0.024954351330526547
+          "delta": 0.024954351330526547,
+          "cv_star": 0.020101879609760682
         },
         "set_distance_max_mean": {
           "original": 0.5193340607256643,
           "reproduced": 0.5800753920401136,
-          "delta": 0.10471282207097805
+          "delta": 0.10471282207097805,
+          "cv_star": 0.08790070534327711
         },
         "set_distance_max_std": {
           "original": 0.438927379640319,
           "reproduced": 0.34590032705586,
-          "delta": 0.21194178558806348
+          "delta": 0.21194178558806348,
+          "cv_star": 0.1885829629851481
         },
         "time_mean": {
           "original": 0.02246472391031556,
           "reproduced": 0.006238730994518846,
-          "delta": 0.722287662228776
+          "delta": 0.722287662228776,
+          "cv_star": 0.8993829047980798
         },
         "time_std": {
           "original": 0.004527869777919189,
           "reproduced": 0.003552348439478414,
-          "delta": 0.21544818784277883
+          "delta": 0.21544818784277883,
+          "cv_star": 0.19207958298285627
         },
         "successful_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -110,72 +124,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.521379531942026,
           "reproduced": 0.3980923073217273,
-          "delta": 0.2364634916930484
+          "delta": 0.2364634916930484,
+          "cv_star": 0.21332765712878926
         },
         "k_distance_std": {
           "original": 0.2013895759724448,
           "reproduced": 0.14772851861082875,
-          "delta": 0.26645399645192286
+          "delta": 0.26645399645192286,
+          "cv_star": 0.244542522439277
         },
         "k_diversity_mean": {
           "original": 0.6299450517127192,
           "reproduced": 0.47575544193635383,
-          "delta": 0.24476676077881498
+          "delta": 0.24476676077881498,
+          "cv_star": 0.22186312513843617
         },
         "k_diversity_std": {
           "original": 0.21781486904831945,
           "reproduced": 0.16004512396539208,
-          "delta": 0.26522406544298816
+          "delta": 0.26522406544298816,
+          "cv_star": 0.2432411562863342
         },
         "set_distance_sum_mean": {
           "original": 0.0966081962615141,
           "reproduced": 0.12346105311314266,
-          "delta": 0.21750063015435295
+          "delta": 0.21750063015435295,
+          "cv_star": 0.19413268215773224
         },
         "set_distance_sum_std": {
           "original": 0.09563006446337553,
           "reproduced": 0.09325870734027024,
-          "delta": 0.02479719256085494
+          "delta": 0.02479719256085494,
+          "cv_star": 0.01997369162968652
         },
         "set_distance_max_mean": {
           "original": 0.23849450500831512,
           "reproduced": 0.2701733871207883,
-          "delta": 0.11725389554490165
+          "delta": 0.11725389554490165,
+          "cv_star": 0.09908388871145951
         },
         "set_distance_max_std": {
           "original": 0.20251878656648942,
           "reproduced": 0.1665708633832614,
-          "delta": 0.1775041406907989
+          "delta": 0.1775041406907989,
+          "cv_star": 0.154956378689465
         },
         "time_mean": {
           "original": 0.02061738806255793,
           "reproduced": 0.00560783137800172,
-          "delta": 0.7280047617580723
+          "delta": 0.7280047617580723,
+          "cv_star": 0.9105761159099353
         },
         "time_std": {
           "original": 0.004091528813477416,
           "reproduced": 0.0011932972555770964,
-          "delta": 0.7083492968089584
+          "delta": 0.7083492968089584,
+          "cv_star": 0.8725089743427118
         },
         "successful_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -193,72 +221,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 1.389182553084757,
           "reproduced": 0.9900790017843246,
-          "delta": 0.2872938120437813
+          "delta": 0.2872938120437813,
+          "cv_star": 0.2668768637987424
         },
         "k_distance_std": {
           "original": 0.291344368462992,
           "reproduced": 0.21689118787418948,
-          "delta": 0.25555043669313254
+          "delta": 0.25555043669313254,
+          "cv_star": 0.23306965341622665
         },
         "k_diversity_mean": {
           "original": 1.7118196467708162,
           "reproduced": 1.1676280266046524,
-          "delta": 0.31790242692489784
+          "delta": 0.31790242692489784,
+          "cv_star": 0.3006839033733594
         },
         "k_diversity_std": {
           "original": 0.30187489393115613,
           "reproduced": 0.2274412218583683,
-          "delta": 0.24657125706440086
+          "delta": 0.24657125706440086,
+          "cv_star": 0.2237287767702854
         },
         "set_distance_sum_mean": {
           "original": 0.22359984183146248,
           "reproduced": 0.2844860547218057,
-          "delta": 0.21402178377384043
+          "delta": 0.21402178377384043,
+          "cv_star": 0.19065550174110268
         },
         "set_distance_sum_std": {
           "original": 0.244943426702313,
           "reproduced": 0.2288558970421214,
-          "delta": 0.06567855229584611
+          "delta": 0.06567855229584611,
+          "cv_star": 0.054020978242559956
         },
         "set_distance_max_mean": {
           "original": 0.6324752906912724,
           "reproduced": 0.644445684949557,
-          "delta": 0.018574713956260838
+          "delta": 0.018574713956260838,
+          "cv_star": 0.014914611795642867
         },
         "set_distance_max_std": {
           "original": 0.5683733757450508,
           "reproduced": 0.3870789302332826,
-          "delta": 0.31897068590540295
+          "delta": 0.31897068590540295,
+          "cv_star": 0.3018860227497322
         },
         "time_mean": {
           "original": 0.010467921273183014,
           "reproduced": 0.004620135332612942,
-          "delta": 0.5586387008422655
+          "delta": 0.5586387008422655,
+          "cv_star": 0.6166314657655146
         },
         "time_std": {
           "original": 0.001495682777856654,
           "reproduced": 0.0008427688293672044,
-          "delta": 0.43653237047035437
+          "delta": 0.43653237047035437,
+          "cv_star": 0.4442169031569571
         },
         "successful_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -276,72 +318,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.6431523377632499,
           "reproduced": 0.4560530030926068,
-          "delta": 0.2909098260006885
+          "delta": 0.2909098260006885,
+          "cv_star": 0.27080765314123134
         },
         "k_distance_std": {
           "original": 0.14193282557234704,
           "reproduced": 0.10180689340527053,
-          "delta": 0.282710726044295
+          "delta": 0.282710726044295,
+          "cv_star": 0.26191860491805036
         },
         "k_diversity_mean": {
           "original": 0.7818753589678238,
           "reproduced": 0.5441608024934929,
-          "delta": 0.3040312675771555
+          "delta": 0.3040312675771555,
+          "cv_star": 0.285212088816761
         },
         "k_diversity_std": {
           "original": 0.15164176344982927,
           "reproduced": 0.10801751432229449,
-          "delta": 0.28767964797486595
+          "delta": 0.28767964797486595,
+          "cv_star": 0.26729549568020994
         },
         "set_distance_sum_mean": {
           "original": 0.10433898230740925,
           "reproduced": 0.13086820628742377,
-          "delta": 0.2027171054958055
+          "delta": 0.2027171054958055,
+          "cv_star": 0.1794491790318884
         },
         "set_distance_sum_std": {
           "original": 0.11493570931665867,
           "reproduced": 0.10507593872122938,
-          "delta": 0.08578509371934791
+          "delta": 0.08578509371934791,
+          "cv_star": 0.07129985662161435
         },
         "set_distance_max_mean": {
           "original": 0.2958539824632799,
           "reproduced": 0.299422924220562,
-          "delta": 0.01191940051541662
+          "delta": 0.01191940051541662,
+          "cv_star": 0.009538672678666956
         },
         "set_distance_max_std": {
           "original": 0.26735974736193696,
           "reproduced": 0.18391266627779093,
-          "delta": 0.31211534985174844
+          "delta": 0.31211534985174844,
+          "cv_star": 0.2941981140948799
         },
         "time_mean": {
           "original": 0.010600069821891139,
           "reproduced": 0.004608379619506498,
-          "delta": 0.5652500693920594
+          "delta": 0.5652500693920594,
+          "cv_star": 0.6268042495522873
         },
         "time_std": {
           "original": 0.001600492824113005,
           "reproduced": 0.0008052528862996178,
-          "delta": 0.49687191709472994
+          "delta": 0.49687191709472994,
+          "cv_star": 0.5259155147174628
         },
         "successful_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 150,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -359,72 +415,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.6195697341733506,
           "reproduced": 0.9063454756742878,
-          "delta": 0.3164088630635979
+          "delta": 0.3164088630635979,
+          "cv_star": 0.29900574286140147
         },
         "k_distance_std": {
           "original": 0.23376784661693936,
           "reproduced": 0.44992860569098814,
-          "delta": 0.48043346508736634
+          "delta": 0.48043346508736634,
+          "cv_star": 0.5030151328361925
         },
         "k_diversity_mean": {
           "original": 0.7877654376535028,
           "reproduced": 0.6040575864312312,
-          "delta": 0.23320120741711847
+          "delta": 0.23320120741711847,
+          "cv_star": 0.20999609612312387
         },
         "k_diversity_std": {
           "original": 0.2842564609400587,
           "reproduced": 0.48102518531583205,
-          "delta": 0.40906116848451235
+          "delta": 0.40906116848451235,
+          "cv_star": 0.4090743911441955
         },
         "set_distance_sum_mean": {
           "original": 0.16236953732885087,
           "reproduced": 0.16374665696267465,
-          "delta": 0.008410062589172063
+          "delta": 0.008410062589172063,
+          "cv_star": 0.006718414968073481
         },
         "set_distance_sum_std": {
           "original": 0.1250212304713393,
           "reproduced": 0.17553913624903134,
-          "delta": 0.2877871388521817
+          "delta": 0.2877871388521817,
+          "cv_star": 0.26741215685620234
         },
         "set_distance_max_mean": {
           "original": 0.335030530077427,
           "reproduced": 0.33951576691988394,
-          "delta": 0.013210687925180598
+          "delta": 0.013210687925180598,
+          "cv_star": 0.010578915267129235
         },
         "set_distance_max_std": {
           "original": 0.23795109461626193,
           "reproduced": 0.32843133868070495,
-          "delta": 0.2754921148143122
+          "delta": 0.2754921148143122,
+          "cv_star": 0.2541625205078184
         },
         "time_mean": {
           "original": 0.018551729343555593,
           "reproduced": 0.005110336030667571,
-          "delta": 0.7245358674638721
+          "delta": 0.7245358674638721,
+          "cv_star": 0.9037725774187203
         },
         "time_std": {
           "original": 0.014841148530193417,
           "reproduced": 0.0008193118057553373,
-          "delta": 0.9447945821653562
+          "delta": 0.9447945821653562,
+          "cv_star": 1.424517871419591
         },
         "successful_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 4,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -442,72 +512,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.3048553725583726,
           "reproduced": 0.43683977123247847,
-          "delta": 0.30213457511373454
+          "delta": 0.30213457511373454,
+          "cv_star": 0.28311617544325435
         },
         "k_distance_std": {
           "original": 0.11443811074656235,
           "reproduced": 0.21539310558013536,
-          "delta": 0.46870114324997963
+          "delta": 0.46870114324997963,
+          "cv_star": 0.4869715335986279
         },
         "k_diversity_mean": {
           "original": 0.38542409662069654,
           "reproduced": 0.28812232473737576,
-          "delta": 0.25245378463992973
+          "delta": 0.25245378463992973,
+          "cv_star": 0.22983741908721037
         },
         "k_diversity_std": {
           "original": 0.1401568646680589,
           "reproduced": 0.23015471536842197,
-          "delta": 0.3910319654163865
+          "delta": 0.3910319654163865,
+          "cv_star": 0.38666277641489605
         },
         "set_distance_sum_mean": {
           "original": 0.07740982157846708,
           "reproduced": 0.07830150795384995,
-          "delta": 0.011387856998979082
+          "delta": 0.011387856998979082,
+          "cv_star": 0.009110861363729732
         },
         "set_distance_sum_std": {
           "original": 0.05945554812100612,
           "reproduced": 0.08429143511886958,
-          "delta": 0.2946430673868509
+          "delta": 0.2946430673868509,
+          "cv_star": 0.27488336355726706
         },
         "set_distance_max_mean": {
           "original": 0.16005675948724732,
           "reproduced": 0.16262636720904544,
-          "delta": 0.015800683283388246
+          "delta": 0.015800683283388246,
+          "cv_star": 0.01266945964379952
         },
         "set_distance_max_std": {
           "original": 0.11401052639165324,
           "reproduced": 0.1575034462793218,
-          "delta": 0.27613948085006845
+          "delta": 0.27613948085006845,
+          "cv_star": 0.2548554357559514
         },
         "time_mean": {
           "original": 0.018258037390532316,
           "reproduced": 0.0052461319360626885,
-          "delta": 0.7126672585968596
+          "delta": 0.7126672585968596,
+          "cv_star": 0.8807720249171573
         },
         "time_std": {
           "original": 0.014400465978400282,
           "reproduced": 0.0008843996469555436,
-          "delta": 0.9385853452046563
+          "delta": 0.9385853452046563,
+          "cv_star": 1.406877259010633
         },
         "successful_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 4,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -525,72 +609,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.867544349972541,
           "reproduced": 1.0614287460095262,
-          "delta": 0.18266360013886893
+          "delta": 0.18266360013886893,
+          "cv_star": 0.15991316097230368
         },
         "k_distance_std": {
           "original": 0.2069646610069502,
           "reproduced": 0.3365198055851506,
-          "delta": 0.3849851997653632
+          "delta": 0.3849851997653632,
+          "cv_star": 0.3792582594814243
         },
         "k_diversity_mean": {
           "original": 1.1078796183253683,
           "reproduced": 0.7793791637777194,
-          "delta": 0.2965127700825461
+          "delta": 0.2965127700825461,
+          "cv_star": 0.2769312972770894
         },
         "k_diversity_std": {
           "original": 0.23683152035958221,
           "reproduced": 0.529919481432153,
-          "delta": 0.5530801779177382
+          "delta": 0.5530801779177382,
+          "cv_star": 0.6081506116289392
         },
         "set_distance_sum_mean": {
           "original": 0.15070948545722446,
           "reproduced": 0.16437817439266808,
-          "delta": 0.08315391618106023
+          "delta": 0.08315391618106023,
+          "cv_star": 0.06901809782639218
         },
         "set_distance_sum_std": {
           "original": 0.1636990764999631,
           "reproduced": 0.19421523048722522,
-          "delta": 0.1571254422771409
+          "delta": 0.1571254422771409,
+          "cv_star": 0.1356495193052489
         },
         "set_distance_max_mean": {
           "original": 0.389747858146783,
           "reproduced": 0.40332334121204405,
-          "delta": 0.03365905634041614
+          "delta": 0.03365905634041614,
+          "cv_star": 0.02723394988678503
         },
         "set_distance_max_std": {
           "original": 0.3532081463443451,
           "reproduced": 0.3861382088758581,
-          "delta": 0.08528050779377772
+          "delta": 0.08528050779377772,
+          "cv_star": 0.07086179339653095
         },
         "time_mean": {
           "original": 0.009372600802668819,
           "reproduced": 0.005229327036705735,
-          "delta": 0.44206233181117655
+          "delta": 0.44206233181117655,
+          "cv_star": 0.4514409514290682
         },
         "time_std": {
           "original": 0.0014526652762984562,
           "reproduced": 0.001478734505031479,
-          "delta": 0.017629418022180994
+          "delta": 0.017629418022180994,
+          "cv_star": 0.014148834015531707
         },
         "successful_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 4,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -608,72 +706,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.4259955778213827,
           "reproduced": 0.5095394169835195,
-          "delta": 0.16395952182996454
+          "delta": 0.16395952182996454,
+          "cv_star": 0.14207638937440858
         },
         "k_distance_std": {
           "original": 0.09472083734072355,
           "reproduced": 0.15964933612727464,
-          "delta": 0.4066944489815429
+          "delta": 0.4066944489815429,
+          "cv_star": 0.40610346569394407
         },
         "k_diversity_mean": {
           "original": 0.5351792592515182,
           "reproduced": 0.37078666361091345,
-          "delta": 0.30717295709575543
+          "delta": 0.30717295709575543,
+          "cv_star": 0.2886941015075652
         },
         "k_diversity_std": {
           "original": 0.1091282589192789,
           "reproduced": 0.251342774282344,
-          "delta": 0.565818992684904
+          "delta": 0.565818992684904,
+          "cv_star": 0.6276840234075161
         },
         "set_distance_sum_mean": {
           "original": 0.07375574688240437,
           "reproduced": 0.07990756856371142,
-          "delta": 0.07698672093122344
+          "delta": 0.07698672093122344,
+          "cv_star": 0.06369437190305238
         },
         "set_distance_sum_std": {
           "original": 0.08024609148471444,
           "reproduced": 0.09372283118249033,
-          "delta": 0.14379356158730372
+          "delta": 0.14379356158730372,
+          "cv_star": 0.12324822868121565
         },
         "set_distance_max_mean": {
           "original": 0.18741673907707035,
           "reproduced": 0.19669321549367413,
-          "delta": 0.04716215754224693
+          "delta": 0.04716215754224693,
+          "cv_star": 0.03842333016548107
         },
         "set_distance_max_std": {
           "original": 0.1690608353521021,
           "reproduced": 0.18635137166000343,
-          "delta": 0.09278459371604617
+          "delta": 0.09278459371604617,
+          "cv_star": 0.0774004782981999
         },
         "time_mean": {
           "original": 0.009374009238349067,
           "reproduced": 0.005504922776272495,
-          "delta": 0.4127461754836065
+          "delta": 0.4127461754836065,
+          "cv_star": 0.4137177897712334
         },
         "time_std": {
           "original": 0.0014850562213812887,
           "reproduced": 0.0014907138549415107,
-          "delta": 0.003795251208987994
+          "delta": 0.003795251208987994,
+          "cv_star": 0.003024843870633095
         },
         "successful_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 146,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 4,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -691,72 +803,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 2.7082812984139935,
           "reproduced": 2.3870303601026537,
-          "delta": 0.11861801006397257
+          "delta": 0.11861801006397257,
+          "cv_star": 0.10030929359665423
         },
         "k_distance_std": {
           "original": 0.9792371909063994,
           "reproduced": 0.9915627289155191,
-          "delta": 0.012430416805399976
+          "delta": 0.012430416805399976,
+          "cv_star": 0.009950178450798503
         },
         "k_diversity_mean": {
           "original": 3.4528531924520034,
           "reproduced": 3.081816953442235,
-          "delta": 0.10745786696661769
+          "delta": 0.10745786696661769,
+          "cv_star": 0.09033585909119796
         },
         "k_diversity_std": {
           "original": 1.2457051074035783,
           "reproduced": 1.2941855516514862,
-          "delta": 0.03746019586298339
+          "delta": 0.03746019586298339,
+          "cv_star": 0.030368202745632372
         },
         "set_distance_sum_mean": {
           "original": 0.8827430525206145,
           "reproduced": 0.7515418069302171,
-          "delta": 0.14862903221470944
+          "delta": 0.14862903221470944,
+          "cv_star": 0.1277255322542723
         },
         "set_distance_sum_std": {
           "original": 0.7854665964315622,
           "reproduced": 0.4914663097878787,
-          "delta": 0.37430017772792684
+          "delta": 0.37430017772792684,
+          "cv_star": 0.366308667843059
         },
         "set_distance_max_mean": {
           "original": 1.9481909303121976,
           "reproduced": 1.7610585332132769,
-          "delta": 0.09605444424737813
+          "delta": 0.09605444424737813,
+          "cv_star": 0.08026578519628375
         },
         "set_distance_max_std": {
           "original": 1.4079245606743451,
           "reproduced": 1.2216227977655718,
-          "delta": 0.13232368275438103
+          "delta": 0.13232368275438103,
+          "cv_star": 0.11272065088434391
         },
         "time_mean": {
           "original": 0.30924982844658616,
           "reproduced": 0.05893846907470699,
-          "delta": 0.8094147072909794
+          "delta": 0.8094147072909794,
+          "cv_star": 1.0816284407347183
         },
         "time_std": {
           "original": 0.008624294788833095,
           "reproduced": 0.021789466273085617,
-          "delta": 0.6041988968088752
+          "delta": 0.6041988968088752,
+          "cv_star": 0.6886902126098221
         },
         "successful_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 12,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -774,72 +900,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.753167686377201,
           "reproduced": 0.6681875939764407,
-          "delta": 0.11283024210653754
+          "delta": 0.11283024210653754,
+          "cv_star": 0.09512224070525428
         },
         "k_distance_std": {
           "original": 0.2773105381613848,
           "reproduced": 0.2849072691614331,
-          "delta": 0.026663872151832975
+          "delta": 0.026663872151832975,
+          "cv_star": 0.021497584839525918
         },
         "k_diversity_mean": {
           "original": 0.9455304743790431,
           "reproduced": 0.8455547763952527,
-          "delta": 0.10573503519222621
+          "delta": 0.10573503519222621,
+          "cv_star": 0.08880669495054992
         },
         "k_diversity_std": {
           "original": 0.35630206825583965,
           "reproduced": 0.3523652312752962,
-          "delta": 0.011049155565711358
+          "delta": 0.011049155565711358,
+          "cv_star": 0.008838377735536264
         },
         "set_distance_sum_mean": {
           "original": 0.21922616960121646,
           "reproduced": 0.18208042551169468,
-          "delta": 0.1694402824128697
+          "delta": 0.1694402824128697,
+          "cv_star": 0.14726525225356513
         },
         "set_distance_sum_std": {
           "original": 0.21329538887315122,
           "reproduced": 0.12887393043252868,
-          "delta": 0.3957959845574945
+          "delta": 0.3957959845574945,
+          "cv_star": 0.39253583047669544
         },
         "set_distance_max_mean": {
           "original": 0.5230442320759029,
           "reproduced": 0.4578115034551508,
-          "delta": 0.12471742277292844
+          "delta": 0.12471742277292844,
+          "cv_star": 0.105810296007128
         },
         "set_distance_max_std": {
           "original": 0.43612427243410695,
           "reproduced": 0.35422075933772823,
-          "delta": 0.1877985663105998
+          "delta": 0.1877985663105998,
+          "cv_star": 0.16487443605881028
         },
         "time_mean": {
           "original": 0.29450775542349183,
           "reproduced": 0.06777779125453283,
-          "delta": 0.7698607591604142
+          "delta": 0.7698607591604142,
+          "cv_star": 0.9956929483449963
         },
         "time_std": {
           "original": 0.004744213758779755,
           "reproduced": 0.02596455679163383,
-          "delta": 0.8172811576622632
+          "delta": 0.8172811576622632,
+          "cv_star": 1.0994044510592076
         },
         "successful_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 12,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -857,72 +997,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 3.530076156957467,
           "reproduced": 3.295206133697344,
-          "delta": 0.0665339819361162
+          "delta": 0.0665339819361162,
+          "cv_star": 0.05474878589815343
         },
         "k_distance_std": {
           "original": 0.9028430904918028,
           "reproduced": 0.8468063363191286,
-          "delta": 0.062066991222305815
+          "delta": 0.062066991222305815,
+          "cv_star": 0.05095531058622314
         },
         "k_diversity_mean": {
           "original": 4.355430504464352,
           "reproduced": 4.106766381298287,
-          "delta": 0.05709289194516656
+          "delta": 0.05709289194516656,
+          "cv_star": 0.046751712673433254
         },
         "k_diversity_std": {
           "original": 1.179512381009224,
           "reproduced": 1.1634437910591973,
-          "delta": 0.013623078662623331
+          "delta": 0.013623078662623331,
+          "cv_star": 0.010911416256844874
         },
         "set_distance_sum_mean": {
           "original": 0.7947714878410156,
           "reproduced": 0.6240237752596537,
-          "delta": 0.21483874949414128
+          "delta": 0.21483874949414128,
+          "cv_star": 0.19147085862314656
         },
         "set_distance_sum_std": {
           "original": 0.9701452060470587,
           "reproduced": 0.6537455036167152,
-          "delta": 0.3261364386054554
+          "delta": 0.3261364386054554,
+          "cv_star": 0.3099893614149102
         },
         "set_distance_max_mean": {
           "original": 2.1449439565635027,
           "reproduced": 1.9253296044425687,
-          "delta": 0.10238698845669915
+          "delta": 0.10238698845669915,
+          "cv_star": 0.08584295120018709
         },
         "set_distance_max_std": {
           "original": 1.8755567437282197,
           "reproduced": 1.7465001161668154,
-          "delta": 0.0688097696819699
+          "delta": 0.0688097696819699,
+          "cv_star": 0.05668818714896028
         },
         "time_mean": {
           "original": 0.2825630655828512,
           "reproduced": 0.010052677447253001,
-          "delta": 0.9644232432624658
+          "delta": 0.9644232432624658,
+          "cv_star": 1.4816748003641398
         },
         "time_std": {
           "original": 0.010090933446743526,
           "reproduced": 0.0027486342669978078,
-          "delta": 0.7276134778309507
+          "delta": 0.7276134778309507,
+          "cv_star": 0.9098068349583095
         },
         "successful_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 12,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -940,72 +1094,86 @@
         "validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "k_distance_mean": {
           "original": 0.9826232194767097,
           "reproduced": 0.9236155994128489,
-          "delta": 0.060051115111329254
+          "delta": 0.060051115111329254,
+          "cv_star": 0.04924910127712531
         },
         "k_distance_std": {
           "original": 0.26502041297129036,
           "reproduced": 0.25244959798258804,
-          "delta": 0.04743338389584399
+          "delta": 0.04743338389584399,
+          "cv_star": 0.038649668105649175
         },
         "k_diversity_mean": {
           "original": 1.199459429323792,
           "reproduced": 1.1422848736894302,
-          "delta": 0.04766693581840818
+          "delta": 0.04766693581840818,
+          "cv_star": 0.038844617187204465
         },
         "k_diversity_std": {
           "original": 0.3440401847367622,
           "reproduced": 0.3235677623915165,
-          "delta": 0.05950590440738735
+          "delta": 0.05950590440738735,
+          "cv_star": 0.04878825161128208
         },
         "set_distance_sum_mean": {
           "original": 0.2206396335817396,
           "reproduced": 0.1747515580576399,
-          "delta": 0.207977482463955
+          "delta": 0.207977482463955,
+          "cv_star": 0.18464620013245694
         },
         "set_distance_sum_std": {
           "original": 0.26820636713781054,
           "reproduced": 0.17981606321550644,
-          "delta": 0.3295607962837331
+          "delta": 0.3295607962837331,
+          "cv_star": 0.31388632105305786
         },
         "set_distance_max_mean": {
           "original": 0.6147140340813039,
           "reproduced": 0.5469203513601552,
-          "delta": 0.11028491129613957
+          "delta": 0.11028491129613957,
+          "cv_star": 0.09285115014902943
         },
         "set_distance_max_std": {
           "original": 0.5619741369655994,
           "reproduced": 0.5041543933323376,
-          "delta": 0.10288684092378646
+          "delta": 0.10288684092378646,
+          "cv_star": 0.08628476417920607
         },
         "time_mean": {
           "original": 0.27688173977833874,
           "reproduced": 0.009101194855959518,
-          "delta": 0.9671296674773656
+          "delta": 0.9671296674773656,
+          "cv_star": 1.4897260870121247
         },
         "time_std": {
           "original": 0.004744227960527341,
           "reproduced": 0.002287197881018705,
-          "delta": 0.5178988235707642
+          "delta": 0.5178988235707642,
+          "cv_star": 0.5559485383749998
         },
         "successful_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "eligible_runs": {
           "original": null,
           "reproduced": 138,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "skipped_noise_label_mismatch": {
           "original": null,
           "reproduced": 12,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     }

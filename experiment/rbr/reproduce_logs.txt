@@ -1,49 +1,22 @@
-Level Badge
-Level 1: Minimal Reproduction
+**Scope of Reproducibility**
 
-Reason
-The pre-standardization reproduction log did not assign a numeric reproduction badge.
+We aim to reproduce the RBR claims from `reference/rbr.pdf`:
 
-Method
-RBR benchmark reproduction
+1. We formulate recourse that is robust to shifts between current and future classifiers : [Quantitative] : [Methodology and German current/future experiments]
+2. We avoid relying on local linear approximations of the black-box model : [Qualitative] : [Methodology section]
+3. We evaluate current validity, future validity, classifier accuracy/AUC, and distance across robustness sweeps : [Quantitative] : [German epsilon/delta sweep results]
 
-Reproduction Summary
-- Restored original badge: `No explicit original level badge`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 4`, `R_rep = 4`
-- Average raw delta across extracted scalar results: `0.059157`
-- Average variance-adjusted delta across extracted scalar results: `0.017754`
+**Methodology**
 
-Reference Scope
-- Only the classifier paper-comparison metrics are currently quantified; the full paper experiment set is not established in the current log/script.
+We reproduce RBR with `experiment/rbr/test_rbr_reproduce.py` using German current/future MLP configurations. Code/experiments and data are available. The current report includes classifier metrics and sweep outputs in the RecourseBench environment.
 
-Observed Result
-- All currently extracted scalar-result pairs are within the threshold.
-- The quantified scope is narrower than the full experiment space discussed in the paper.
+**Results**
 
-Reproduction Assessment
-No value available.
+Claim 3 is partially reproduced. The four classifier scalar comparisons are all within the 15% relative-delta threshold: present accuracy reference 0.67 versus reproduced 0.705, relative delta 0.050; present AUC reference 0.60 versus reproduced 0.6164, relative delta 0.027; shift accuracy reference 0.66 versus reproduced 0.64, relative delta 0.030; shift AUC reference 0.60 versus reproduced 0.6399, relative delta 0.062. The actual recourse sweep metrics mostly lack original scalar targets, so full delta validation is incomplete. Claims 1 and 2 are partly formulation claims.
 
-Paper Result
-- `PAPER_GERMAN_METRICS` in `experiment/rbr/test_rbr_reproduce.py`:
-  - present_accuracy = 0.67 +- 0.02
-  - present_auc = 0.60 +- 0.03
-  - shift_accuracy = 0.66 +- 0.23
-  - shift_auc = 0.60 +- 0.04
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-- `R = 4` total extracted scalar results
-- `R_rep = 4` extracted scalar results with `Δ <= 0.15`
-- `R - R_rep = 0` extracted scalar results outside the threshold
-
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-- Provisional Level 3 by scalar-result counts is downgraded to Level 2 because the quantified result set is not the full paper experiment set.
-
-Next Steps
-- Extend the structured scalar-result set if additional paper experiments are meant to be covered.
-- Reassess Level 3 only after full paper coverage is explicit.
+- Add original scalar targets for epsilon/delta recourse sweeps.
+- Reproduce all current/future model-shift settings and baselines.
+- Confirm uncertainty sets and robust optimization details match the original.
+- Add a formulation/proof audit for qualitative claims.

@@ -1,41 +1,22 @@
-Level Badge
-Level 0: No Reproduction
+**Scope of Reproducibility**
 
-Reason
-Dataset used in original paper is not available, nor does the original paper have any reproducible metrics.
+We aim to reproduce the FACE claims from `reference/face.pdf`:
 
-Method
-FACE benchmark reproduction
+1. We generate feasible counterfactuals by finding paths through a graph built on the data manifold : [Quantitative] : [FACE graph/path experiments]
+2. We prefer realistic counterfactuals by using density-aware graph construction : [Quantitative] : [KDE, epsilon, and KNN graph comparisons]
+3. We evaluate reachability, path cost, path hops, endpoint density, endpoint confidence, and validity : [Quantitative] : [Empirical graph/path metrics]
 
-Reproduction Summary
-- Restored original badge status: `No explicit original level badge`
-- Current scalar-result coverage is not classifiable from the available pipeline artifacts.
+**Methodology**
 
-Reference Scope
-- The log reports benchmark summary tables and threshold-style behavioral checks, but not extractable paper/reference scalar result pairs.
+We reproduce FACE with `experiment/face/test_face_reproduce.py` on a synthetic FACE setup. The project artifact list marks FACE as having no original code/experiments and no original data, so the current result is a mechanism-style reimplementation in RecourseBench rather than strict paper reproduction.
 
-Observed Result
-- The current run provides benchmark summary statistics and qualitative reachability checks.
-- No scalar paper/reference result set is currently available for R / R_rep scoring.
+**Results**
 
-Reproduction Assessment
-No value available.
+Claims 1-3 are partially reproduced as a synthetic mechanism check. The current report demonstrates FACE-style graph/path behavior with validity and reachability metrics, but it has no original paper scalar targets for delta comparison and does not reproduce the paper's real-world tabular demonstrations.
 
-Paper Result
-No value available.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-- `R`: not classifiable from the available scalar-result pipeline
-- `R_rep`: not classifiable from the available scalar-result pipeline
-
-Reproducibility Criterion
-- A scored result must be one scalar `(dataset, model, metric)` pair with both observed and paper/reference values available.
-- The scalar criterion would use `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-- This method is rewritten into the standardized format but remains unscored under the current criterion.
-
-Next Steps
-- Expose explicit scalar paper/reference result pairs if FACE should enter the same scoring pipeline.
+- Recover original code/data or document substitute datasets as a weaker Pineau tier.
+- Add paper-aligned real-world tabular experiments.
+- Recover scalar targets for connectivity, path cost, density, and validity.
+- Keep the synthetic run as mechanism evidence only.

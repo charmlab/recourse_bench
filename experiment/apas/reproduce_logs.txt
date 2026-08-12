@@ -1,52 +1,22 @@
-Level Badge
-Level 2: Partial Reproduction
+**Scope of Reproducibility**
 
-Reason
-The implementation reproduces the diabetes APAS / APΔS experiment with close quantitative agreement, but the full set of APAS paper experiments has not been validated in this repository.
+We aim to reproduce the APAS claims from `reference/apas.pdf`:
 
-Method
-APAS / APΔS diabetes notebook-faithful reproduction for the benchmark implementation under `method/apas/`, using the reproduction script in `experiment/apas/`.
+1. We show that the APAS verification problem is computationally hard in the worst case : [Qualitative] : [Theorem / complexity result in the paper]
+2. We estimate and certify how often recourse remains valid under plausible model changes : [Quantitative] : [Notebook-style empirical tables for Diabetes, no2, SBA, and Credit]
+3. We produce recourses that balance robustness, plausibility, sparsity, and proximity : [Quantitative] : [Empirical APAS metrics: sound fraction, certified delta, L0, LOF, runtime]
 
-Reproduction Summary
-No value available.
+**Methodology**
 
-Reference Scope
-- dataset: diabetes
-- target: APΔS row from the diabetes results
-- reproduction style: notebook-faithful local reproduction
+We reproduce the empirical APAS experiments with `experiment/apas/test_apas_reproduce.py` and `experiment/apas/config.yaml`. We use the available APAS code/data family in the current RecourseBench environment, with Gurobi as a required optimization dependency, so this is reproducibility-oriented with solver and environment drift caveats.
 
-Observed Result
-- delta_min = 0.105839564653
-- delta_max = 0.345790621778
-- delta_e = 0.279838414109
-- found = 1.0
-- VM1 = 1.0
-- VM2 = 1.0
-- delta_validity = 0.0
-- L1 = 0.076468762246
-- L0 = 0.3
-- LOF = 1.0
+**Results**
 
-Reproduction Assessment
-No value available.
+Claim 1 is not verified by rerunning code because it is a theorem-level claim. Claims 2 and 3 are largely reproduced for the covered empirical scope: 57 of 58 scalar comparisons are within the 15% relative-delta threshold. The main discrepancy is Credit L0 distance, reference 0.093 versus reproduced 0.068, relative delta 0.269.
 
-Paper Result
-- `reproduction.targets.paper` in `experiment/apas/config.yaml`: delta = 0.11, delta_e = 0.27, vm1 = 1.0, vm2 = 1.0, l1 = 0.077, lof = 1.0.
-- Notebook targets were matched exactly or nearly exactly on all main quantities.
-- Paper Table 1 diabetes APΔS row was matched on VM1, VM2, and LOF.
-- Reproduced L1 = 0.076468762246 is very close to the paper's rounded 0.077.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-No value available.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-- Reproduce additional APAS paper datasets and settings beyond diabetes.
-- Determine whether the remaining small L1 and L0 deviations come from benchmark-vs-notebook model path differences.
-- Add or refine benchmark-pipeline APAS validation runs beyond the custom diabetes reproduction.
-- Revisit full paper coverage before claiming Level 3 reproduction.
+- Document Gurobi version, license mode, solver tolerances, and hardware.
+- Investigate the Credit L0 mismatch through preprocessing, seeds, and solver settings.
+- Add a proof-audit note for the complexity claim instead of treating it as executable evidence.
+- Preserve all scalar targets in `reproduction_report.json`.

@@ -1,62 +1,25 @@
-Level Badge
-Level 1: Minimal Reproduction
+**Scope of Reproducibility**
 
-Reason
-Is able to accurately reproduce several metrics for a single experiment
+We aim to reproduce the CFRL claims from `reference/cfrl.pdf`:
 
-Method
-CFRL benchmark reproduction
+1. We replace iterative per-instance counterfactual optimization with a generator that produces batches in one forward pass : [Quantitative] : [Sections 4.6 and 5]
+2. We train a DDPG actor/critic generator in an autoencoder latent space to produce sparse, in-distribution counterfactuals : [Quantitative] : [Sections 4.1-4.4, Tables 2-4]
+3. We operate in a model-agnostic black-box setting using prediction feedback rather than model gradients : [Qualitative] : [Methodology Sections 4.1-4.4]
+4. We support target and feature conditioning, including immutable features and one-direction numerical constraints : [Quantitative] : [Figure 1, Section 4.3, Section 5]
+5. We evaluate the method on tabular datasets and show extension to MNIST/CelebA images : [Quantitative] : [Section 5, Tables 1-6, Figure 4]
 
-Reproduction Summary
-- Restored original badge: `No explicit original level badge`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 7`, `R_rep = 3`
-- Average raw delta across extracted scalar results: `0.360983`
-- Average variance-adjusted delta across extracted scalar results: `0.000000`
+**Methodology**
 
-Reference Scope
-- Adult random-forest reproduction only; current log does not show full paper experiment coverage.
+We reproduce CFRL with `experiment/cfrl/test_cfrl_reproduce.py` in the RecourseBench PyTorch environment. The current script covers Adult with a random-forest black-box model, CFRL training for 100,000 steps, and batch size 128. The local framework includes `reference/cfrl.pdf`, an implementation, and an Adult configuration, but the project artifact list did not confirm exact original code/data availability.
 
-Observed Result
-{
-    "accuracy": 0.859665
-    "validity": 0.981000
-    "sparsity_cat_l0": 0.042176
-    "sparsity_num_l1": 0.240998
-    "immutability_violation_rate": 0.000000
-    "target_conditional_mmd_cls_0": 0.057871
-    "target_conditional_mmd_cls_1": 0.062746
-}
+**Results**
 
-- Some scalar metrics reproduce within the threshold, but several do not.
-- The current log covers one benchmark setting rather than all paper experiments.
+Claims 1-4 are partially reproduced for Adult + random forest. Accuracy and validity are close: accuracy is 0.86 versus reproduced 0.859665, relative delta 0.0004; validity is 0.9859 versus reproduced 0.988, relative delta 0.0021. Immutability is fully matched at 0.0 violation rate. Sparsity and distribution metrics drift: categorical L0 has relative delta 0.746, numerical L1 has relative delta 0.329, and target-conditional MMD deltas exceed 0.83. Claim 5 is not fully reproduced because Covertype, other tabular datasets, MNIST, and CelebA are not covered.
 
-Reproduction Assessment
-No value available.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Paper Result
-- `REFERENCE_RESULTS` in `experiment/cfrl/test_cfrl_reproduce.py`:
-  - accuracy = 0.86
-  - validity = 0.9859
-  - sparsity_cat_l0 = 0.11
-  - sparsity_num_l1 = 0.19
-  - immutability_violation_rate = 0.0
-  - target_conditional_mmd_cls_0 = 0.36
-  - target_conditional_mmd_cls_1 = 0.43
-
-Scalar Result Coverage
-- `R = 7` total extracted scalar results
-- `R_rep = 3` extracted scalar results with `Δ <= 0.15`
-- `R - R_rep = 4` extracted scalar results outside the threshold
-
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-- CFRL tolerances are used in the delta pipeline, but the level here is based on raw scalar-result thresholding with δ = 0.15.
-
-Next Steps
-- Add the remaining paper experiment settings if they exist outside the current adult RF configuration.
-- Keep the scalar result set aligned with the paper before re-evaluating the level.
+- Confirm whether exact original CFRL code, data splits, and trained artifacts are available.
+- Add the remaining tabular datasets and classifier families.
+- Add MNIST and CelebA coverage or explicitly mark image claims out of scope.
+- Investigate sparsity and MMD drift before making a scalar-reproduction claim.
+- Record autoencoder, DDPG, preprocessing, seed, and hardware details.

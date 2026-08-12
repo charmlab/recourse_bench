@@ -1,43 +1,31 @@
-Level Badge
-No value available.
+**Scope of Reproducibility**
 
-Reason
-No value available.
+We aim to reproduce the Wachter counterfactual explanation claims from `reference/wachter.pdf`:
 
-Method
-Wachter
+1. We generate closest possible counterfactual worlds that change a black-box model's prediction : [Quantitative] : [Original L1/L2 example tables]
+2. We balance prediction loss and distance to produce interpretable counterfactual explanations : [Quantitative] : [Optimization examples and discussion]
+3. We use counterfactual explanations to support actionable recourse and transparency : [Qualitative] : [Paper examples and argument]
 
-Reproduction Summary
-- Smoke script: `experiment/wachter/smoke.py`
-- Smoke configuration: `experiment/wachter/credit_linear_wachter_smoke.yaml`
+**Methodology**
 
-Reference Scope
-- dataset: credit
-- model: linear
-- method: wachter
-- desired_class: 1
-- split sample: 256
-- method max_iter: 100
-- method max_minutes: 0.05
-- evaluations: validity and distance
+We run two levels of coverage:
 
-Observed Result
-No value available.
+1. `experiment/wachter/smoke.py` with `experiment/wachter/smoke_config.yaml`, which remains a small Credit + linear-model executability check with short optimizer settings.
+2. `experiment/wachter/test_wachter_reproduce.py`, a deterministic scoped optimizer check anchored to Section III, Equation 2, and the MAD-weighted L1 distance discussion. The script compares unweighted L1 recourse against a MAD-style weighted L1 recourse on a tiny differentiable risk model and writes `experiment/wachter/reproduction_report.json`.
 
-Reproduction Assessment
-No value available.
+The project artifact list marks Wachter as having no original code/experiments and no original data, so exact same-tools reproduction is not currently possible. The new script does not reproduce the original LSAT/Pima examples or tables.
 
-Paper Result
-No value available.
+**Results**
 
-Scalar Result Coverage
-No value available.
+Claim 1 is partially validated at optimizer level. Both unweighted and MAD-weighted variants found counterfactuals crossing the decision threshold: target probabilities were 0.5553 and 0.5457 respectively. This supports the closest-counterfactual search mechanism, but it does not reproduce the original LSAT/Pima examples.
 
-Reproducibility Criterion
-No value available.
+Claim 2 is partially validated. The MAD-weighted L1 variant sharply reduced movement in the high-cost second feature, from 0.2383 to 0.0034, while still crossing the target threshold. This validates the paper's distance-weighting behavior in a scoped setting, but it does not reproduce the original L1/L2 tables or paper scalar deltas.
 
-Notes / Caveats
-- The initial repository contains a smoke script and configuration but no recorded smoke execution result.
+Claim 3 remains qualitative and is not empirically reproduced. The scoped script checks the optimizer behavior used for actionable counterfactual explanations, but it does not evaluate transparency, user-facing interpretability, or legal/accountability claims.
 
-Next Steps
-No value available.
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Recover original code/data if possible, or document substitute-data experiments as a weaker Pineau tier.
+- Recreate the original closest-possible-world examples and L1/L2 optimization settings.
+- Add scalar targets for proximity, target prediction, and sparsity/actionability.
+- Keep `smoke.py` as a health check and `test_wachter_reproduce.py` as scoped optimizer evidence.

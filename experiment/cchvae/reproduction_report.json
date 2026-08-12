@@ -21,142 +21,170 @@
         "n_train": {
           "original": null,
           "reproduced": 96215.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "n_test": {
           "original": null,
           "reproduced": 24054.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "n_search_candidates_total": {
           "original": null,
           "reproduced": 57.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "n_counterfactuals_requested": {
           "original": null,
           "reproduced": 25.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "n_counterfactuals_evaluated": {
           "original": null,
           "reproduced": 25.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "n_counterfactuals_success": {
           "original": null,
           "reproduced": 25.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "outlier_rate_k_1": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "predicted_local_outliers_pct_k_1": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "outlier_rate_k_5": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "predicted_local_outliers_pct_k_5": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "outlier_rate_k_10": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "predicted_local_outliers_pct_k_10": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "outlier_rate_k_15": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "predicted_local_outliers_pct_k_15": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "outlier_rate_k_20": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "predicted_local_outliers_pct_k_20": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "connectedness_reference_rows": {
           "original": null,
           "reproduced": 89369.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_rate_eps_1": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_pct_eps_1": {
           "original": null,
           "reproduced": 100.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_rate_eps_5": {
           "original": null,
           "reproduced": 0.56,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_pct_eps_5": {
           "original": null,
           "reproduced": 56.00000000000001,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_rate_eps_10": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_pct_eps_10": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_rate_eps_15": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_pct_eps_15": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_rate_eps_20": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "not_connected_pct_eps_20": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     }

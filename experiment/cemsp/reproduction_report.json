@@ -1,7 +1,7 @@
 {
   "paper_id": "cemsp_hepatitis_figure4",
   "reproduction_metadata": {
-    "timestamp": "2026-07-23T00:26:39.548382Z",
+    "timestamp": "2026-08-09T22:19:34.078667Z",
     "framework_version": "1.0.0",
     "source_script": "test_cemsp_reproduce.py",
     "device": "cuda",
@@ -10,95 +10,116 @@
       42,
       43
     ],
-    "max_factuals": 20
+    "max_factuals": null,
+    "output_dir": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/cemsp/logs",
+    "reference_artifact": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/cemsp/Hepatitis_cemsp.json",
+    "original_feature_enumeration": true,
+    "count_diversity_proof_note": "The count-diversity theorem is qualitative proof evidence from the CEMSP paper and is not computationally rerun by this script."
   },
   "experiments": {
     "hepatitis_figure4": {
       "configuration": {
         "dataset": "hepatitis",
         "method": "cemsp",
-        "num_abnormal_factuals": 20
+        "num_abnormal_factuals": 20,
+        "reference_scope": "HCV/Hepatitis fixed-input Figure 4 CEMSP artifact"
       },
       "metrics": {
         "model_a_test_accuracy": {
           "original": 0.957,
           "reproduced": 0.9675675675675676,
-          "delta": 0.010921787709497244
+          "delta": 0.010921787709497244,
+          "cv_star": 0.008735934934472712
         },
         "model_a_test_f1": {
           "original": 0.9754601226993865,
           "reproduced": 0.9814814814814815,
-          "delta": 0.006134969325153372
+          "delta": 0.006134969325153372,
+          "cv_star": 0.004895354638983789
         },
         "model_b_test_accuracy": {
           "original": 0.957,
           "reproduced": 0.9567567567567568,
-          "delta": 0.00025417266796573404
+          "delta": 0.00025417266796573404,
+          "cv_star": 0.0002022188184980085
         },
         "model_b_test_f1": {
           "original": 0.9754601226993865,
           "reproduced": 0.9754601226993865,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "num_factuals": {
-          "original": null,
+          "original": 20.0,
           "reproduced": 20.0,
-          "delta": null
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "num_with_cf": {
           "original": 20.0,
           "reproduced": 20.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "mean_num_cf": {
           "original": 2.7,
           "reproduced": 2.25,
-          "delta": 0.1666666666666667
+          "delta": 0.1666666666666667,
+          "cv_star": 0.14463547796997567
         },
         "median_num_cf": {
-          "original": null,
+          "original": 2.5,
           "reproduced": 1.0,
-          "delta": null
+          "delta": 0.6,
+          "cv_star": 0.6818529675727422
         },
         "mean_sparsity": {
-          "original": 0.7055555555555553,
+          "original": 0.7055555555555556,
           "reproduced": 0.6799999999999998,
-          "delta": 0.036220472440944736
+          "delta": 0.036220472440945194,
+          "cv_star": 0.029344647896073897
         },
         "mean_aps": {
-          "original": 0.06909776055124893,
+          "original": 0.0690977605512489,
           "reproduced": 0.07636950904392767,
-          "delta": 0.09521795522472243
+          "delta": 0.09521795522472279,
+          "cv_star": 0.07953184960625735
         },
         "mean_proximity": {
-          "original": 1.5435558842295323,
+          "original": 1.543555884229532,
           "reproduced": 1.6501449699282473,
-          "delta": 0.06459377063298252
+          "delta": 0.06459377063298266,
+          "cv_star": 0.05309896094363578
         },
         "mean_diversity": {
           "original": 1.35596991730314,
           "reproduced": 1.1499358806197633,
-          "delta": 0.1519458758297187
+          "delta": 0.1519458758297187,
+          "cv_star": 0.1308102425012649
         },
         "mean_diversity2": {
           "original": 1.5717481658370183,
           "reproduced": 1.205060033893646,
-          "delta": 0.23329954499937106
+          "delta": 0.23329954499937106,
+          "cv_star": 0.21009634211740125
         },
         "mean_inconsistency": {
-          "original": 0.7474046082754859,
+          "original": 0.747404608275486,
           "reproduced": 1.3752817566653437,
-          "delta": 0.4565443737960113
+          "delta": 0.45654437379601126,
+          "cv_star": 0.4706048159543164
         },
         "mean_count_diversity": {
           "original": 0.2673809523809524,
           "reproduced": 0.27555555555555555,
-          "delta": 0.029665898617511496
+          "delta": 0.029665898617511496,
+          "cv_star": 0.02395439212687944
         },
         "mean_count_diversity2": {
           "original": 0.32333333333333336,
           "reproduced": 0.30416666666666664,
-          "delta": 0.05927835051546408
+          "delta": 0.05927835051546408,
+          "cv_star": 0.048595983966007894
         }
       }
     }

@@ -1,55 +1,23 @@
-Level Badge
-Level 1: Minimal Reproduction
+**Scope of Reproducibility**
 
-Reason
-Is able to reproduce trends
+We aim to reproduce the DiCE claims from `reference/dice.pdf`:
 
-Method
-DICE reproduction
+1. We generate diverse counterfactual explanations that maintain high validity : [Quantitative] : [DiverseCF empirical tables]
+2. We improve diversity relative to no-diversity or random-initialization variants : [Quantitative] : [Diversity/proximity/sparsity comparisons]
+3. We approximate local decision boundaries using LIME-style diagnostics : [Quantitative] : [Local-boundary / LIME evaluation]
+4. We support feasibility constraints for actionable recourse : [Qualitative] : [Feasibility-constraint examples]
 
-Reproduction Summary
-No value available.
+**Methodology**
 
-Reference Scope
-No value available.
+We reproduce DiCE with `experiment/dice/test_dice_reproduce.py` on a COMPAS MLP configuration. Code/experiments and data are available, but no current `reproduction_report.json` is present, so the evidence is the script and existing log output rather than a full JSON delta report.
 
-Observed Result
-             setting  k  model_accuracy  validity  categorical_proximity  continuous_distance  continuous_proximity  categorical_diversity  continuous_diversity  count_diversity  continuous_sparsity  factual_class_index  desired_class_index                                                                       
-           DiverseCF  1        0.653409     1.000               0.790000             2.110065             -2.110065               0.000000              0.000000         0.000000                 0.00                  1.0                  0.0
-           DiverseCF  2        0.653409     0.970               0.712500             1.872637             -1.872637               0.405000              1.222208         0.512000                 0.04                  1.0                  0.0
-           DiverseCF  4        0.653409     0.965               0.583333             2.157109             -2.157109               0.570833              0.945441         0.590667                 0.06                  1.0                  0.0
-       NoDiversityCF  1        0.653409     1.000               0.790000             2.110065             -2.110065               0.000000              0.000000         0.000000                 0.00                  1.0                  0.0
-       NoDiversityCF  2        0.653409     0.850               0.792500             2.043579             -2.043579               0.185000              0.710668         0.288000                 0.05                  1.0                  0.0
-       NoDiversityCF  4        0.653409     0.725               0.750000             2.044447             -2.044447               0.208333              0.632405         0.330667                 0.06                  1.0                  0.0
-        RandomInitCF  1        0.653409     1.000               0.790000             2.110065             -2.110065               0.000000              0.000000         0.000000                 0.00                  1.0                  0.0
-        RandomInitCF  2        0.653409     0.840               0.765000             2.161475             -2.161475               0.130000              0.167403         0.240000                 0.00                  1.0                  0.0
-        RandomInitCF  4        0.653409     0.820               0.736667             2.081292             -2.081292               0.195000              0.587603         0.336000                 0.00                  1.0                  0.0
-    DiverseCF-Sparse  1        0.653409     1.000               0.790000             2.094630             -2.094630               0.000000              0.000000         0.000000                 0.10                  1.0                  0.0
-    DiverseCF-Sparse  2        0.653409     0.970               0.712500             1.796950             -1.796950               0.405000              1.204978         0.492000                 0.33                  1.0                  0.0
-    DiverseCF-Sparse  4        0.653409     0.965               0.583333             2.144547             -2.144547               0.570833              0.939539         0.590667                 0.11                  1.0                  0.0
-NoDiversityCF-Sparse  1        0.653409     1.000               0.790000             2.094630             -2.094630               0.000000              0.000000         0.000000                 0.10                  1.0                  0.0
-NoDiversityCF-Sparse  2        0.653409     0.840               0.792500             2.025980             -2.025980               0.185000              0.739663         0.284000                 0.13                  1.0                  0.0
-NoDiversityCF-Sparse  4        0.653409     0.685               0.755417             2.040228             -2.040228               0.217500              0.671738         0.338000                 0.16                  1.0                  0.0
- RandomInitCF-Sparse  1        0.653409     1.000               0.790000             2.094630             -2.094630               0.000000              0.000000         0.000000                 0.10                  1.0                  0.0
- RandomInitCF-Sparse  2        0.653409     0.810               0.765000             2.146065             -2.146065               0.130000              0.164386         0.228000                 0.08                  1.0                  0.0
- RandomInitCF-Sparse  4        0.653409     0.765               0.738333             2.067164             -2.067164               0.198333              0.623615         0.330667                 0.10                  1.0                  0.0
+**Results**
 
-Reproduction Assessment
-No value available.
+Claims 1 and 2 are partially reproduced in a scoped COMPAS setting: DiverseCF validity is recorded as 1.0 for k=1, 0.97 for k=2, and 0.965 for k=4, with diversity higher than no-diversity/random-init variants. Claim 3 is partially reproduced because local-boundary checks exist. Claim 4 is not fully reproduced because the feasibility-constraint examples are not covered at paper scope.
 
-Paper Result
-- Default paper assertion target encoded in `experiment/dice/test_dice_reproduce.py`:
-  - model_accuracy = 0.67
-- The script uses a default absolute accuracy tolerance of 0.05.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-No value available.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-No value available.
+- Generate a current `reproduction_report.json` with paper scalar targets and deltas.
+- Expand to the full Adult/COMPAS scope and any required feasibility examples.
+- Align boundary-sampling settings with the original experiments.
+- Record whether the implementation uses original DiCE code or a RecourseBench wrapper.

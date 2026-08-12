@@ -1,270 +1,790 @@
 from __future__ import annotations
 
+import argparse
+from dataclasses import dataclass
 from datetime import datetime, timezone
-import sys
-from copy import deepcopy
+import json
 from pathlib import Path
+import sys
+from time import perf_counter
+from typing import Iterable
 
+import numpy as np
+import pandas as pd
 import pytest
+import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import numpy as np
-import pandas as pd
-import torch
-
-from dataset.german.german import GermanDataset
+from dataset.dataset_object import DatasetObject
+from evaluation.distance import DistanceEvaluation
+from evaluation.validity import ValidityEvaluation
 from experiment.utils import write_reproduction_report
-from method.larr.library.larr import LARRecourse, RecourseCost
+from method.larr.larr import LarrMethod
+from method.larr.library.larr import RecourseCost
+from model.linear.linear import LinearModel
 from model.mlp.mlp import MlpModel
+from model.model_object import ModelObject
 from preprocess.common import EncodePreProcess, FinalizePreProcess, ScalePreProcess
+from utils.seed import seed_context
 
 SEED = 0
 N_FOLDS = 5
-NUM_FACTUALS = 5
-ALPHA = 0.5
-# Keep this value fixed so the migrated script matches the current asserted targets.
-BETA = 0.518
-ROBUSTNESS_BOUNDS = (0.27, 0.29)
-CONSISTENCY_BOUNDS = (0.40, 0.41)
-REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+DEFAULT_OUTPUT_DIR = Path(__file__).with_name("logs")
 
 
-class ReferencePredictAdapter:
-    def __init__(self, model: MlpModel, feature_names: list[str]):
-        self._model = model
-        self._feature_names = list(feature_names)
+class LocalDataFrameDataset(DatasetObject):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        *,
+        name: str,
+        target_column: str,
+        raw_feature_type: dict[str, str],
+        raw_feature_mutability: dict[str, bool] | None = None,
+        raw_feature_actionability: dict[str, str] | None = None,
+    ):
+        self._rawdf = df.copy(deep=True)
+        self._freeze = False
+        self.name = name
+        self.target_column = target_column
+        self.feature_order = list(df.columns)
+        self.raw_feature_type = dict(raw_feature_type)
+        self.raw_feature_mutability = raw_feature_mutability or {
+            column: column != target_column for column in df.columns
+        }
+        self.raw_feature_actionability = raw_feature_actionability or {
+            column: ("none" if column == target_column else "any") for column in df.columns
+        }
 
-    def _to_feature_df(self, X: np.ndarray | pd.DataFrame) -> pd.DataFrame:
-        if isinstance(X, pd.DataFrame):
-            return X.loc[:, self._feature_names].copy(deep=True)
-
-        array = np.asarray(X)
-        if array.ndim == 1:
-            array = array.reshape(1, -1)
-        return pd.DataFrame(array, columns=self._feature_names)
-
-    def predict(self, X: np.ndarray | pd.DataFrame) -> np.ndarray:
-        features = self._to_feature_df(X)
-        probabilities = self._model.get_prediction(features, proba=True)
-        return probabilities.detach().cpu().numpy().argmax(axis=1)
-
-    def predict_proba(self, X: np.ndarray | pd.DataFrame) -> np.ndarray:
-        features = self._to_feature_df(X)
-        probabilities = self._model.get_prediction(features, proba=True)
-        return probabilities.detach().cpu().numpy()
+    def _read_df(self, path: str) -> pd.DataFrame:
+        raise NotImplementedError("LocalDataFrameDataset is initialized from a DataFrame")
 
 
-def _resolve_device() -> str:
-    return "cuda" if torch.cuda.is_available() else "cpu"
+@dataclass(frozen=True)
+class ExperimentConfig:
+    profile: str
+    datasets: tuple[str, ...]
+    models: tuple[str, ...]
+    seeds: tuple[int, ...]
+    betas: tuple[float, ...]
+    alphas: tuple[float, ...]
+    lambdas: tuple[float, ...]
+    max_factuals: int
+    output_dir: Path
+    device: str
 
 
-def _build_preprocessed_german_dataset() -> GermanDataset:
-    dataset = GermanDataset()
-    shuffled_df = dataset.snapshot().sample(frac=1, random_state=SEED)
-    dataset.update("shuffled", True, df=shuffled_df)
-    dataset = ScalePreProcess(
-        seed=SEED,
-        scaling="standardize",
-        range=True,
-    ).transform(dataset)
-    dataset = EncodePreProcess(seed=SEED, encoding="onehot").transform(dataset)
-    dataset = FinalizePreProcess(seed=SEED).transform(dataset)
+def _resolve_device(requested: str) -> str:
+    if requested == "cuda" and torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
+
+
+def _metadata_for_features(
+    columns: Iterable[str],
+    target_column: str,
+    numerical: set[str],
+    categorical: set[str],
+    immutable: set[str] | None = None,
+) -> tuple[dict[str, str], dict[str, bool], dict[str, str]]:
+    immutable = immutable or set()
+    feature_type: dict[str, str] = {}
+    mutability: dict[str, bool] = {}
+    actionability: dict[str, str] = {}
+    for column in columns:
+        if column == target_column:
+            feature_type[column] = "binary"
+            mutability[column] = False
+            actionability[column] = "none"
+        elif column in numerical:
+            feature_type[column] = "numerical"
+            mutability[column] = column not in immutable
+            actionability[column] = "same" if column in immutable else "any"
+        elif column in categorical:
+            feature_type[column] = "categorical"
+            mutability[column] = column not in immutable
+            actionability[column] = "same" if column in immutable else "any"
+        else:
+            feature_type[column] = "binary"
+            mutability[column] = column not in immutable
+            actionability[column] = "same" if column in immutable else "any"
+    return feature_type, mutability, actionability
+
+
+def _synthetic_dataset(seed: int, shifted: bool = False, n: int = 1000) -> LocalDataFrameDataset:
+    rng = np.random.default_rng(seed)
+    shift = 0.1 if shifted else 0.0
+    variance_multiplier = 1.15 if shifted else 1.0
+    cov = 0.5 * variance_multiplier * np.eye(2)
+    x0 = rng.multivariate_normal([-2 + shift, -2 + shift], cov, n // 2)
+    x1 = rng.multivariate_normal([2 + shift, 2 + shift], cov, n // 2)
+    data = np.vstack([x0, x1])
+    labels = np.array([0] * (n // 2) + [1] * (n // 2), dtype=int)
+    frame = pd.DataFrame(data, columns=["x0", "x1"])
+    frame["label"] = labels
+    frame = frame.sample(frac=1, random_state=seed).reset_index(drop=True)
+    feature_type, mutability, actionability = _metadata_for_features(
+        frame.columns,
+        "label",
+        numerical={"x0", "x1"},
+        categorical=set(),
+    )
+    return LocalDataFrameDataset(
+        frame,
+        name="synthetic",
+        target_column="label",
+        raw_feature_type=feature_type,
+        raw_feature_mutability=mutability,
+        raw_feature_actionability=actionability,
+    )
+
+
+def _german_dataset(seed: int, shifted: bool = False) -> LocalDataFrameDataset:
+    path = PROJECT_ROOT / "dataset" / "german" / "german.csv"
+    frame = pd.read_csv(path)
+    keep = ["duration", "amount", "age", "personal_status_sex", "credit_risk"]
+    frame = frame.loc[:, keep].sample(frac=1, random_state=seed).reset_index(drop=True)
+    if shifted:
+        # Local deterministic proxy for the paper's corrected-German future model.
+        frame = frame.copy(deep=True)
+        frame["duration"] = frame["duration"] * 1.05
+        frame["amount"] = frame["amount"] * 1.03
+        frame["age"] = frame["age"] + 1.0
+    feature_type, mutability, actionability = _metadata_for_features(
+        frame.columns,
+        "credit_risk",
+        numerical={"duration", "amount", "age"},
+        categorical={"personal_status_sex"},
+        immutable={"age"},
+    )
+    return LocalDataFrameDataset(
+        frame,
+        name="german",
+        target_column="credit_risk",
+        raw_feature_type=feature_type,
+        raw_feature_mutability=mutability,
+        raw_feature_actionability=actionability,
+    )
+
+
+def _sba_dataset(seed: int, shifted: bool = False) -> LocalDataFrameDataset:
+    path = PROJECT_ROOT / "dataset" / "sba_roar" / "SBAcase.11.13.17.csv"
+    frame = pd.read_csv(path).fillna(-1)
+    frame["NoDefault"] = 1 - frame["Default"].astype(int)
+    drop_columns = {
+        "Selected",
+        "State",
+        "Name",
+        "BalanceGross",
+        "LowDoc",
+        "BankState",
+        "LoanNr_ChkDgt",
+        "MIS_Status",
+        "Default",
+        "Bank",
+        "City",
+    }
+    frame = frame.drop(columns=[column for column in drop_columns if column in frame])
+    target = "NoDefault"
+    feature_columns = [column for column in frame.columns if column != target]
+    if shifted:
+        frame = frame.copy(deep=True)
+    else:
+        frame = frame.loc[frame["ApprovalFY"] < 2006].copy(deep=True)
+    frame = frame.loc[:, feature_columns + [target]].sample(
+        frac=1, random_state=seed
+    ).reset_index(drop=True)
+    categorical = {
+        column for column in feature_columns if frame[column].dtype == object
+    }
+    numerical = set(feature_columns) - categorical
+    feature_type, mutability, actionability = _metadata_for_features(
+        frame.columns,
+        target,
+        numerical=numerical,
+        categorical=categorical,
+    )
+    return LocalDataFrameDataset(
+        frame,
+        name="sba",
+        target_column=target,
+        raw_feature_type=feature_type,
+        raw_feature_mutability=mutability,
+        raw_feature_actionability=actionability,
+    )
+
+
+def _load_dataset(name: str, seed: int, shifted: bool = False) -> LocalDataFrameDataset:
+    if name == "synthetic":
+        return _synthetic_dataset(seed=seed, shifted=shifted)
+    if name == "german":
+        return _german_dataset(seed=seed, shifted=shifted)
+    if name == "sba":
+        return _sba_dataset(seed=seed, shifted=shifted)
+    raise ValueError(f"Unsupported LARR reproduction dataset: {name}")
+
+
+def _preprocess(dataset: LocalDataFrameDataset, seed: int) -> LocalDataFrameDataset:
+    dataset = ScalePreProcess(seed=seed, scaling="standardize", range=True).transform(dataset)
+    dataset = EncodePreProcess(seed=seed, encoding="onehot").transform(dataset)
+    dataset = FinalizePreProcess(seed=seed).transform(dataset)
     return dataset
 
 
-def _build_frozen_dataset(template, df: pd.DataFrame, marker: str):
-    dataset = template.clone()
-    dataset.update(marker, True, df=df.copy(deep=True))
-    dataset.freeze()
-    return dataset
-
-
-def _split_fold(full_df: pd.DataFrame, fold_index: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _split_fold(dataset: DatasetObject, fold_index: int) -> tuple[DatasetObject, DatasetObject]:
+    full_df = pd.concat([dataset.get(target=False), dataset.get(target=True)], axis=1)
     start = int(fold_index / N_FOLDS * len(full_df))
     end = int((fold_index + 1) / N_FOLDS * len(full_df))
     test_df = full_df.iloc[start:end].copy(deep=True)
     train_df = pd.concat([full_df.iloc[:start], full_df.iloc[end:]], axis=0)
-    return train_df.copy(deep=True), test_df
+
+    trainset = dataset.clone()
+    trainset.update("trainset", True, df=train_df.copy(deep=True))
+    trainset.freeze()
+    testset = dataset.clone()
+    testset.update("testset", True, df=test_df.copy(deep=True))
+    testset.freeze()
+    return trainset, testset
 
 
-def _select_recourse_needed(
-    predict_fn,
-    X: np.ndarray,
-    y_target: float = 1,
-) -> np.ndarray:
-    indices = np.where(predict_fn(X) == 1 - y_target)
-    return X[indices]
-
-
-def _build_model(trainset, batch_size: int) -> MlpModel:
-    model = MlpModel(
-        seed=SEED,
-        device=_resolve_device(),
-        epochs=100,
-        learning_rate=0.001,
-        batch_size=batch_size,
-        layers=[50, 100, 200],
-        optimizer="adam",
-        criterion="bce",
-        output_activation="sigmoid",
-        save_name=None,
-    )
-    model.fit(trainset)
-    return model
-
-
-def _evaluate_fold(
-    X_train: pd.DataFrame,
-    X_test: pd.DataFrame,
-    predict_adapter: ReferencePredictAdapter,
-) -> tuple[float, float, float, int]:
-    recourse_needed_X_train = _select_recourse_needed(
-        predict_adapter.predict,
-        X_train.values,
-    )
-    recourse_needed_X_test = _select_recourse_needed(
-        predict_adapter.predict,
-        X_test.values,
-    )
-
-    if recourse_needed_X_train.shape[0] == 0:
-        raise ValueError("No training instances require recourse in this fold")
-    if recourse_needed_X_test.shape[0] < NUM_FACTUALS:
-        raise ValueError("Not enough test instances require recourse in this fold")
-
-    larr_recourse = LARRecourse(weights=None, bias=None, alpha=ALPHA)
-    larr_recourse.choose_lambda(
-        recourse_needed_X_train,
-        predict_adapter.predict,
-        X_train.values,
-    )
-
-    fold_robustness = 0.0
-    fold_consistency = 0.0
-    for factual_index in range(NUM_FACTUALS):
-        x_0 = recourse_needed_X_test[factual_index]
-        objective = RecourseCost(x_0, larr_recourse.lamb)
-
-        np.random.seed(factual_index)
-        weights_0, bias_0 = larr_recourse.lime_explanation(
-            predict_adapter.predict,
-            X_train.values,
-            x_0,
+def _model_for(name: str, seed: int, device: str, train_rows: int) -> ModelObject:
+    if name == "linear":
+        return LinearModel(
+            seed=seed,
+            device=device,
+            epochs=200,
+            learning_rate=0.03,
+            batch_size=train_rows,
+            optimizer="adam",
+            criterion="bce",
+            output_activation="sigmoid",
+            save_name=None,
         )
-        weights_0 = np.round(weights_0, 4)
-        bias_0 = np.round(bias_0, 4)
+    if name == "mlp":
+        return MlpModel(
+            seed=seed,
+            device=device,
+            epochs=100,
+            learning_rate=0.001,
+            batch_size=train_rows,
+            layers=[50, 100, 200],
+            optimizer="adam",
+            criterion="bce",
+            output_activation="sigmoid",
+            save_name=None,
+        )
+    raise ValueError(f"Unsupported model: {name}")
 
-        larr_recourse.weights = weights_0
-        larr_recourse.bias = bias_0
 
-        x_r = larr_recourse.get_recourse(x_0, beta=1.0)
-        weights_r, bias_r = larr_recourse.calc_theta_adv(x_r)
-        J_r_opt = objective.eval(x_r, weights_r, bias_r)
+def _prediction_indices(model: ModelObject, features: pd.DataFrame) -> np.ndarray:
+    probabilities = model.get_prediction(features, proba=True)
+    return probabilities.detach().cpu().numpy().argmax(axis=1)
 
-        theta_p = (deepcopy(weights_r), deepcopy(bias_r))
 
-        x_c = larr_recourse.get_recourse(x_0, beta=0.0, theta_p=theta_p)
-        J_c_opt = objective.eval(x_c, *theta_p)
-
-        x = larr_recourse.get_recourse(x_0, beta=BETA, theta_p=theta_p)
-        weights_r, bias_r = larr_recourse.calc_theta_adv(x)
-
-        J_r = objective.eval(x, weights_r, bias_r)
-        J_c = objective.eval(x, *theta_p)
-
-        fold_robustness += float(np.asarray(J_r - J_r_opt).reshape(-1)[0])
-        fold_consistency += float(np.asarray(J_c - J_c_opt).reshape(-1)[0])
-
-    return (
-        fold_robustness,
-        fold_consistency,
-        float(larr_recourse.lamb),
-        int(recourse_needed_X_test.shape[0]),
+def _select_factuals(
+    model: ModelObject,
+    testset: DatasetObject,
+    max_factuals: int,
+) -> DatasetObject:
+    features = testset.get(target=False)
+    predictions = _prediction_indices(model, features)
+    selected_index = features.index[predictions == 0][:max_factuals]
+    if len(selected_index) == 0:
+        raise RuntimeError("No test instances require recourse for target class 1")
+    factual_df = pd.concat(
+        [testset.get(target=False).loc[selected_index], testset.get(target=True).loc[selected_index]],
+        axis=1,
     )
+    factuals = testset.clone()
+    factuals.update("factuals", True, df=factual_df)
+    factuals.freeze()
+    return factuals
+
+
+def _fit_larr(
+    model: ModelObject,
+    trainset: DatasetObject,
+    *,
+    seed: int,
+    device: str,
+    alpha: float,
+    beta: float,
+) -> LarrMethod:
+    method = LarrMethod(
+        target_model=model,
+        seed=seed,
+        device=device,
+        desired_class=1,
+        alpha=alpha,
+        beta=beta,
+        lime_seed=seed,
+    )
+    method.fit(trainset)
+    return method
+
+
+def _make_future_theta(
+    theta_0: tuple[np.ndarray, float],
+    theta_r: tuple[np.ndarray, float],
+    error_level: float,
+    alpha: float,
+) -> tuple[np.ndarray, float]:
+    weights_0, bias_0 = theta_0
+    weights_r, bias_r = theta_r
+    weights = weights_0 + error_level * (weights_r - weights_0)
+    bias = bias_0 + error_level * (bias_r - bias_0)
+    weights = np.clip(weights, weights_0 - alpha, weights_0 + alpha).round(4)
+    bias = float(np.clip(bias, bias_0 - alpha, bias_0 + alpha).round(4))
+    return weights, bias
+
+
+def _paper_metrics_for_method(
+    method: LarrMethod,
+    factuals: pd.DataFrame,
+    betas: Iterable[float],
+    prediction_error_levels: Iterable[float],
+) -> list[dict[str, float | int | str]]:
+    if method._adapter is None or method._train_features is None:
+        raise RuntimeError("LarrMethod is not fully fitted")
+    adapter = method._adapter
+    larr = method._method
+    records: list[dict[str, float | int | str]] = []
+
+    for factual_position, (_, row) in enumerate(factuals.iterrows()):
+        x0 = row.to_numpy(dtype="float32")
+        target_index = 1
+        weights_0, bias_0 = method._get_surrogate(x0, target_index)
+        weights_0 = np.round(weights_0, 4)
+        bias_0 = float(np.round(bias_0, 4))
+        larr.weights = weights_0
+        larr.bias = bias_0
+        objective = RecourseCost(x0, larr.lamb)
+
+        robust_x = larr.get_recourse(x0, beta=1.0)
+        theta_r = larr.calc_theta_adv(robust_x)
+        robust_opt_cost = float(np.asarray(objective.eval(robust_x, *theta_r)).reshape(-1)[0])
+
+        consistent_opt_by_error: dict[float, tuple[np.ndarray, float]] = {}
+        consistent_cost_by_error: dict[float, float] = {}
+        smooth_reference_by_error: dict[float, np.ndarray] = {}
+        for error_level in prediction_error_levels:
+            theta_p = _make_future_theta((weights_0, bias_0), theta_r, error_level, larr.alpha)
+            consistent_x = larr.get_recourse(x0, beta=0.0, theta_p=theta_p)
+            consistent_opt_by_error[float(error_level)] = theta_p
+            consistent_cost_by_error[float(error_level)] = float(
+                np.asarray(objective.eval(consistent_x, *theta_p)).reshape(-1)[0]
+            )
+            if float(error_level) == 0.0:
+                smooth_reference_by_error[float(error_level)] = consistent_x
+
+        smooth_reference = smooth_reference_by_error.get(0.0, robust_x)
+
+        for beta in betas:
+            for error_level, theta_p in consistent_opt_by_error.items():
+                x = larr.get_recourse(x0, beta=float(beta), theta_p=theta_p)
+                theta_adv = larr.calc_theta_adv(x)
+                robust_cost = float(
+                    np.asarray(objective.eval(x, *theta_adv)).reshape(-1)[0]
+                )
+                consistent_cost = float(
+                    np.asarray(objective.eval(x, *theta_p)).reshape(-1)[0]
+                )
+                prediction_df = pd.DataFrame([x], columns=method._feature_names)
+                current_validity = float(adapter.predict_label_indices(prediction_df)[0] == 1)
+                records.append(
+                    {
+                        "i": factual_position,
+                        "beta": float(beta),
+                        "prediction_error": float(error_level),
+                        "lambda": float(larr.lamb),
+                        "robustness": robust_cost - robust_opt_cost,
+                        "consistency": consistent_cost
+                        - consistent_cost_by_error[float(error_level)],
+                        "smoothness_l1": float(np.linalg.norm(x - smooth_reference, ord=1)),
+                        "current_validity": current_validity,
+                        "cost_l1": float(np.linalg.norm(x - x0, ord=1)),
+                    }
+                )
+    return records
+
+
+def _run_one_setting(
+    dataset_name: str,
+    model_name: str,
+    seed: int,
+    alpha: float,
+    config: ExperimentConfig,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    base_dataset = _preprocess(_load_dataset(dataset_name, seed=seed), seed=seed)
+    shifted_dataset = _preprocess(
+        _load_dataset(dataset_name, seed=seed, shifted=True), seed=seed
+    )
+    trainset, testset = _split_fold(base_dataset, fold_index=seed % N_FOLDS)
+    shifted_trainset, shifted_testset = _split_fold(
+        shifted_dataset, fold_index=seed % N_FOLDS
+    )
+
+    model = _model_for(model_name, seed, config.device, len(trainset))
+    model.fit(trainset)
+    shifted_model = _model_for(model_name, seed, config.device, len(shifted_trainset))
+    shifted_model.fit(shifted_trainset)
+
+    factuals = _select_factuals(model, testset, config.max_factuals)
+    method = _fit_larr(
+        model,
+        trainset,
+        seed=seed,
+        device=config.device,
+        alpha=alpha,
+        beta=0.5,
+    )
+
+    metric_records = _paper_metrics_for_method(
+        method,
+        factuals.get(target=False),
+        betas=config.betas,
+        prediction_error_levels=(0.0, 0.5, 1.0),
+    )
+
+    generated_records: list[dict[str, object]] = []
+    for lamb in config.lambdas:
+        method_for_lambda = _fit_larr(
+            model,
+            trainset,
+            seed=seed,
+            device=config.device,
+            alpha=alpha,
+            beta=1.0,
+        )
+        method_for_lambda._method.lamb = float(lamb)
+        method_for_lambda._lambda_ready = True
+        start = perf_counter()
+        counterfactuals = method_for_lambda.predict(factuals, batch_size=20)
+        elapsed = perf_counter() - start
+        validity = float(ValidityEvaluation().evaluate(factuals, counterfactuals)["validity"].iloc[0])
+        distance = DistanceEvaluation(metrics=["l0", "l1"]).evaluate(
+            factuals, counterfactuals
+        )
+
+        cf_features = counterfactuals.get(target=False)
+        valid_rows = ~cf_features.isna().any(axis=1)
+        future_validity = float("nan")
+        if bool(valid_rows.any()):
+            future_pred = _prediction_indices(shifted_model, cf_features.loc[valid_rows])
+            future_validity = float(np.mean(future_pred == 1))
+
+        generated_records.append(
+            {
+                "dataset": dataset_name,
+                "model": model_name,
+                "seed": seed,
+                "alpha": alpha,
+                "lambda": float(lamb),
+                "factuals": len(factuals),
+                "validity": validity,
+                "future_validity": future_validity,
+                "distance_l0": float(distance["distance_l0"].iloc[0]),
+                "distance_l1": float(distance["distance_l1"].iloc[0]),
+                "runtime_seconds": elapsed,
+            }
+        )
+
+    for record in metric_records:
+        record.update(
+            {
+                "dataset": dataset_name,
+                "model": model_name,
+                "seed": seed,
+                "alpha": alpha,
+                "factuals": len(factuals),
+            }
+        )
+    return metric_records, generated_records
+
+
+def _aggregate(records: list[dict[str, object]], group_cols: list[str]) -> list[dict[str, object]]:
+    if not records:
+        return []
+    frame = pd.DataFrame(records)
+    numeric_cols = [
+        column
+        for column in frame.columns
+        if column not in group_cols and pd.api.types.is_numeric_dtype(frame[column])
+    ]
+    grouped = frame.groupby(group_cols, dropna=False)[numeric_cols]
+    mean_frame = grouped.mean().reset_index()
+    std_frame = grouped.std(ddof=1).reset_index()
+    output: list[dict[str, object]] = []
+    for idx, row in mean_frame.iterrows():
+        item = row.to_dict()
+        std_row = std_frame.iloc[idx]
+        for column in numeric_cols:
+            item[f"{column}_std"] = std_row[column]
+        output.append(item)
+    return output
+
+
+def _json_safe(value: object) -> object:
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        value = float(value)
+    if isinstance(value, float) and not np.isfinite(value):
+        return None
+    return value
+
+
+def _write_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(_json_safe(payload), indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def run_reproduction(config: ExperimentConfig) -> dict[str, object]:
+    started = datetime.now(timezone.utc)
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+    metric_records: list[dict[str, object]] = []
+    validity_cost_records: list[dict[str, object]] = []
+    failures: list[dict[str, object]] = []
+
+    for dataset_name in config.datasets:
+        for model_name in config.models:
+            for alpha in config.alphas:
+                for seed in config.seeds:
+                    with seed_context(seed):
+                        try:
+                            metrics, validity_cost = _run_one_setting(
+                                dataset_name,
+                                model_name,
+                                seed,
+                                alpha,
+                                config,
+                            )
+                            metric_records.extend(metrics)
+                            validity_cost_records.extend(validity_cost)
+                        except Exception as error:
+                            failures.append(
+                                {
+                                    "dataset": dataset_name,
+                                    "model": model_name,
+                                    "alpha": alpha,
+                                    "seed": seed,
+                                    "error": repr(error),
+                                }
+                            )
+
+    metric_summary = _aggregate(
+        metric_records,
+        ["dataset", "model", "alpha", "beta", "prediction_error"],
+    )
+    validity_cost_summary = _aggregate(
+        validity_cost_records,
+        ["dataset", "model", "alpha", "lambda"],
+    )
+
+    payload = {
+        "metadata": {
+            "timestamp": started.isoformat().replace("+00:00", "Z"),
+            "profile": config.profile,
+            "datasets": list(config.datasets),
+            "models": list(config.models),
+            "seeds": list(config.seeds),
+            "betas": list(config.betas),
+            "alphas": list(config.alphas),
+            "lambdas": list(config.lambdas),
+            "max_factuals": config.max_factuals,
+            "device": config.device,
+            "source_script": Path(__file__).name,
+        },
+        "robustness_consistency_smoothness": metric_summary,
+        "future_validity_cost": validity_cost_summary,
+        "failures": failures,
+    }
+
+    timestamp = started.strftime("%Y%m%dT%H%M%SZ")
+    artifact_path = config.output_dir / f"larr_reproduction_{config.profile}_{timestamp}.json"
+    _write_json(artifact_path, payload)
+
+    report_experiments: dict[str, dict[str, object]] = {}
+    for record in metric_summary:
+        experiment_id = (
+            f"robustness_consistency_smoothness_"
+            f"{record['dataset']}_{record['model']}_alpha{record['alpha']}_"
+            f"beta{record['beta']}_err{record['prediction_error']}"
+        )
+        report_experiments[experiment_id] = {
+            "configuration": {
+                "dataset": record["dataset"],
+                "model": record["model"],
+                "method": "larr",
+                "alpha": record["alpha"],
+                "beta": record["beta"],
+                "prediction_error": record["prediction_error"],
+                "profile": config.profile,
+            },
+            "metrics": {
+                "average_robustness": {
+                    "original": None,
+                    "reproduced": record.get("robustness"),
+                },
+                "average_consistency": {
+                    "original": None,
+                    "reproduced": record.get("consistency"),
+                },
+                "average_smoothness_l1": {
+                    "original": None,
+                    "reproduced": record.get("smoothness_l1"),
+                },
+            },
+        }
+    for record in validity_cost_summary:
+        experiment_id = (
+            f"future_validity_cost_{record['dataset']}_{record['model']}_"
+            f"alpha{record['alpha']}_lambda{record['lambda']}"
+        )
+        report_experiments[experiment_id] = {
+            "configuration": {
+                "dataset": record["dataset"],
+                "model": record["model"],
+                "method": "larr",
+                "alpha": record["alpha"],
+                "lambda": record["lambda"],
+                "profile": config.profile,
+            },
+            "metrics": {
+                "current_validity": {
+                    "original": None,
+                    "reproduced": record.get("validity"),
+                },
+                "future_validity": {
+                    "original": None,
+                    "reproduced": record.get("future_validity"),
+                },
+                "average_cost_l1": {
+                    "original": None,
+                    "reproduced": record.get("distance_l1"),
+                },
+            },
+        }
+
+    report_path = config.output_dir / "reproduction_report.json"
+    write_reproduction_report(
+        output_path=report_path,
+        paper_id="larr",
+        reproduction_metadata=payload["metadata"] | {"artifact_path": str(artifact_path)},
+        experiments_data=report_experiments,
+    )
+    print(f"Wrote detailed artifact: {artifact_path}")
+    print(f"Wrote reproduction report: {report_path}")
+    if failures:
+        print(f"Completed with {len(failures)} failed settings")
+    return payload
+
+
+def _parse_csv(value: str, cast=str) -> tuple:
+    return tuple(cast(item.strip()) for item in value.split(",") if item.strip())
+
+
+def build_config(args: argparse.Namespace) -> ExperimentConfig:
+    if args.profile == "smoke":
+        datasets = ("synthetic",) if args.datasets is None else _parse_csv(args.datasets)
+        models = ("linear",) if args.models is None else _parse_csv(args.models)
+        seeds = (0,) if args.seeds is None else _parse_csv(args.seeds, int)
+        betas = (0.0, 0.5, 1.0) if args.betas is None else _parse_csv(args.betas, float)
+        alphas = (0.5,) if args.alphas is None else _parse_csv(args.alphas, float)
+        lambdas = (0.1, 0.3) if args.lambdas is None else _parse_csv(args.lambdas, float)
+        max_factuals = args.max_factuals or 3
+    elif args.profile == "bounded":
+        datasets = ("synthetic", "german") if args.datasets is None else _parse_csv(args.datasets)
+        models = ("linear", "mlp") if args.models is None else _parse_csv(args.models)
+        seeds = (0, 1) if args.seeds is None else _parse_csv(args.seeds, int)
+        betas = (0.0, 0.25, 0.5, 0.75, 1.0) if args.betas is None else _parse_csv(args.betas, float)
+        alphas = (0.5,) if args.alphas is None else _parse_csv(args.alphas, float)
+        lambdas = (0.1, 0.2, 0.3) if args.lambdas is None else _parse_csv(args.lambdas, float)
+        max_factuals = args.max_factuals or 10
+    else:
+        datasets = ("synthetic", "german", "sba") if args.datasets is None else _parse_csv(args.datasets)
+        models = ("linear", "mlp") if args.models is None else _parse_csv(args.models)
+        seeds = tuple(range(5)) if args.seeds is None else _parse_csv(args.seeds, int)
+        betas = tuple(np.arange(0.0, 1.01, 0.01).round(2).tolist()) if args.betas is None else _parse_csv(args.betas, float)
+        alphas = (0.5,) if args.alphas is None else _parse_csv(args.alphas, float)
+        lambdas = (0.1, 0.2, 0.3) if args.lambdas is None else _parse_csv(args.lambdas, float)
+        max_factuals = args.max_factuals or 100
+
+    return ExperimentConfig(
+        profile=args.profile,
+        datasets=tuple(str(item) for item in datasets),
+        models=tuple(str(item) for item in models),
+        seeds=tuple(int(item) for item in seeds),
+        betas=tuple(float(item) for item in betas),
+        alphas=tuple(float(item) for item in alphas),
+        lambdas=tuple(float(item) for item in lambdas),
+        max_factuals=int(max_factuals),
+        output_dir=Path(args.output_dir),
+        device=_resolve_device(args.device),
+    )
+
+
+def main(argv: list[str] | None = None) -> dict[str, object]:
+    parser = argparse.ArgumentParser(description="Paper-aligned LARR reproduction")
+    profile_group = parser.add_mutually_exclusive_group()
+    profile_group.add_argument(
+        "--smoke",
+        action="store_const",
+        const="smoke",
+        dest="profile",
+        help="Run a tiny executable check.",
+    )
+    profile_group.add_argument(
+        "--bounded",
+        action="store_const",
+        const="bounded",
+        dest="profile",
+        help="Run a reduced multi-dataset, multi-model reproduction.",
+    )
+    profile_group.add_argument(
+        "--paper",
+        action="store_const",
+        const="paper",
+        dest="profile",
+        help="Run the full paper-aligned reproduction. This is the default.",
+    )
+    parser.set_defaults(profile="paper")
+    parser.add_argument("--datasets", default=None, help="Comma-separated dataset names")
+    parser.add_argument("--models", default=None, help="Comma-separated model names")
+    parser.add_argument("--seeds", default=None, help="Comma-separated integer seeds")
+    parser.add_argument("--betas", default=None, help="Comma-separated beta values")
+    parser.add_argument("--alphas", default=None, help="Comma-separated alpha values")
+    parser.add_argument("--lambdas", default=None, help="Comma-separated lambda values")
+    parser.add_argument("--max-factuals", type=int, default=None)
+    parser.add_argument("--device", default="cpu")
+    parser.add_argument(
+        "--output-dir",
+        default=DEFAULT_OUTPUT_DIR.as_posix(),
+        help="Directory for generated reproduction artifacts",
+    )
+    args = parser.parse_args(argv)
+    return run_reproduction(build_config(args))
+
 
 @pytest.mark.slow
-def test_reproduce() -> tuple[float, float]:
-    dataset = _build_preprocessed_german_dataset()
-    full_df = pd.concat([dataset.get(target=False), dataset.get(target=True)], axis=1)
-    feature_names = list(dataset.get(target=False).columns)
-
-    running_robustness = 0.0
-    running_consistency = 0.0
-    counter = 0
-
-    for fold_index in range(N_FOLDS):
-        train_df, test_df = _split_fold(full_df, fold_index)
-        trainset = _build_frozen_dataset(dataset, train_df, "trainset")
-        model = _build_model(trainset, batch_size=len(train_df))
-        adapter = ReferencePredictAdapter(model, feature_names)
-
-        X_train = train_df.loc[:, feature_names]
-        X_test = test_df.loc[:, feature_names]
-        fold_robustness, fold_consistency, lambda_value, negative_test = _evaluate_fold(
-            X_train,
-            X_test,
-            adapter,
-        )
-        print(f"fold {fold_index} lambda {lambda_value} neg_test {negative_test}")
-
-        running_robustness += fold_robustness
-        running_consistency += fold_consistency
-        counter += NUM_FACTUALS
-
-    avge_robustness = running_robustness / counter
-    avge_consistency = running_consistency / counter
-    print(
-        f"Avge Robustness: {avge_robustness} and Avge Consistency: {avge_consistency}"
-    )
-
-    # assert ROBUSTNESS_BOUNDS[0] < avge_robustness < ROBUSTNESS_BOUNDS[1]
-    # assert CONSISTENCY_BOUNDS[0] < avge_consistency < CONSISTENCY_BOUNDS[1]
-    write_reproduction_report(
-        output_path=REPORT_PATH,
-        paper_id="larr_german",
-        reproduction_metadata={
-            "timestamp": datetime.now(timezone.utc),
-            "framework_version": "1.0.0",
-            "source_script": Path(__file__).name,
-            "robustness_bounds": list(ROBUSTNESS_BOUNDS),
-            "consistency_bounds": list(CONSISTENCY_BOUNDS),
-            "n_folds": N_FOLDS,
-            "num_factuals_per_fold": NUM_FACTUALS,
-            "alpha": ALPHA,
-            "beta": BETA,
-        },
-        experiments_data={
-            "german_larr_reproduction": {
-                "configuration": {
-                    "dataset": "german",
-                    "model": "mlp",
-                    "method": "larr",
-                    "n_folds": N_FOLDS,
-                    "num_factuals_per_fold": NUM_FACTUALS,
-                },
-                "metrics": {
-                    "average_robustness": {
-                        "original": ROBUSTNESS_BOUNDS[0],
-                        "reproduced": avge_robustness,
-                    },
-                    "average_consistency": {
-                        "original": CONSISTENCY_BOUNDS[0],
-                        "reproduced": avge_consistency,
-                    },
-                },
-            }
-        },
-    )
-    return avge_robustness, avge_consistency
-
-
-# @pytest.mark.slow
-# def test_reproduce() -> tuple[float, float]:
-#     return test_reproduce()
+def test_reproduce() -> None:
+    payload = main(["--smoke"])
+    assert not payload["failures"]
+    assert payload["robustness_consistency_smoothness"]
+    assert payload["future_validity_cost"]
 
 
 if __name__ == "__main__":
-    test_reproduce()
+    main()

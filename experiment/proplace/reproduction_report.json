@@ -51,52 +51,62 @@
         "main_model_test_accuracy": {
           "original": null,
           "reproduced": 0.8406717182060209,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "main_model_test_auc": {
           "original": null,
           "reproduced": 0.8936780220109065,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "delta_validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "m2_validity": {
           "original": 1.0,
           "reproduced": 0.99,
-          "delta": 0.010000000000000009
+          "delta": 0.010000000000000009,
+          "cv_star": 0.007994925917938359
         },
         "l1": {
           "original": 0.046,
           "reproduced": 0.030280421452011694,
-          "delta": 0.3417299684345284
+          "delta": 0.3417299684345284,
+          "cv_star": 0.32786520903345034
         },
         "pct_inlier_class_1": {
           "original": null,
           "reproduced": 0.9,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "lof_class_1": {
           "original": 1.22,
           "reproduced": 1.23048926818928,
-          "delta": 0.008524469461416363
+          "delta": 0.008524469461416363,
+          "cv_star": 0.006810200606004293
         },
         "avg_bound": {
           "original": null,
           "reproduced": 0.03873577053400662,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "valid_counterfactual_count": {
           "original": null,
           "reproduced": 50,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -125,52 +135,62 @@
         "main_model_test_accuracy": {
           "original": null,
           "reproduced": 0.8460291734197731,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "main_model_test_auc": {
           "original": null,
           "reproduced": 0.8528205128205129,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "delta_validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "m2_validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "l1": {
           "original": 0.039,
           "reproduced": 0.0357067783889271,
-          "delta": 0.08444157977109999
+          "delta": 0.08444157977109999,
+          "cv_star": 0.07013397729838379
         },
         "pct_inlier_class_1": {
           "original": null,
           "reproduced": 0.88,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "lof_class_1": {
           "original": 1.24,
           "reproduced": 1.1547658104660639,
-          "delta": 0.06873724962414204
+          "delta": 0.06873724962414204,
+          "cv_star": 0.05662631584943011
         },
         "avg_bound": {
           "original": null,
           "reproduced": 0.0056180643945932356,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "valid_counterfactual_count": {
           "original": null,
           "reproduced": 50,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -202,52 +222,62 @@
         "main_model_test_accuracy": {
           "original": null,
           "reproduced": 0.9366398338094002,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "main_model_test_auc": {
           "original": null,
           "reproduced": 0.8004417408501682,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "delta_validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "m2_validity": {
           "original": 1.0,
           "reproduced": 0.999,
-          "delta": 0.0010000000000000009
+          "delta": 0.0010000000000000009,
+          "cv_star": 0.0007958930753725528
         },
         "l1": {
           "original": 0.058,
           "reproduced": 0.051421778355191086,
-          "delta": 0.11341761456567097
+          "delta": 0.11341761456567097,
+          "cv_star": 0.09564719845541271
         },
         "pct_inlier_class_1": {
           "original": null,
           "reproduced": 0.86,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "lof_class_1": {
           "original": 1.24,
           "reproduced": 1.2896651183067187,
-          "delta": 0.038510088860840966
+          "delta": 0.038510088860840966,
+          "cv_star": 0.031236039426790027
         },
         "avg_bound": {
           "original": null,
           "reproduced": 0.004903578705772402,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "valid_counterfactual_count": {
           "original": null,
           "reproduced": 50,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -290,52 +320,62 @@
         "main_model_test_accuracy": {
           "original": null,
           "reproduced": 0.7274569402228976,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "main_model_test_auc": {
           "original": null,
           "reproduced": 0.8201088654639939,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "delta_validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "m2_validity": {
           "original": 1.0,
           "reproduced": 1.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "l1": {
           "original": 0.057,
           "reproduced": 0.0736928645183863,
-          "delta": 0.22651941443016435
+          "delta": 0.22651941443016435,
+          "cv_star": 0.2032106719767938
         },
         "pct_inlier_class_1": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "lof_class_1": {
           "original": 1.04,
           "reproduced": 1.0337201277271526,
-          "delta": 0.006038338723891761
+          "delta": 0.006038338723891761,
+          "cv_star": 0.004818015445729966
         },
         "avg_bound": {
           "original": null,
           "reproduced": 0.006234807577099233,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "valid_counterfactual_count": {
           "original": null,
           "reproduced": 50,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     }

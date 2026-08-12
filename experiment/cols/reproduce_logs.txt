@@ -1,70 +1,23 @@
-Level Badge
-Level 1: Congruent Reproduction
+**Scope of Reproducibility**
 
-Reason
-The benchmark COLS implementation reproduces the paper-style COMPAS behavior and matches several key aggregate metrics closely, especially FS@1, PAC, Cov, and Val, but it does not reproduce exact numerical parity across all reported metrics. The largest remaining gaps are on Div, Prox, and Spars, which keeps this run below a partial quantitative reproduction claim.
+We aim to reproduce the COLS claims from `reference/cols.pdf`:
 
-Method
-COLS reproduction for the benchmark implementation under `method/cols/`, using the reproduction harness in `experiment/cols/`, the `compas_carla` dataset path, scalar-encoded COMPAS features, and a 5-seed aggregate comparison against the paper target table.
+1. We generate sets of recourse actions that improve expected user satisfaction under cost uncertainty : [Quantitative] : [Tables 1 and 2]
+2. We improve coverage, diversity, proximity, sparsity, validity, and EMC-style satisfaction metrics over baselines : [Quantitative] : [Tables 1-3]
+3. We provide monotonic optimization guarantees for the proposed objective : [Qualitative] : [Theorem / proof section]
+4. We analyze fairness and user-facing recourse quality : [Quantitative] : [Fairness summaries and human-evaluation discussion]
 
-Reproduction Summary
-No value available.
+**Methodology**
 
-Reference Scope
-- dataset: compas_carla
-- target column: score
-- desired class: 1
-- model: MLP with hidden layers [20]
-- training: 2000 epochs, Adam, learning rate 0.00001, batch size 32
-- COLS hyperparameters: num_cfs 10, num_mcmc 1000, budget 5000, num_parallel_runs 1, hamming_dist 2, perturb_type all, init_type ham_2, iter_type best, variance 0.001
-- reproduction seeds: 1, 2, 3, 4, 5
+We reproduce COLS with `experiment/cols/test_cols_reproduce.py` and `experiment/cols/reproduce_configs.yaml`. Code/experiments and data are available. The current script targets Tables 1-3 in the RecourseBench environment.
 
-Observed Result
-- balanced_rows = 2288
-- train_rows = 1415
-- val_rows = 229
-- provisional_rows = 1000
-- provisional_unique_rows = 644
-- factual_rows = 491
-- val_accuracy = 0.6856
-- mean_queries = 5011.00
-- mean_valid_cfs = 9.98 to 9.99 across seeds
-- coverage_seed_1 = 0.8126
-- coverage_seed_2 = 0.8187
-- coverage_seed_3 = 0.8248
-- coverage_seed_4 = 0.8024
-- coverage_seed_5 = 0.8248
-- mean_emc_seed_1 = 18879.8591
-- mean_emc_seed_2 = 18749.9225
-- mean_emc_seed_3 = 19027.9234
-- mean_emc_seed_4 = 18706.3383
-- mean_emc_seed_5 = 19257.2494
+**Results**
 
-Reproduction Assessment
-No value available.
+Claims 1, 2, and the simulated part of Claim 4 are partially reproduced: 59 of 70 scalar comparisons are within the 15% relative-delta threshold. Important discrepancies remain, including LS Diversity FS@1, reference 0.0 versus reproduced 0.3846, and Adult Binary COLS PAC, reference 0.38 versus reproduced 0.1695. Claim 3 is proof-level evidence, and human-evaluation claims are not fully reproduced by simulated metrics.
 
-Paper Result
-- `reproduction.paper_targets.COLS` in `experiment/cols/reproduce_configs.yaml` provides the paper targets listed below.
-- FS@1: paper 82.23, reproduced_mean 81.262729, reproduced_std 0.728658, absolute_gap 0.967271
-- PAC: paper 0.24, reproduced_mean 0.262230, reproduced_std 0.009500, absolute_gap 0.022230
-- Cov: paper 82.23, reproduced_mean 81.670061, reproduced_std 0.844662, absolute_gap 0.559939
-- Div: paper 29.32, reproduced_mean 24.264649, reproduced_std 0.174996, absolute_gap 5.055351
-- Prox: paper 77.82, reproduced_mean 82.843748, reproduced_std 0.131193, absolute_gap 5.023748
-- Spars: paper 70.05, reproduced_mean 75.463386, reproduced_std 0.173032, absolute_gap 5.413386
-- Val: paper 95.48, reproduced_mean 97.295316, reproduced_std 0.166658, absolute_gap 1.815316
-- FS@1, PAC, Cov, and Val are reasonably close, but Div, Prox, and Spars remain the limiting gaps for stronger reproduction claims.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-No value available.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-- Recheck whether the benchmark split and class-balancing logic exactly matches the reference COMPAS pipeline.
-- Reconfirm whether search-budget accounting and accepted-set aggregation match the reference EMC-COLS implementation literally.
-- Inspect diversity, proximity, and sparsity computation together with raw-feature decoding before changing the core COLS search loop.
-- If metric definitions are already identical, rerun after tightening seed and model-checkpoint parity with the reference setup.
+- Confirm original configs, seeds, data splits, and cost files.
+- Investigate PAC and diversity discrepancies.
+- Separate simulated satisfaction metrics from human-evaluation evidence.
+- Add a proof-inspection note for the monotonic guarantee.

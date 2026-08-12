@@ -18,22 +18,26 @@
         "present_accuracy": {
           "original": 0.67,
           "reproduced": 0.705,
-          "delta": 0.04964539007092188
+          "delta": 0.04964539007092188,
+          "cv_star": 0.040497933831593086
         },
         "present_auc": {
           "original": 0.6,
           "reproduced": 0.6164285714285714,
-          "delta": 0.026651216685979192
+          "delta": 0.026651216685979192,
+          "cv_star": 0.02148724364439454
         },
         "shift_accuracy": {
           "original": 0.66,
           "reproduced": 0.64,
-          "delta": 0.030303030303030328
+          "delta": 0.030303030303030328,
+          "cv_star": 0.02447677319491897
         },
         "shift_auc": {
           "original": 0.6,
           "reproduced": 0.6398809523809524,
-          "delta": 0.06232558139534896
+          "delta": 0.06232558139534896,
+          "cv_star": 0.05117443459619407
         }
       }
     },
@@ -47,62 +51,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 30,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9090909090909091,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.5196970105171204,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.066666666666666,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.3086092360044044,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.2576795816421509,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -116,62 +132,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.5,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 30,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9090909090909091,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.5269697308540344,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 6.933333333333334,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.3121353676061698,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.26155155897140503,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -185,62 +213,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 30,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9090909090909091,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.5224242210388184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 6.633333333333334,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.3125207655261051,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.26003530621528625,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -254,62 +294,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.4515151381492615,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 2.606060606060606,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.29988327622413635,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.22910581049187537,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.20499911904335022,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.29988327622413635,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -323,62 +375,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.2,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 30,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9090909090909091,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.5196970105171204,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.066666666666666,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.3086092360044044,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.2576795816421509,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -392,62 +456,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.4,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 32,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9696969696969697,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.6272726655006409,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.21875,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.7088840007781982,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.3753184300604726,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.28984686732292175,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.7088840007781982,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -461,62 +537,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.6,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.6899999976158142,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.545454545454546,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.8998833298683167,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.4522684288923995,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.3322056829929352,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.8998833298683167,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -530,62 +618,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.8,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.7239393591880798,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.636363636363637,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 1.0998833179473877,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.5374726010700099,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.38680288195610046,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 1.0998833179473877,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -599,62 +699,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.7384848594665527,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.757575757575758,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 1.299883246421814,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.6249965312112579,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.4444732367992401,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 1.299883246421814,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -668,62 +780,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 30,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9090909090909091,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.5196970105171204,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.066666666666666,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.3086092360044044,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.2576795816421509,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.5238199830055237,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -737,62 +861,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 0.5,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 30,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9090909090909091,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.5230302810668945,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.1,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.5238200426101685,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.30761762378032137,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.2570039629936218,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.5238200426101685,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -806,62 +942,74 @@
         "sweep_value": {
           "original": null,
           "reproduced": 1.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_factuals": {
           "original": null,
           "reproduced": 33,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "num_successful": {
           "original": null,
           "reproduced": 31,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "current_validity": {
           "original": null,
           "reproduced": 0.9393939393939394,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "future_validity": {
           "original": null,
           "reproduced": 0.5442423820495605,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l0": {
           "original": null,
           "reproduced": 7.387096774193548,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l1": {
           "original": null,
           "reproduced": 0.5151888132095337,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_l2": {
           "original": null,
           "reproduced": 0.29859055670499435,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "distance_linf": {
           "original": null,
           "reproduced": 0.2469140589237213,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "l1_cost": {
           "original": null,
           "reproduced": 0.5151888132095337,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "train_max_distance": {
           "original": null,
           "reproduced": 8.383910179138184,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         },
         "effective_perturb_radius": {
           "original": null,
           "reproduced": 1.6767820358276369,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     }

@@ -1,79 +1,22 @@
-Level Badge
-Level 2: Partial Reproduction
+**Scope of Reproducibility**
 
-Reason
-The updated PROBE run covers multiple paper-comparable settings and reproduces many scalar results within the tolerance threshold, but it does not yet establish full paper-wide experiment coverage.
+We aim to reproduce the PROBE claims from `reference/probe.pdf`:
 
-Method
-PROBE benchmark reproduction
+1. We generate probabilistic recourse that accounts for uncertainty in future model behavior : [Quantitative] : [Table 1 probabilistic recourse metrics]
+2. We compare robust accuracy, invalidation, and cost across linear and nonlinear classifiers : [Quantitative] : [Adult, COMPAS, and GMC experiments]
+3. We improve reliability of recourse under model variation while balancing cost : [Quantitative] : [AIR/AC and related metrics]
 
-Reproduction Summary
-- This run expands PROBE beyond the previous single-setting COMPAS MLP reproduction and now covers four paper-comparable rows across two datasets and two model classes.
-- The current run shows strong agreement on test accuracy and recourse availability, while a smaller subset of AIR and AC metrics remains noticeably off-target.
-- Full paper-wide experiment coverage is still not established because the current scope is intentionally limited to `credit_carla` and `compas_carla`.
+**Methodology**
 
-Reference Scope
-- Current paper-comparable scope is intentionally limited to `credit_carla` and `compas_carla` with `linear` and `mlp` models.
-- Adult is excluded because the local adult dataset schema does not match the original CARLA Adult setup used by the paper.
-- The current run therefore improves breadth materially, but it still does not represent the full paper experiment set.
+We reproduce PROBE with `experiment/probe/test_probe_reproduce.py` across Adult, COMPAS, and GMC with linear and MLP models. Code/experiments and data are available. The current run uses the RecourseBench environment.
 
-Observed Result
-{
-  "datasets": [
-    "credit_carla",
-    "compas_carla"
-  ],
-  "device": "cuda",
-  "models": [
-    "linear",
-    "mlp"
-  ],
-  "monte_carlo_samples": 10000,
-  "n_cfs": 500,
-  "notes": [
-    "Phase-1 paper-comparable reproduction is limited to compas_carla and credit_carla.",
-    "Adult is intentionally excluded because the local adult dataset schema does not match the original CARLA Adult setup used by the paper.",
-    "Training defaults follow the original reference experiment flow for wachter_rip/PROBE, not the hardcoded Table 3 values."
-  ]
-}
+**Results**
 
-dataset dataset_internal  model  test_accuracy  test_auc  paper_accuracy  accuracy_delta     ra  paper_ra  ra_delta  air_mean  paper_air_mean  air_mean_delta  air_std  paper_air_std  air_std_delta  ac_mean  paper_ac_mean  ac_mean_delta  ac_std  paper_ac_std  ac_std_delta  num_factuals  num_successful
-    gmc     credit_carla linear         0.9368    0.8067          0.9200          0.0168 1.0000    1.0000    0.0000    0.3449          0.2400          0.1049   0.0130         0.0100         0.0030   0.5824         0.6000        -0.0176  0.4498        0.5600       -0.1102           500             500
-    gmc     credit_carla    mlp         0.9360    0.8233          0.9300          0.0060 1.0000    1.0000    0.0000    0.2227          0.2500         -0.0273   0.0533         0.0300         0.0233   0.4743         0.4700         0.0043  0.2304        0.2100        0.0204           500             500
- compas     compas_carla linear         0.8356    0.8165          0.8400         -0.0044 1.0000    1.0000    0.0000    0.2874          0.2800          0.0074   0.0163         0.0200        -0.0037   0.5677         0.6300        -0.0623  0.3350        0.3900       -0.0550           291             291
- compas     compas_carla    mlp         0.8445    0.8532          0.8500         -0.0055 1.0000    1.0000    0.0000    0.3335          0.3300          0.0035   0.0276         0.0200         0.0076   0.5081         0.8000        -0.2919  0.3506        0.3400        0.0106           500             500
+Claims 1-3 are partially reproduced: 26 of 36 scalar comparisons are within the 15% relative-delta threshold. Some means are close, including Adult linear AIR mean, reference 0.34 versus reproduced 0.3489, relative delta 0.025. Important discrepancies remain, including Adult MLP AIR std, reference 0.01 versus reproduced 0.0528, relative delta 0.811, and Adult MLP AC mean, reference 1.43 versus reproduced 0.7629, relative delta 0.467.
 
-- `test_accuracy` and `ra` are very close to the paper targets across all four reported rows.
-- The strongest remaining outlier is `compas_carla / mlp / ac_mean`, where `0.5081` remains far below the paper value `0.8000`.
-- `credit_carla / linear / air_mean` and `credit_carla / linear / ac_std` are also notable remaining gaps, though much of the table is already in the correct regime.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Reproduction Assessment
-No value available.
-
-Paper Result
-- `PAPER_PROBE_RESULTS` in `experiment/probe/test_probe_reproduce.py`:
-  - compas_carla / linear: paper_accuracy = 0.84, ra = 1.00, air_mean = 0.28, air_std = 0.02, ac_mean = 0.63, ac_std = 0.39
-  - compas_carla / mlp: paper_accuracy = 0.85, ra = 1.00, air_mean = 0.33, air_std = 0.02, ac_mean = 0.80, ac_std = 0.34
-  - credit_carla / linear: paper_accuracy = 0.92, ra = 1.00, air_mean = 0.24, air_std = 0.01, ac_mean = 0.60, ac_std = 0.56
-  - credit_carla / mlp: paper_accuracy = 0.93, ra = 1.00, air_mean = 0.25, air_std = 0.03, ac_mean = 0.47, ac_std = 0.21
-
-Scalar Result Coverage
-- `R = 24` scalar paper-targeted result pairs are represented in the four-row comparison table.
-- `R_rep = 17` scalar result pairs satisfy `Δ <= 0.15` under the current raw-delta definition.
-- `R - R_rep = 7` scalar result pairs remain outside the threshold.
-
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-- The deltas printed in the table are signed differences for convenience; the scalar reproduction criterion uses the absolute symmetric relative error.
-- `test_auc` is reported for context, but it is not paired with an explicit paper target in this table and is therefore not part of the 24 scalar reproduction pairs counted above.
-- This log is intentionally structured so the four observed/reference rows can be extracted directly by a future permanent probe extractor update.
-
-Next Steps
-- Update the permanent probe extraction logic so this four-row table becomes the new source of truth for probe deltas.
-- Decide whether the future pooled delta analysis should include all 24 scalar pairs directly or a narrower subset of the reported metrics.
-- Extend the reproduction scope only after the current `credit_carla` and `compas_carla` coverage is stabilized.
+- Confirm data splits, model training, perturbation distributions, and seeds.
+- Investigate standard-deviation and Adult MLP cost discrepancies.
+- Add any missing paper datasets or model families.
+- Report multiple seeds and variance estimates.

@@ -1,54 +1,23 @@
-Level Badge
-Level 2: Partial Reproduction
+**Scope of Reproducibility**
 
-Reason
-The implementation reproduces the adult CoGS experiment on the paper-aligned `adult_cogs` dataset path with close quantitative agreement for this specific setting, but the full set of CoGS paper experiments has not been validated in this repository.
+We aim to reproduce the CoGS claims from `reference/cogs.pdf`:
 
-Method
-CoGS adult reproduction for the benchmark implementation under `method/cogs/`, using `adult_cogs`, paper-style random-forest search, and best-of-5 repetitions in `experiment/cogs/`.
+1. We quantify accidental robustness of counterfactual explanations using C/K robustness measures : [Quantitative] : [Tables 4 and 5]
+2. We show that CoGS finds counterfactuals with improved robustness compared with baseline searches : [Quantitative] : [Robustness and cost-reduction experiments]
+3. We evaluate runtime and cost trade-offs across datasets and black-box models : [Quantitative] : [Runtime/cost figures]
+4. We formalize robustness definitions for mixed feature spaces : [Qualitative] : [Definitions and methodology section]
 
-Reproduction Summary
-No value available.
+**Methodology**
 
-Reference Scope
-- dataset: adult
-- reproduction dataset path: `adult_cogs`
-- blackbox: random forest
-- method: base CoGS
-- desired class: 1
-- repetitions: 5 best-of-loss selection
+We reproduce CoGS with `experiment/cogs/test_cogs_reproduce.py`. Code/experiments and data are available, but the recorded report is heavily scoped: Adult, random forest, and very few factuals. It runs in the current RecourseBench environment rather than the full paper setup.
 
-Observed Result
-- test_accuracy = 0.8276
-- rf_best_params = {'max_features': 'sqrt', 'min_samples_split': 2, 'n_estimators': 50}
-- rf_best_cv_score = 0.8161
-- candidate_pool_size = 154
-- num_factuals_evaluated = 154
-- success_rate = 1.0000
-- avg_l1_distance = 5913.8826
-- avg_num_features_changed = 1.1818
-- avg_runtime_per_factual = 5.755
-- avg_selected_run_time = 1.170
+**Results**
 
-Reproduction Assessment
-No value available.
+Claim 1 is only partially reproduced because the script records robustness-style measurements but not at paper scale. Claims 2 and 3 are not fully reproduced because Table 4, full Table 5 coverage, and cost-reduction/runtime figures are missing or heavily scoped. Claim 4 is paper-level formalization rather than a rerunnable metric.
 
-Paper Result
-- Reference aggregate test_accuracy_mean = 0.8262.
-- Reference aggregate success_rate = 1.0000.
-- Reference candidate count is 854 across 5 folds, or about 171 per fold, which is close to the reproduced 154 on a single split.
-- Reference avg_raw_l1_distance = 7629.5295 and avg_num_features_changed = 1.3899, so the reproduced counterfactuals are in the right regime but not numerically identical.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-No value available.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-- Add 5-fold stratified evaluation rather than relying on a single split.
-- Reconfirm whether the remaining drift comes from split construction, RF model selection, or per-factual result aggregation.
-- Extend validation beyond the adult setting before claiming Level 3 reproduction.
+- Restore the full five-dataset and multi-model scope.
+- Add Table 4, Table 5, runtime, and cost-reduction scalar targets.
+- Increase factual counts and cross-validation folds to paper scale.
+- Add a formal-definition audit for non-executable claims.

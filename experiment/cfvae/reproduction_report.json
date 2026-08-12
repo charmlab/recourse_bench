@@ -17,22 +17,26 @@
         "target_class_validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "constraint_feasibility_score": {
           "original": 56.82554814,
           "reproduced": 56.96854146806483,
-          "delta": 0.002510040179718911
+          "delta": 0.002510040179718911,
+          "cv_star": 0.00199923381474802
         },
         "cont_proximity": {
           "original": -2.24059021,
           "reproduced": -2.2381529043407946,
-          "delta": 0.001087796263827076
+          "delta": 0.001087796263827076,
+          "cv_star": 0.0008658075401428863
         },
         "cat_proximity": {
           "original": -3.26024786,
           "reproduced": -3.2602478551000957,
-          "delta": 1.5029239163915868e-09
+          "delta": 1.5029239163915868e-09,
+          "cv_star": 1.195568655397351e-09
         }
       }
     },
@@ -45,22 +49,26 @@
         "target_class_validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "constraint_feasibility_score": {
           "original": 42.85033365,
           "reproduced": 43.06005719733079,
-          "delta": 0.0048704892882443585
+          "delta": 0.0048704892882443585,
+          "cv_star": 0.0038839087718757497
         },
         "cont_proximity": {
           "original": -2.66647616,
           "reproduced": -2.664956383421795,
-          "delta": 0.0005699569345504087
+          "delta": 0.0005699569345504087,
+          "cv_star": 0.00045352721056983843
         },
         "cat_proximity": {
           "original": -3.12011439,
           "reproduced": -3.120114394661583,
-          "delta": 1.4940423746930098e-09
+          "delta": 1.4940423746930098e-09,
+          "cv_star": 1.1885034322290023e-09
         }
       }
     },
@@ -73,22 +81,26 @@
         "target_class_validity": {
           "original": 99.5900858,
           "reproduced": 99.64728312678741,
-          "delta": 0.0005739978551612026
+          "delta": 0.0005739978551612026,
+          "cv_star": 0.0004567435826608006
         },
         "constraint_feasibility_score": {
           "original": 84.26668079,
           "reproduced": 83.88875509775194,
-          "delta": 0.004484876925316185
+          "delta": 0.004484876925316185,
+          "cv_star": 0.0035757160707615364
         },
         "cont_proximity": {
           "original": -2.73294234,
           "reproduced": -2.733969551367649,
-          "delta": 0.0003757215829762891
+          "delta": 0.0003757215829762891,
+          "cv_star": 0.00029894084832013645
         },
         "cat_proximity": {
           "original": -3.26167779,
           "reproduced": -3.26186844613918,
-          "delta": 5.844997808109e-05
+          "delta": 5.844997808109e-05,
+          "cv_star": 4.649803174848003e-05
         }
       }
     },
@@ -101,22 +113,26 @@
         "target_class_validity": {
           "original": 99.52335558,
           "reproduced": 99.51382268827454,
-          "delta": 9.578547336854413e-05
+          "delta": 9.578547336854413e-05,
+          "cv_star": 7.620052692959009e-05
         },
         "constraint_feasibility_score": {
           "original": 74.03769743,
           "reproduced": 74.6028706454077,
-          "delta": 0.007575756944984275
+          "delta": 0.007575756944984275,
+          "cv_star": 0.006049392109113671
         },
         "cont_proximity": {
           "original": -6.80110826,
           "reproduced": -6.8069779316864585,
-          "delta": 0.0008623021472032151
+          "delta": 0.0008623021472032151,
+          "cv_star": 0.0006862530364174169
         },
         "cat_proximity": {
           "original": -3.72411821,
           "reproduced": -3.728312678741659,
-          "delta": 0.0011250313756074153
+          "delta": 0.0011250313756074153,
+          "cv_star": 0.0008954606897678932
         }
       }
     },
@@ -129,22 +145,26 @@
         "target_class_validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "constraint_feasibility_score": {
           "original": 57.01620591,
           "reproduced": 56.78741658722593,
-          "delta": 0.004012706898372249
+          "delta": 0.004012706898372249,
+          "cv_star": 0.0031985061248931104
         },
         "cont_proximity": {
           "original": -2.25337728,
           "reproduced": -2.2492502135309222,
-          "delta": 0.0018315026541306874
+          "delta": 0.0018315026541306874,
+          "cv_star": 0.0014582868679436517
         },
         "cat_proximity": {
           "original": -3.26024786,
           "reproduced": -3.2602478551000957,
-          "delta": 1.5029239163915868e-09
+          "delta": 1.5029239163915868e-09,
+          "cv_star": 1.195568655397351e-09
         }
       }
     },
@@ -157,22 +177,26 @@
         "target_class_validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "constraint_feasibility_score": {
           "original": 42.59294566,
           "reproduced": 42.964728312678744,
-          "delta": 0.00865320618282682
+          "delta": 0.00865320618282682,
+          "cv_star": 0.006913495317455455
         },
         "cont_proximity": {
           "original": -2.6661057,
           "reproduced": -2.662725352004554,
-          "delta": 0.0012678972163204841
+          "delta": 0.0012678972163204841,
+          "cv_star": 0.0010092458694604674
         },
         "cat_proximity": {
           "original": -3.12011439,
           "reproduced": -3.120114394661583,
-          "delta": 1.4940423746930098e-09
+          "delta": 1.4940423746930098e-09,
+          "cv_star": 1.1885034322290023e-09
         }
       }
     },
@@ -185,22 +209,26 @@
         "target_class_validity": {
           "original": 100.0,
           "reproduced": 100.0,
-          "delta": 0.0
+          "delta": 0.0,
+          "cv_star": 0.0
         },
         "constraint_feasibility_score": {
           "original": 79.5042898,
           "reproduced": 79.2373689227836,
-          "delta": 0.003357314151071037
+          "delta": 0.003357314151071037,
+          "cv_star": 0.0026752178264783898
         },
         "cont_proximity": {
           "original": -2.90320554,
           "reproduced": -2.903026722028288,
-          "delta": 6.159328688527956e-05
+          "delta": 6.159328688527956e-05,
+          "cv_star": 4.899866868069684e-05
         },
         "cat_proximity": {
           "original": -3.22097235,
           "reproduced": -3.2192564346997146,
-          "delta": 0.0005327320802009535
+          "delta": 0.0005327320802009535,
+          "cv_star": 0.0004238986869885805
         }
       }
     },
@@ -213,22 +241,26 @@
         "target_class_validity": {
           "original": 99.93326978,
           "reproduced": 99.94280266920877,
-          "delta": 9.538344887447994e-05
+          "delta": 9.538344887447994e-05,
+          "cv_star": 7.588068783197246e-05
         },
         "constraint_feasibility_score": {
           "original": 66.35181132,
           "reproduced": 66.42824741080605,
-          "delta": 0.0011506564418801938
+          "delta": 0.0011506564418801938,
+          "cv_star": 0.0009158685194840832
         },
         "cont_proximity": {
           "original": -3.20324281,
           "reproduced": -3.202042774507118,
-          "delta": 0.00037463144821101924
+          "delta": 0.00037463144821101924,
+          "cv_star": 0.0002980733259811099
         },
         "cat_proximity": {
           "original": -3.5914204,
           "reproduced": -3.594661582459486,
-          "delta": 0.0009016655351651096
+          "delta": 0.0009016655351651096,
+          "cv_star": 0.0007175940559763838
         }
       }
     }

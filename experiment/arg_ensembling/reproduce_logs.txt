@@ -1,56 +1,22 @@
-Level Badge
-Level 1: Congruent Reproduction
+**Scope of Reproducibility**
 
-Reason
-Restored original badge from the pre-standardization reproduction log.
+We aim to reproduce the argumentative ensembling claims from `reference/arg_ensembling.pdf`:
 
-Method
-Argumentative ensembling benchmark reproduction
+1. We define ensemble recourse through argumentation-style properties such as coherence and non-emptiness : [Qualitative] : [Formal definitions and propositions in the paper]
+2. We show that the proposed aggregation properties hold under the stated assumptions : [Qualitative] : [Proofs / theoretical results]
+3. We empirically evaluate accuracy and simplicity across datasets, methods, and ensemble sizes : [Quantitative] : [Table 4]
 
-Reproduction Summary
-- Restored original badge: `Level 1: Congruent Reproduction`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 66`, `R_rep = 64`
-- Average raw delta across extracted scalar results: `0.045748`
-- Average variance-adjusted delta across extracted scalar results: `0.045748`
+**Methodology**
 
-Reference Scope
-- Current reproduction log only reports a COMPAS Table 4-style local variant; additional paper datasets/settings are not covered.
+We reproduce the Table 4-style empirical evaluation with `experiment/arg_ensembling/test_arg_ensembling_reproduce.py` and `experiment/arg_ensembling/config.yaml`. Code/experiments and data are available, but the run is executed inside the current RecourseBench environment rather than a frozen copy of the original paper environment.
 
-Observed Result
-- Most extracted COMPAS scalar targets are within the 15% threshold.
-- The current script/log does not establish full paper-wide coverage beyond this variant.
+**Results**
 
-Reproduction Assessment
-No value available.
+Claim 3 is partially reproduced: 170 of 198 scalar accuracy/simplicity comparisons are within the 15% relative-delta threshold. The largest discrepancies are simplicity metrics on COMPAS for `Sa,s-A` and `Sa,d-A` at `|M|=10`, where the reference is 0.436 and the reproduced value is about 0.766. Claims 1 and 2 remain proof-level evidence and are not mechanically verified by the reproduction script.
 
-Paper Result
-- `reproduction.table4_targets` in `experiment/arg_ensembling/config.yaml`:
-  - avg: 10 = {acc: 0.855, simp: 0.570}; 20 = {acc: 0.855, simp: 0.558}; 30 = {acc: 0.855, simp: 0.533}
-  - Sn: 10 = {acc: 0.856, simp: 0.495}; 20 = {acc: 0.858, simp: 0.490}; 30 = {acc: 0.859, simp: 0.493}
-  - Sv: 10 = {acc: 0.856, simp: 0.495}; 20 = {acc: 0.858, simp: 0.490}; 30 = {acc: 0.859, simp: 0.493}
-  - Sa,d: 10 = {acc: 0.860, simp: 0.492}; 20 = {acc: 0.858, simp: 0.479}; 30 = {acc: 0.858, simp: 0.480}
-  - Sa,d-A: 10 = {acc: 0.863, simp: 0.436}; 20 = {acc: 0.866, simp: 0.619}; 30 = {acc: 0.869, simp: 0.583}
-  - Sa,d-S: 10 = {acc: 0.861, simp: 0.699}; 20 = {acc: 0.857, simp: 0.586}; 30 = {acc: 0.856, simp: 0.551}
-  - Sa,d-AS: 10 = {acc: 0.864, simp: 0.567}; 20 = {acc: 0.856, simp: 0.519}; 30 = {acc: 0.856, simp: 0.518}
-  - Sa,s: 10 = {acc: 0.860, simp: 0.492}; 20 = {acc: 0.858, simp: 0.476}; 30 = {acc: 0.858, simp: 0.479}
-  - Sa,s-A: 10 = {acc: 0.863, simp: 0.436}; 20 = {acc: 0.866, simp: 0.619}; 30 = {acc: 0.869, simp: 0.583}
-  - Sa,s-S: 10 = {acc: 0.861, simp: 0.698}; 20 = {acc: 0.857, simp: 0.587}; 30 = {acc: 0.856, simp: 0.545}
-  - Sa,s-AS: 10 = {acc: 0.864, simp: 0.585}; 20 = {acc: 0.856, simp: 0.529}; 30 = {acc: 0.856, simp: 0.532}
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-- `R = 66` total extracted scalar results
-- `R_rep = 64` extracted scalar results with `Δ <= 0.15`
-- `R - R_rep = 2` extracted scalar results outside the threshold
-
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-- Level 2 follows directly from scalar-result counts and remains capped by limited experiment coverage.
-
-Next Steps
-- Reproduce the remaining paper datasets and model-pool constructions.
-- Add standardized scalar comparisons for all original Table 4 settings.
+- Align Table 4 seeds, model sizes, preprocessing, and ensemble settings with the original release.
+- Investigate the COMPAS simplicity drift.
+- Add a proof-inspection note for coherence and non-emptiness claims.
+- Record whether the implementation path is original code or a RecourseBench reimplementation.

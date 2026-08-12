@@ -39,6 +39,7 @@ from utils.registry import get_registry
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("compas_mlp_dice_reproduce.yaml")
 DEFAULT_MANUAL_KS = (1, 2, 4, 6, 8, 10)
 DEFAULT_MANUAL_RADII = (0.5, 1.0, 2.0)
+DEFAULT_RUN_DIR = PROJECT_ROOT / "experiment" / "dice" / "reproduce_run"
 
 
 def _load_config(config_path: Path) -> dict:
@@ -219,8 +220,22 @@ def _sample_boundary_points(
 
     for feature_index in continuous_indices:
         radius = radius_multiplier * mads.get(feature_index, 1.0)
-        low = max(lower_bounds[feature_index], factual[feature_index] - radius)
-        high = min(upper_bounds[feature_index], factual[feature_index] + radius)
+        bound_low = float(lower_bounds[feature_index])
+        bound_high = float(upper_bounds[feature_index])
+        if bound_low > bound_high:
+            bound_low, bound_high = bound_high, bound_low
+
+        low = max(bound_low, factual[feature_index] - radius)
+        high = min(bound_high, factual[feature_index] + radius)
+        if high < low:
+            # A test factual can lie outside the train-derived feature range, leaving
+            # no overlap between the local radius and feasible search bounds.
+            samples[:, feature_index] = np.clip(
+                factual[feature_index],
+                bound_low,
+                bound_high,
+            )
+            continue
         if np.isclose(low, high):
             samples[:, feature_index] = low
         else:
@@ -1534,7 +1549,7 @@ def test_reproduce() -> None:
         num_boundary_samples=num_boundary_samples,
         save_results=not args.no_save,
         assert_paper=args.assert_paper,
-        run_dir=None,
+        run_dir=DEFAULT_RUN_DIR,
     )
     print(result["summary_df"].to_string(index=False))
     print()

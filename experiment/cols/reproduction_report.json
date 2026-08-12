@@ -31,12 +31,14 @@
         "reproduced_mean": {
           "original": 72.57,
           "reproduced": 76.53846153846153,
-          "delta": 0.0518492462311558
+          "delta": 0.0518492462311558,
+          "cv_star": 0.042343563742026455
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 6.007884366082044,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -52,12 +54,14 @@
         "reproduced_mean": {
           "original": 0.38,
           "reproduced": 0.16950347694295606,
-          "delta": 0.5539382185711683
+          "delta": 0.5539382185711683,
+          "cv_star": 0.60945550212028
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.026852089023052566,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -73,12 +77,14 @@
         "reproduced_mean": {
           "original": 76.07,
           "reproduced": 76.53846153846153,
-          "delta": 0.006120603015075395
+          "delta": 0.006120603015075395,
+          "cv_star": 0.0048838559557685055
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 6.007884366082044,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -94,12 +100,14 @@
         "reproduced_mean": {
           "original": 25.77,
           "reproduced": 15.826210987165814,
-          "delta": 0.38586686118875385
+          "delta": 0.38586686118875385,
+          "cv_star": 0.38033443595677
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.2659958045230212,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -115,12 +123,14 @@
         "reproduced_mean": {
           "original": 80.22,
           "reproduced": 90.0431599896232,
-          "delta": 0.10909390553102814
+          "delta": 0.10909390553102814,
+          "cv_star": 0.09179056610939278
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.27828117671110036,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -136,12 +146,14 @@
         "reproduced_mean": {
           "original": 76.48,
           "reproduced": 84.81000712250713,
-          "delta": 0.0982196253146698
+          "delta": 0.0982196253146698,
+          "cv_star": 0.08216851381351908
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.14325399747847706,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -157,12 +169,14 @@
         "reproduced_mean": {
           "original": 97.15,
           "reproduced": 99.34615384615384,
-          "delta": 0.022106078203639058
+          "delta": 0.022106078203639058,
+          "cv_star": 0.017781820688003522
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.4142434467026525,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -178,12 +192,14 @@
         "reproduced_mean": {
           "original": 75.82,
           "reproduced": 78.46153846153847,
-          "delta": 0.033666666666666824
+          "delta": 0.033666666666666824,
+          "cv_star": 0.02724021292162124
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 5.357072414301585,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -199,12 +215,14 @@
         "reproduced_mean": {
           "original": 0.4,
           "reproduced": 0.21887790591151837,
-          "delta": 0.4528052352212041
+          "delta": 0.4528052352212041,
+          "cv_star": 0.4656225151859177
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.03824398473409466,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -220,12 +238,14 @@
         "reproduced_mean": {
           "original": 79.2,
           "reproduced": 78.84615384615384,
-          "delta": 0.004467754467754586
+          "delta": 0.004467754467754586,
+          "cv_star": 0.003562034062728006
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 4.710557197659955,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -241,12 +261,14 @@
         "reproduced_mean": {
           "original": 25.57,
           "reproduced": 16.181027692952835,
-          "delta": 0.36718702804251724
+          "delta": 0.36718702804251724,
+          "cv_star": 0.35778193485197246
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.408898528519189,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -262,12 +284,14 @@
         "reproduced_mean": {
           "original": 81.67,
           "reproduced": 89.92910182420742,
-          "delta": 0.09184014581122178
+          "delta": 0.09184014581122178,
+          "cv_star": 0.07657470464430276
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.2553606986560697,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -283,12 +307,14 @@
         "reproduced_mean": {
           "original": 78.0,
           "reproduced": 85.38390313390315,
-          "delta": 0.08647886619007512
+          "delta": 0.08647886619007512,
+          "cv_star": 0.07190254195352973
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.20506946076380594,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -304,12 +330,14 @@
         "reproduced_mean": {
           "original": 94.78,
           "reproduced": 99.53846153846152,
-          "delta": 0.047805255023183724
+          "delta": 0.047805255023183724,
+          "cv_star": 0.03896009617022382
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.26085884550481864,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -325,12 +353,14 @@
         "reproduced_mean": {
           "original": 82.23,
           "reproduced": 82.44399185336049,
-          "delta": 0.002595602766798346
+          "delta": 0.002595602766798346,
+          "cv_star": 0.0020674725260828746
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.5262724232338283,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -346,12 +376,14 @@
         "reproduced_mean": {
           "original": 0.24,
           "reproduced": 0.24930450208088387,
-          "delta": 0.037321837364433716
+          "delta": 0.037321837364433716,
+          "cv_star": 0.03025390549279463
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.009128523614772385,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -367,12 +399,14 @@
         "reproduced_mean": {
           "original": 82.23,
           "reproduced": 82.5254582484725,
-          "delta": 0.0035802073050344827
+          "delta": 0.0035802073050344827,
+          "cv_star": 0.0028531448964742735
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.5208272670138068,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -388,12 +422,14 @@
         "reproduced_mean": {
           "original": 29.32,
           "reproduced": 25.181842461964237,
-          "delta": 0.14113770593573544
+          "delta": 0.14113770593573544,
+          "cv_star": 0.12079900477331834
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0951791587928719,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -409,12 +445,14 @@
         "reproduced_mean": {
           "original": 77.82,
           "reproduced": 82.51964179554696,
-          "delta": 0.056951795878985204
+          "delta": 0.056951795878985204,
+          "cv_star": 0.04663278667409602
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.05836241389566348,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -430,12 +468,14 @@
         "reproduced_mean": {
           "original": 70.05,
           "reproduced": 75.4947559471854,
-          "delta": 0.07212098216456836
+          "delta": 0.07212098216456836,
+          "cv_star": 0.059518143480928515
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0967863836769979,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -451,12 +491,14 @@
         "reproduced_mean": {
           "original": 95.48,
           "reproduced": 96.9816700610998,
-          "delta": 0.015484060649334337
+          "delta": 0.015484060649334337,
+          "cv_star": 0.01241360129882291
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.20095961521048683,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -472,12 +514,14 @@
         "reproduced_mean": {
           "original": 83.73,
           "reproduced": 83.66598778004075,
-          "delta": 0.00076450758341398
+          "delta": 0.00076450758341398,
+          "cv_star": 0.0006083946197133756
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.413389130174942,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -493,12 +537,14 @@
         "reproduced_mean": {
           "original": 0.24,
           "reproduced": 0.24752878718439578,
-          "delta": 0.030415804440504287
+          "delta": 0.030415804440504287,
+          "cv_star": 0.024569271348302876
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.008843277181436212,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -514,12 +560,14 @@
         "reproduced_mean": {
           "original": 83.73,
           "reproduced": 83.70672097759675,
-          "delta": 0.0002780248704557316
+          "delta": 0.0002780248704557316,
+          "cv_star": 0.0002211981794400711
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.3692656874925935,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -535,12 +583,14 @@
         "reproduced_mean": {
           "original": 29.38,
           "reproduced": 24.524465628812358,
-          "delta": 0.1652666566095181
+          "delta": 0.1652666566095181,
+          "cv_star": 0.1433110928793056
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.19516522116183072,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -556,12 +606,14 @@
         "reproduced_mean": {
           "original": 78.48,
           "reproduced": 83.21228443974776,
-          "delta": 0.05687002191574616
+          "delta": 0.05687002191574616,
+          "cv_star": 0.04656386955165029
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0926154974199614,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -577,12 +629,14 @@
         "reproduced_mean": {
           "original": 71.3,
           "reproduced": 76.85258461836874,
-          "delta": 0.07224980976165638
+          "delta": 0.07224980976165638,
+          "cv_star": 0.059628443577056385
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.04716098509997064,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -598,12 +652,14 @@
         "reproduced_mean": {
           "original": 92.78,
           "reproduced": 97.14052953156823,
-          "delta": 0.04488887957061393
+          "delta": 0.04488887957061393,
+          "cv_star": 0.036528752421433566
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.18514571368412808,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -619,12 +675,14 @@
         "reproduced_mean": {
           "original": 10.1,
           "reproduced": 9.230769230769232,
-          "delta": 0.08606245239908594
+          "delta": 0.08606245239908594,
+          "cv_star": 0.07154074775832846
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 2.8263343185959746,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -640,12 +698,14 @@
         "reproduced_mean": {
           "original": 1.304,
           "reproduced": 1.2814020503343642,
-          "delta": 0.017329716001254512
+          "delta": 0.017329716001254512,
+          "cv_star": 0.013906199910643659
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.16534216674138533,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -661,12 +721,14 @@
         "reproduced_mean": {
           "original": 29.0,
           "reproduced": 26.153846153846153,
-          "delta": 0.09814323607427057
+          "delta": 0.09814323607427057,
+          "cv_star": 0.08210131036789413
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 2.6085884550481806,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -682,12 +744,14 @@
         "reproduced_mean": {
           "original": 42.7,
           "reproduced": 40.1277412189501,
-          "delta": 0.0602402524836043
+          "delta": 0.0602402524836043,
+          "cv_star": 0.04940903374435509
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.9990766288573765,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -703,12 +767,14 @@
         "reproduced_mean": {
           "original": 66.2,
           "reproduced": 68.3353457981143,
-          "delta": 0.031248042622376328
+          "delta": 0.031248042622376328,
+          "cv_star": 0.02525220670747679
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.0881711204996571,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -724,12 +790,14 @@
         "reproduced_mean": {
           "original": 55.8,
           "reproduced": 58.94130291005291,
-          "delta": 0.053295444025841854
+          "delta": 0.053295444025841854,
+          "cv_star": 0.043556959869991946
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.6863353344492233,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -745,12 +813,14 @@
         "reproduced_mean": {
           "original": 9.7,
           "reproduced": 10.384615384615383,
-          "delta": 0.06592592592592587
+          "delta": 0.06592592592592587,
+          "cv_star": 0.054231379905249344
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 2.878197989826109,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -766,12 +836,14 @@
         "reproduced_mean": {
           "original": 1.275,
           "reproduced": 1.1944807925162404,
-          "delta": 0.0631523195951055
+          "delta": 0.0631523195951055,
+          "cv_star": 0.05187538815858463
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.23328261494041405,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -787,12 +859,14 @@
         "reproduced_mean": {
           "original": 27.0,
           "reproduced": 22.30769230769231,
-          "delta": 0.1737891737891737
+          "delta": 0.1737891737891737,
+          "cv_star": 0.15140468910741592
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.9611613513818396,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -808,12 +882,14 @@
         "reproduced_mean": {
           "original": 42.1,
           "reproduced": 40.37961630957908,
-          "delta": 0.04086422067508133
+          "delta": 0.04086422067508133,
+          "cv_star": 0.033185334915236564
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.7872593690649352,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -829,12 +905,14 @@
         "reproduced_mean": {
           "original": 67.5,
           "reproduced": 67.93698051032827,
-          "delta": 0.0064321450121239306
+          "delta": 0.0064321450121239306,
+          "cv_star": 0.005133248925841236
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.047694337622381,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -850,12 +928,14 @@
         "reproduced_mean": {
           "original": 55.0,
           "reproduced": 56.17305030844246,
-          "delta": 0.02088279525504351
+          "delta": 0.02088279525504351,
+          "cv_star": 0.016787446303852153
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.4267567966194765,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -871,12 +951,14 @@
         "reproduced_mean": {
           "original": 0.0,
           "reproduced": 0.38461538461538464,
-          "delta": 1.0
+          "delta": 1.0,
+          "cv_star": 1.590990257669732
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.7692307692307693,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -892,12 +974,14 @@
         "reproduced_mean": {
           "original": 2.393,
           "reproduced": 2.273155050609005,
-          "delta": 0.05008146652360835
+          "delta": 0.05008146652360835,
+          "cv_star": 0.040862797066100305
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.24666461019862387,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -913,12 +997,14 @@
         "reproduced_mean": {
           "original": 7.6,
           "reproduced": 8.076923076923077,
-          "delta": 0.05904761904761906
+          "delta": 0.05904761904761906,
+          "cv_star": 0.04840107751497713
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 1.884222879063983,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -934,12 +1020,14 @@
         "reproduced_mean": {
           "original": 53.3,
           "reproduced": 50.21825054505664,
-          "delta": 0.05781893911713614
+          "delta": 0.05781893911713614,
+          "cv_star": 0.047363951125312206
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.24078073448891021,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -955,12 +1043,14 @@
         "reproduced_mean": {
           "original": 50.8,
           "reproduced": 53.17621975779038,
-          "delta": 0.04468575932275181
+          "delta": 0.04468575932275181,
+          "cv_star": 0.036359683911701066
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.4018773196628856,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -976,12 +1066,14 @@
         "reproduced_mean": {
           "original": 35.6,
           "reproduced": 39.65251068376069,
-          "delta": 0.1022006075751555
+          "delta": 0.1022006075751555,
+          "cv_star": 0.08567827117503886
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.5298098926189047,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -997,12 +1089,14 @@
         "reproduced_mean": {
           "original": 49.8,
           "reproduced": 58.84615384615385,
-          "delta": 0.15372549019607848
+          "delta": 0.15372549019607848,
+          "cv_star": 0.13246987701923005
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 9.775588482414484,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1018,12 +1112,14 @@
         "reproduced_mean": {
           "original": 0.597,
           "reproduced": 0.37654162518905065,
-          "delta": 0.36927700973358346
+          "delta": 0.36927700973358346,
+          "cv_star": 0.36027953758814524
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.028166119381932808,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1039,12 +1135,14 @@
         "reproduced_mean": {
           "original": 59.1,
           "reproduced": 59.61538461538462,
-          "delta": 0.00864516129032264
+          "delta": 0.00864516129032264,
+          "cv_star": 0.006907039931566951
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 9.182566451010244,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1060,12 +1158,14 @@
         "reproduced_mean": {
           "original": 37.8,
           "reproduced": 32.43258973859279,
-          "delta": 0.14199498046050818
+          "delta": 0.14199498046050818,
+          "cv_star": 0.12158881605533287
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 2.280370979178921,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1081,12 +1181,14 @@
         "reproduced_mean": {
           "original": 73.3,
           "reproduced": 78.66479907073835,
-          "delta": 0.06819821742523142
+          "delta": 0.06819821742523142,
+          "cv_star": 0.05616658007705604
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 2.092135224634811,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1102,12 +1204,14 @@
         "reproduced_mean": {
           "original": 67.5,
           "reproduced": 71.93265415140415,
-          "delta": 0.061622279946382655
+          "delta": 0.061622279946382655,
+          "cv_star": 0.05057860809882801
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 2.6446848489852233,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1123,12 +1227,14 @@
         "reproduced_mean": {
           "original": 68.8,
           "reproduced": 75.38461538461539,
-          "delta": 0.08734693877551027
+          "delta": 0.08734693877551027,
+          "cv_star": 0.07265725888632585
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 6.366517445094943,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1144,12 +1250,14 @@
         "reproduced_mean": {
           "original": 0.391,
           "reproduced": 0.18728516894278982,
-          "delta": 0.5210097981002818
+          "delta": 0.5210097981002818,
+          "cv_star": 0.5604645060280303
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.03428941670538067,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1165,12 +1273,14 @@
         "reproduced_mean": {
           "original": 72.6,
           "reproduced": 75.76923076923076,
-          "delta": 0.04182741116751264
+          "delta": 0.04182741116751264,
+          "cv_star": 0.033984238187470386
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 6.50443635587991,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1186,12 +1296,14 @@
         "reproduced_mean": {
           "original": 27.1,
           "reproduced": 15.924722407403426,
-          "delta": 0.4123718668854825
+          "delta": 0.4123718668854825,
+          "cv_star": 0.4132451479458372
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.7237816793715759,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1207,12 +1319,14 @@
         "reproduced_mean": {
           "original": 77.5,
           "reproduced": 89.8853906699471,
-          "delta": 0.13779091994410295
+          "delta": 0.13779091994410295,
+          "cv_star": 0.11772255520300513
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.38115037211334934,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1228,12 +1342,14 @@
         "reproduced_mean": {
           "original": 73.5,
           "reproduced": 84.7094017094017,
-          "delta": 0.13232771667843804
+          "delta": 0.13232771667843804,
+          "cv_star": 0.11272433067360971
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.1878823687803161,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1249,12 +1365,14 @@
         "reproduced_mean": {
           "original": 72.7,
           "reproduced": 72.17391304347827,
-          "delta": 0.007236409305663516
+          "delta": 0.007236409305663516,
+          "cv_star": 0.0057774322852866666
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1270,12 +1388,14 @@
         "reproduced_mean": {
           "original": 76.2,
           "reproduced": 72.17391304347827,
-          "delta": 0.05283578683099393
+          "delta": 0.05283578683099393,
+          "cv_star": 0.04317110058612703
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1291,12 +1411,14 @@
         "reproduced_mean": {
           "original": 72.3,
           "reproduced": 80.0,
-          "delta": 0.09625000000000003
+          "delta": 0.09625000000000003,
+          "cv_star": 0.08043745885789191
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1312,12 +1434,14 @@
         "reproduced_mean": {
           "original": 75.6,
           "reproduced": 80.0,
-          "delta": 0.05500000000000007
+          "delta": 0.05500000000000007,
+          "cv_star": 0.04498944173359145
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1333,12 +1457,14 @@
         "reproduced_mean": {
           "original": 0.994,
           "reproduced": 1.108433734939759,
-          "delta": 0.10323913043478262
+          "delta": 0.10323913043478262,
+          "cv_star": 0.08659628810756963
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1354,12 +1480,14 @@
         "reproduced_mean": {
           "original": 0.992,
           "reproduced": 1.108433734939759,
-          "delta": 0.10504347826086959
+          "delta": 0.10504347826086959,
+          "cv_star": 0.08819365965790366
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1375,12 +1503,14 @@
         "reproduced_mean": {
           "original": 76.5,
           "reproduced": 73.91304347826085,
-          "delta": 0.03381642512077326
+          "delta": 0.03381642512077326,
+          "cv_star": 0.027363468805130776
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1396,12 +1526,14 @@
         "reproduced_mean": {
           "original": 80.2,
           "reproduced": 74.78260869565217,
-          "delta": 0.06754852000433705
+          "delta": 0.06754852000433705,
+          "cv_star": 0.0556127997827663
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1417,12 +1549,14 @@
         "reproduced_mean": {
           "original": 76.8,
           "reproduced": 82.06896551724138,
-          "delta": 0.06420168067226896
+          "delta": 0.06420168067226896,
+          "cv_star": 0.052765955758798236
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1438,12 +1572,14 @@
         "reproduced_mean": {
           "original": 80.2,
           "reproduced": 82.06896551724138,
-          "delta": 0.02277310924369746
+          "delta": 0.02277310924369746,
+          "cv_star": 0.01832455097235314
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1459,12 +1595,14 @@
         "reproduced_mean": {
           "original": 1.004,
           "reproduced": 1.1103448275862073,
-          "delta": 0.09577639751552831
+          "delta": 0.09577639751552831,
+          "cv_star": 0.08002175540892217
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     },
@@ -1480,12 +1618,14 @@
         "reproduced_mean": {
           "original": 1.0,
           "reproduced": 1.0974338412189255,
-          "delta": 0.08878333942272569
+          "delta": 0.08878333942272569,
+          "cv_star": 0.0739075956057628
         },
         "reproduced_std": {
           "original": null,
           "reproduced": 0.0,
-          "delta": null
+          "delta": null,
+          "cv_star": null
         }
       }
     }

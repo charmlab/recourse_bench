@@ -1,73 +1,22 @@
-Level Badge
-Level 1: Congruent Reproduction
+**Scope of Reproducibility**
 
-Reason
-The implementation reproduces the qualitative German Credit behavior from the SNS paper and matches several key metrics closely, especially for SNS invalidation, but the fully paper-aligned ART-baseline path has not yet been revalidated on the full 200-factual run after the latest baseline correction.
+We aim to reproduce the SNS claims from `reference/sns.pdf`:
 
-Method
-SNS German Credit reproduction for the benchmark implementation under `method/sns/`, using `german_full`, 61 one-hot features, a paper-matched MLP architecture, and RS / LOO model families in `experiment/sns/`.
+1. We generate stable-neighbor recourse that reduces invalidation under related model changes : [Quantitative] : [Table 1]
+2. We balance lower invalidation against recourse cost across multiple datasets : [Quantitative] : [German Credit, Seizure, CTG, Warfarin, HELOC, Taiwanese Credit]
+3. We compare baseline and SNS recourse under random-seed and leave-one-out model variation : [Quantitative] : [Table 1 invalidation and L2 cost metrics]
 
-Reproduction Summary
-The SNS reproduction is updated to more closely align with the model structure described.
-NOTES FOR IMPROVEMENT:
-- Certain reproduced values with certain datasets are much more closely aligned with paper reported values. 
-The dataset that struggles the most right now is CTG in terms of l2 cost. Likely a preprocessing problem.
+**Methodology**
 
-- Another common issue across nearly all the dataset experiments are the sns_*_invalidation metrics. 
-They are reported as 0 for most of the experiments, however the reproduced results we are getting are VERY SMALL close to 0 values, but not exactly 0. 
-This makes our calculated delta 1, which is not good. This could potentially be a result of rounding in the original paper, considering that if we also 
-perform rounding to ~2 decimal points, we would get more aligned results. Another comb through the paper may make this more apparent, since the original 
-codebase does not actually contain scripts with full experiment code, only the code defining the algorithm itself.
+We reproduce SNS with `experiment/sns/test_sns_reproduce.py` and `experiment/sns/config.yaml`. Data are available, but exact original experiment scripts are partial or missing, so the current benchmark is a same-data robust reimplementation rather than strict same-tools reproducibility.
 
-Reference Scope
-- dataset: German Credit
-- raw attributes: 20
-- encoded features: 61
-- model: MLP with hidden layers 128, 64, 16
-- training: 100 epochs, Adam, batch size 32
-- metrics: LOO / RS invalidation and l2 cost for Min.l2 and Min.l2 + SNS
+**Results**
 
-Observed Result
-- base_loo_invalidation_rate = 0.5773
-- base_rs_invalidation_rate = 0.7099
-- sns_loo_invalidation_rate = 0.0001
-- sns_rs_invalidation_rate = 0.0451
-- base_avg_l2_cost = 0.8706
-- sns_avg_l2_cost = 3.1325
+Claims 1-3 are partially reproduced: 17 of 36 scalar comparisons are within the 15% relative-delta threshold. Some trends are supportive, such as German Credit baseline random-seed invalidation, reference 0.56 versus reproduced 0.5977, relative delta 0.063, and German Credit SNS leave-one-out invalidation matching 0.0. Some zero-reference invalidation metrics become tiny nonzero values, producing relative delta 1.0.
 
-Observed result after ART-aligned Min.l2 baseline update (bounded run):
-- num_factuals_evaluated = 5
-- rs_models_evaluated = 3
-- loo_models_evaluated = 3
-- base_valid_counterfactuals = 5
-- sns_valid_counterfactuals = 5
-- base_avg_l2_cost = 4.9185
-- sns_avg_l2_cost = 5.7865
-- base_loo_invalidation_rate = 0.4000
-- base_rs_invalidation_rate = 0.4000
-- sns_loo_invalidation_rate = 0.0000
-- sns_rs_invalidation_rate = 0.0667
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Reproduction Assessment
-No value available.
-
-Paper Result
-- `reproduction.paper` in `experiment/sns/config.yaml` provides the targets listed below.
-- Min.l2 paper targets: LOO 0.36, RS 0.56, l2 cost 4.49.
-- Min.l2 + SNS paper targets: LOO 0.00, RS 0.06, l2 cost 6.23.
-- SNS itself is already close on invalidation, and the ART-aligned bounded run moved both Min.l2 and SNS costs into the correct range.
-- The remaining uncertainty is the full paper-sized rerun after the ART baseline alignment, especially for the Min.l2 invalidation rates and success-rate regime.
-
-Scalar Result Coverage
-No value available.
-
-Reproducibility Criterion
-No value available.
-
-Notes / Caveats
-No value available.
-
-Next Steps
-- Re-run the full 200-factual / 100 RS / 100 LOO reproduction after the ART baseline alignment.
-- Check whether the Min.l2 success rate drops toward the paper's reported 0.84 and whether the base invalidation stabilizes near the paper values.
-- If needed, tune ART ElasticNet constants to more literally mirror the reference TensorFlow behavior before reassessing the reproduction level.
+- Recover exact experiment scripts if possible.
+- Confirm data splits, related-model generation, and invalidation definitions.
+- Investigate zero-reference invalidation mismatches.
+- Mark the current result as robust reimplementation unless same-tools scripts are recovered.

@@ -1,0 +1,52 @@
+{
+  "paper_id": "Interpretable Predictions of Tree-based Ensembles via Actionable Feature Tweaking",
+  "reproduction_metadata": {
+    "source_script": "test_feature_tweak_reproduce.py",
+    "paper_reference": "reference/feature_tweak.pdf",
+    "paper_anchor": "Yahoo Gemini actionable feature tweaking setup and offline evaluation",
+    "scope": "Scoped synthetic tree-ensemble check; Yahoo Gemini data are unavailable.",
+    "timestamp_utc": "2026-08-12T20:43:18.404601Z"
+  },
+  "experiments": {
+    "actionable_tree_path_tweaks": {
+      "configuration": {
+        "num_factuals": 3,
+        "actionable_features": [
+          "mutable_quality"
+        ],
+        "static_features": [
+          "static_score",
+          "static_noise"
+        ],
+        "forest_n_estimators": 5,
+        "forest_max_depth": 2
+      },
+      "metrics": {
+        "target_flip_rate": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "static_feature_violations": {
+          "original": 0,
+          "reproduced": 0,
+          "delta": 0.0,
+          "cv_star": null
+        },
+        "mean_mutable_feature_change": {
+          "original": null,
+          "reproduced": 0.37000001192092896,
+          "delta": null,
+          "cv_star": null
+        },
+        "mutable_feature_change_rate": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

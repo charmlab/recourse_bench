@@ -1,85 +1,23 @@
-Level Badge
-Level 1: Congruent Reproduction
+**Scope of Reproducibility**
 
-Reason
-The pre-standardization reproduction log did not assign a numeric reproduction badge.
+We aim to reproduce the CFVAE claims from `reference/cfvae.pdf`:
 
-Method
-CFVAE benchmark reproduction
+1. We generate counterfactuals with a conditional variational autoencoder under user-specified causal/actionability constraints : [Quantitative] : [Adult constraint-feasibility experiments]
+2. We satisfy constraints more reliably than baseline VAE, model-approximation, and example-based methods : [Quantitative] : [Adult age and age+education tables]
+3. We preserve useful proximity while maintaining target-class validity : [Quantitative] : [Validity, feasibility, and proximity metrics]
+4. We use amortized generation rather than per-instance optimization : [Quantitative] : [Methodology and timing/amortization discussion]
 
-Reproduction Summary
-- Restored original badge: `No explicit original level badge`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 96`, `R_rep = 96`
-- Average raw delta across extracted scalar results: `0.001082`
-- Average variance-adjusted delta across extracted scalar results: `0.001082`
+**Methodology**
 
-Reference Scope
-- Adult-age and adult-age-ed result families only; despite many scalar outputs, the current script/log does not claim full paper-wide experiment coverage.
+We reproduce CFVAE with `experiment/cfvae/test_cfvae_reproduce.py` and the available CFVAE weights/artifacts. Code/experiments, data, and pretrained artifacts are available. The current run covers Adult age and age+education constraints across BaseCVAE, BaseVAE, ModelApprox, and ExampleBased methods in the RecourseBench environment.
 
-Observed Result
-- All currently extracted scalar-result pairs are within the 15% threshold.
-- The current structured log still represents a bounded subset of the original paper’s total experiment space.
+**Results**
 
-Reproduction Assessment
-No value available.
+Claims 1-3 are reproduced for the covered Adult constraint settings. All 32 scalar comparisons are within the 15% relative-delta threshold, usually within 1%. The largest observed deltas are small, including Adult age+education BaseVAE constraint feasibility, reference 42.5929 versus reproduced 42.9647, relative delta 0.009. Claim 4 is only partially reproduced because the report emphasizes feasibility/proximity rather than a full generation-time comparison.
 
-Paper Result
-- `REFERENCE_RESULTS` in `experiment/cfvae/test_cfvae_reproduce.py`:
-  - adult-age / BaseCVAE:
-    - target_class_validity = [100.0, 100.0, 100.0]
-    - constraint_feasibility_score = [56.82554814, 56.93040991, 56.9399428]
-    - cont_proximity = [-2.24059021, -2.254801, -2.24498223]
-    - cat_proximity = [-3.26024786, -3.26024786, -3.26024786]
-  - adult-age / BaseVAE:
-    - target_class_validity = [100.0, 100.0, 100.0]
-    - constraint_feasibility_score = [42.85033365, 43.11248808, 42.99014935]
-    - cont_proximity = [-2.66647616, -2.66112855, -2.66558379]
-    - cat_proximity = [-3.12011439, -3.12011439, -3.12011439]
-  - adult-age / ModelApprox:
-    - target_class_validity = [99.5900858, 99.5900858, 99.55513187]
-    - constraint_feasibility_score = [84.26668079, 83.60122942, 83.58960991]
-    - cont_proximity = [-2.73294234, -2.73510212, -2.73455902]
-    - cat_proximity = [-3.26167779, -3.26172545, -3.26151891]
-  - adult-age / ExampleBased:
-    - target_class_validity = [99.52335558, 99.52812202, 99.46298062]
-    - constraint_feasibility_score = [74.03769743, 74.18632186, 74.21309514]
-    - cont_proximity = [-6.80110826, -6.7996033, -6.80052672]
-    - cat_proximity = [-3.72411821, -3.7242612, -3.72443597]
-  - adult-age-ed / BaseCVAE:
-    - target_class_validity = [100.0, 100.0, 100.0]
-    - constraint_feasibility_score = [57.01620591, 57.20209724, 56.80012711]
-    - cont_proximity = [-2.25337728, -2.24797755, -2.24245525]
-    - cat_proximity = [-3.26024786, -3.26024786, -3.26024786]
-  - adult-age-ed / BaseVAE:
-    - target_class_validity = [100.0, 100.0, 100.0]
-    - constraint_feasibility_score = [42.59294566, 43.06482364, 43.02192564]
-    - cont_proximity = [-2.6661057, -2.66556556, -2.6650458]
-    - cat_proximity = [-3.12011439, -3.12011439, -3.12011439]
-  - adult-age-ed / ModelApprox:
-    - target_class_validity = [100.0, 100.0, 100.0]
-    - constraint_feasibility_score = [79.5042898, 79.32793136, 79.30092151]
-    - cont_proximity = [-2.90320554, -2.90264891, -2.90204051]
-    - cat_proximity = [-3.22097235, -3.22054337, -3.21916111]
-  - adult-age-ed / ExampleBased:
-    - target_class_validity = [99.93326978, 99.89513823, 99.92691452]
-    - constraint_feasibility_score = [66.35181132, 66.50929669, 66.46958292]
-    - cont_proximity = [-3.20324281, -3.2077721, -3.20357766]
-    - cat_proximity = [-3.5914204, -3.59394662, -3.59634573]
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Scalar Result Coverage
-- `R = 96` total extracted scalar results
-- `R_rep = 96` extracted scalar results with `Δ <= 0.15`
-- `R - R_rep = 0` extracted scalar results outside the threshold
-
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
-
-Notes / Caveats
-- Provisional Level 3 by scalar-result counts is downgraded to Level 2 because full paper coverage is not established.
-
-Next Steps
-- Confirm whether the original paper reports additional datasets/settings beyond the currently logged adult subsets.
-- Only assign Level 3 once the script demonstrates full paper experiment coverage.
+- Preserve the current artifact-backed path because scalar agreement is strong.
+- Add timing or throughput comparisons for the amortized-generation claim.
+- Confirm weights, preprocessing, and Adult constraints match the original release.
+- Add any missing datasets or constraint configurations from the paper.
