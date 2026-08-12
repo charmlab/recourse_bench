@@ -33,6 +33,11 @@ class GermanSnsDataset(DatasetObject):
         return pd.read_csv(dataset_path / "german.csv")
 
     def _read_attrs(self, path: str) -> dict[str, object]:
-        attrs_path = Path(path) / "german_sns.yaml"
+        dataset_path = Path(path)
+        attrs_path = (
+            dataset_path / "german_sns_processed.yaml"
+            if (dataset_path / "german_sns.csv").exists()
+            else dataset_path / "german_sns.yaml"
+        )
         with attrs_path.open("r", encoding="utf-8") as file:
             return yaml.safe_load(file) or {}
