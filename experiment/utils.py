@@ -53,6 +53,32 @@ def _calculate_delta(original: float | int | None, reproduced: float | int | Non
     return abs(reproduced - original) / denominator
 
 
+def calculate_cv_star(scores: list[float | int] | tuple[float | int, ...]) -> float | None:
+    """Compute the small-sample bias-corrected coefficient of variation."""
+    if len(scores) < 2:
+        return None
+
+    normalized_scores = [float(score) for score in scores]
+    mean = sum(normalized_scores) / len(normalized_scores)
+    if abs(mean) <= _EPSILON:
+        return None
+
+    squared_deviations = [(score - mean) ** 2 for score in normalized_scores]
+    sample_size = len(normalized_scores)
+    unbiased_std = math.sqrt(sum(squared_deviations) / (sample_size - 1))
+    bias_correction = 1.0 + (1.0 / (4.0 * sample_size))
+    return bias_correction * (unbiased_std / abs(mean))
+
+
+def _calculate_metric_cv_star(
+    original: float | int | None,
+    reproduced: float | int | None,
+) -> float | None:
+    if original is None or reproduced is None:
+        return None
+    return calculate_cv_star([original, reproduced])
+
+
 def generate_reproduction_report(
     paper_id: str,
     reproduction_metadata: dict[str, Any],
@@ -69,7 +95,8 @@ def generate_reproduction_report(
                 "metric_name": {
                     "original": 0.95,
                     "reproduced": 0.94,
-                    "delta": 0.0106
+                    "delta": 0.0106,
+                    "cv_star": 0.0079
                 }
             }
         }
@@ -122,6 +149,7 @@ def generate_reproduction_report(
                 "original": original,
                 "reproduced": reproduced,
                 "delta": _calculate_delta(original, reproduced),
+                "cv_star": _calculate_metric_cv_star(original, reproduced),
             }
 
         formatted_experiments[experiment_id] = {
