@@ -39,6 +39,7 @@ class CemspMethod(MethodObject):
         explicit_upper_bounds: dict[str, object] | list[object] | None = None,
         max_counterfactuals: int = 1,
         return_mode: str = "first",
+        enumerate_all_features: bool = False,
         **kwargs,
     ):
         ensure_supported_target_model(target_model, BlackBoxModelTypes, "CemspMethod")
@@ -57,6 +58,7 @@ class CemspMethod(MethodObject):
         self._explicit_upper_bounds = explicit_upper_bounds
         self._max_counterfactuals = int(max_counterfactuals)
         self._return_mode = str(return_mode).lower()
+        self._enumerate_all_features = bool(enumerate_all_features)
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
@@ -275,9 +277,12 @@ class CemspMethod(MethodObject):
         desired_class: int | str,
     ) -> tuple[np.ndarray, np.ndarray]:
         replacement = self._build_replacement_vector(factual, desired_class)
-        candidate_indices = np.flatnonzero(build_change_mask(factual, replacement)).astype(
-            np.int64
-        )
+        if self._enumerate_all_features:
+            candidate_indices = np.arange(len(self._feature_names), dtype=np.int64)
+        else:
+            candidate_indices = np.flatnonzero(
+                build_change_mask(factual, replacement)
+            ).astype(np.int64)
         return replacement, candidate_indices
 
     def _enumerate_counterfactuals(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from datetime import datetime, timezone
 import sys
 from copy import deepcopy
@@ -38,6 +39,8 @@ from utils.seed import seed_context
 
 
 REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+DEFAULT_OUTPUT_DIR = Path(__file__).with_name("logs")
+DEFAULT_REFERENCE_ARTIFACT = Path(__file__).with_name("Hepatitis_cemsp.json")
 
 
 class _CemspReferenceMlp(ModelObject):
@@ -137,7 +140,7 @@ class _CemspReferenceMlp(ModelObject):
                 self._model.parameters(),
                 self._learning_rate,
             )
-            X_np = X.to_numpy(dtype="float32")
+            X_np = X.to_numpy(dtype="float32").copy()
             y_np = labels.detach().cpu().numpy().astype(np.int64, copy=False)
 
             train_dataset = TensorDataset(
@@ -358,6 +361,18 @@ def _percent_range(values, lower: float = 0.0, upper: float = 1.0) -> np.ndarray
     return sliced
 
 
+def _finite_or_none(value: float | int | None) -> float | int | None:
+    if value is None:
+        return None
+    if isinstance(value, float) and not np.isfinite(value):
+        return None
+    return value
+
+
+def _json_array(values: np.ndarray) -> list:
+    return np.asarray(values, dtype=np.float64).tolist()
+
+
 class _ReferenceEvaluator:
     def __init__(self, dataset: np.ndarray, tp_set: np.ndarray):
         self.dataset = np.asarray(dataset, dtype=np.float64)
@@ -573,7 +588,353 @@ def _aggregate_figure4_metrics(primary: dict, secondary: dict) -> dict[str, floa
     }
 
 
+def _figure4_distributions(primary: dict, secondary: dict) -> dict[str, list[float]]:
+    inconsistency: list[float] = []
+    proximity: list[float] = []
+    sparsity: list[float] = []
+    aps: list[float] = []
+
+    for cf_records, cf_a, cf_b in zip(
+        primary["cf_records"],
+        primary["cf_sets"],
+        secondary["cf_sets"],
+        strict=False,
+    ):
+        for record in cf_records:
+            proximity.append(float(record["proximity"]))
+            sparsity.append(float(record["sparsity"]))
+            aps.append(float(record["aps"]))
+        if cf_a.shape[0] > 0 and cf_b.shape[0] > 0:
+            inconsistency.append(_hausdorff_score(cf_a, cf_b))
+
+    def non_singleton(values: Sequence[float]) -> list[float]:
+        return [float(value) for value in values if float(value) != -1.0]
+
+    return {
+        "num_cf": [float(value) for value in primary["num"]],
+        "sparsity": sparsity,
+        "aps": aps,
+        "proximity": proximity,
+        "diversity": non_singleton(primary["diversity"]),
+        "diversity2": non_singleton(secondary["diversity"]),
+        "inconsistency": inconsistency,
+        "count_diversity": non_singleton(primary["count_diversity"]),
+        "count_diversity2": non_singleton(secondary["count_diversity"]),
+    }
+
+
+def _summarize_distribution(values: Sequence[float]) -> dict[str, float | int | None]:
+    array = np.asarray(values, dtype=np.float64)
+    array = array[np.isfinite(array)]
+    if array.size == 0:
+        return {
+            "n": 0,
+            "mean": None,
+            "median": None,
+            "q25": None,
+            "q75": None,
+            "min": None,
+            "max": None,
+        }
+    return {
+        "n": int(array.size),
+        "mean": float(np.mean(array)),
+        "median": float(np.median(array)),
+        "q25": float(np.quantile(array, 0.25)),
+        "q75": float(np.quantile(array, 0.75)),
+        "min": float(np.min(array)),
+        "max": float(np.max(array)),
+    }
+
+
+def _summarize_distributions(
+    distributions: dict[str, Sequence[float]],
+) -> dict[str, dict[str, float | int | None]]:
+    return {
+        name: _summarize_distribution(values)
+        for name, values in distributions.items()
+    }
+
+
+def _load_original_cemsp_artifact(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    with path.open("r", encoding="utf-8") as file:
+        payload = json.load(file)
+    if not isinstance(payload, dict):
+        raise ValueError(f"Original CEMSP artifact must be a JSON object: {path}")
+    return payload
+
+
+def _distributions_from_original_artifact(payload: dict) -> dict[str, list[float]]:
+    inconsistency: list[float] = []
+    sparsity: list[float] = []
+    aps: list[float] = []
+    proximity: list[float] = []
+
+    for cf_records, cf2_records in zip(payload["cf"], payload["cf2"], strict=False):
+        cf_data: list[list[float]] = []
+        for record in cf_records:
+            cf_data.extend(record["cf"])
+            sparsity.append(float(record["sparsity"]))
+            aps.append(float(record["aps"]))
+            proximity.append(float(record["proximity"]))
+        if cf_data and cf2_records:
+            inconsistency.append(
+                _hausdorff_score(np.asarray(cf_data), np.asarray(cf2_records))
+            )
+
+    def non_singleton(key: str) -> list[float]:
+        return [float(value) for value in payload[key] if float(value) != -1.0]
+
+    return {
+        "num_cf": [float(value) for value in payload["num"]],
+        "sparsity": sparsity,
+        "aps": aps,
+        "proximity": proximity,
+        "diversity": non_singleton("diversity"),
+        "diversity2": non_singleton("diversity2"),
+        "inconsistency": inconsistency,
+        "count_diversity": non_singleton("count_diversity"),
+        "count_diversity2": non_singleton("count_diversity2"),
+    }
+
+
+def _aggregate_from_distributions(
+    distributions: dict[str, Sequence[float]],
+) -> dict[str, float]:
+    summary = _summarize_distributions(distributions)
+    values = [float(value) for value in distributions["num_cf"]]
+    result = {
+        "num_factuals": float(len(values)),
+        "num_with_cf": float(sum(value > 0 for value in values)),
+        "mean_num_cf": float(np.mean(values)) if values else float("nan"),
+        "median_num_cf": float(np.median(values)) if values else float("nan"),
+    }
+    for metric, output_key in [
+        ("sparsity", "mean_sparsity"),
+        ("aps", "mean_aps"),
+        ("proximity", "mean_proximity"),
+        ("diversity", "mean_diversity"),
+        ("diversity2", "mean_diversity2"),
+        ("inconsistency", "mean_inconsistency"),
+        ("count_diversity", "mean_count_diversity"),
+        ("count_diversity2", "mean_count_diversity2"),
+    ]:
+        mean_value = summary[metric]["mean"]
+        result[output_key] = float(mean_value) if mean_value is not None else float("nan")
+    return result
+
+
+def _to_original_artifact(
+    factuals: np.ndarray,
+    primary: dict,
+    secondary: dict,
+) -> dict[str, object]:
+    cf_payload: list[list[dict[str, object]]] = []
+    cf2_payload: list[list[list[float]]] = []
+    for records, secondary_cfs in zip(
+        primary["cf_records"],
+        secondary["cf_sets"],
+        strict=False,
+    ):
+        cf_payload.append(
+            [
+                {
+                    "cf": _json_array(record["cf"]),
+                    "mask": _json_array(record["mask"]),
+                    "sparsity": float(record["sparsity"]),
+                    "aps": float(record["aps"]),
+                    "proximity": float(record["proximity"]),
+                }
+                for record in records
+            ]
+        )
+        cf2_payload.append(_json_array(secondary_cfs))
+
+    return {
+        "data": [
+            _json_array(factual.reshape(1, -1))
+            for factual in np.asarray(factuals, dtype=np.float64)
+        ],
+        "num": [int(value) for value in primary["num"]],
+        "cf": cf_payload,
+        "cf2": cf2_payload,
+        "diversity": [float(value) for value in primary["diversity"]],
+        "diversity2": [float(value) for value in secondary["diversity"]],
+        "count_diversity": [float(value) for value in primary["count_diversity"]],
+        "count_diversity2": [float(value) for value in secondary["count_diversity"]],
+    }
+
+
+def _relative_delta(original: float | None, reproduced: float | None) -> float | None:
+    if original is None or reproduced is None:
+        return None
+    denominator = max(abs(original), abs(reproduced), 1e-12)
+    return abs(reproduced - original) / denominator
+
+
+def _write_scalar_comparison(
+    output_path: Path,
+    reference_metrics: dict[str, float],
+    reproduced_metrics: dict[str, float],
+) -> None:
+    rows = []
+    for key in sorted(set(reference_metrics) | set(reproduced_metrics)):
+        original = _finite_or_none(reference_metrics.get(key))
+        reproduced = _finite_or_none(reproduced_metrics.get(key))
+        rows.append(
+            {
+                "metric": key,
+                "original": original,
+                "reproduced": reproduced,
+                "relative_delta": _relative_delta(
+                    None if original is None else float(original),
+                    None if reproduced is None else float(reproduced),
+                ),
+            }
+        )
+    pd.DataFrame(rows).to_csv(output_path, index=False)
+
+
+def _write_distribution_summary(
+    output_path: Path,
+    reference_distributions: dict[str, Sequence[float]] | None,
+    reproduced_distributions: dict[str, Sequence[float]],
+) -> None:
+    payload = {
+        "reference": _summarize_distributions(reference_distributions or {}),
+        "reproduced": _summarize_distributions(reproduced_distributions),
+    }
+    output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_per_factual_diagnostics(
+    output_path: Path,
+    reference_payload: dict | None,
+    reproduced_artifact: dict[str, object],
+) -> None:
+    reproduced_num = [int(value) for value in reproduced_artifact["num"]]
+    reference_num = (
+        [int(value) for value in reference_payload["num"]]
+        if reference_payload is not None and "num" in reference_payload
+        else []
+    )
+    rows = []
+    for index, count in enumerate(reproduced_num):
+        reference_count = reference_num[index] if index < len(reference_num) else None
+        rows.append(
+            {
+                "factual_index": index,
+                "reference_num_cf": reference_count,
+                "reproduced_num_cf": count,
+                "num_cf_delta": None if reference_count is None else count - reference_count,
+            }
+        )
+    pd.DataFrame(rows).to_csv(output_path, index=False)
+
+
+def _write_plots(
+    output_dir: Path,
+    reference_distributions: dict[str, Sequence[float]] | None,
+    reproduced_distributions: dict[str, Sequence[float]],
+) -> list[Path]:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output_paths: list[Path] = []
+    metric_labels = {
+        "num_cf": "Counterfactual count",
+        "sparsity": "Sparsity",
+        "aps": "Average percentile shift",
+        "proximity": "Proximity",
+        "diversity": "Diversity",
+        "diversity2": "Diversity, second model",
+        "inconsistency": "Inconsistency",
+        "count_diversity": "Count-diversity",
+        "count_diversity2": "Count-diversity, second model",
+    }
+
+    summary_ref = (
+        _summarize_distributions(reference_distributions)
+        if reference_distributions is not None
+        else {}
+    )
+    summary_rep = _summarize_distributions(reproduced_distributions)
+    names = list(metric_labels)
+    ref_means = [
+        summary_ref.get(name, {}).get("mean")
+        for name in names
+    ]
+    rep_means = [
+        summary_rep.get(name, {}).get("mean")
+        for name in names
+    ]
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    x = np.arange(len(names))
+    width = 0.38
+    ax.bar(
+        x - width / 2,
+        [np.nan if value is None else float(value) for value in ref_means],
+        width,
+        label="Original artifact",
+        color="#6baed6",
+    )
+    ax.bar(
+        x + width / 2,
+        [np.nan if value is None else float(value) for value in rep_means],
+        width,
+        label="Reproduced",
+        color="#fd8d3c",
+    )
+    ax.set_xticks(x)
+    ax.set_xticklabels([metric_labels[name] for name in names], rotation=35, ha="right")
+    ax.set_ylabel("Mean value")
+    ax.set_title("CEMSP HCV Figure 4-style mean metrics")
+    ax.legend()
+    fig.tight_layout()
+    path = output_dir / "cemsp_hepatitis_metric_means.png"
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+    output_paths.append(path)
+
+    for name in names:
+        data = []
+        labels = []
+        if reference_distributions is not None and reference_distributions.get(name):
+            data.append(list(reference_distributions[name]))
+            labels.append("Original")
+        if reproduced_distributions.get(name):
+            data.append(list(reproduced_distributions[name]))
+            labels.append("Reproduced")
+        if not data:
+            continue
+        fig, ax = plt.subplots(figsize=(5, 4))
+        ax.violinplot(
+            data,
+            showextrema=False,
+            quantiles=[[0.25, 0.5, 0.75] for _ in data],
+        )
+        ax.set_xticks(np.arange(1, len(labels) + 1))
+        ax.set_xticklabels(labels)
+        ax.set_ylabel(metric_labels[name])
+        ax.set_title(f"CEMSP HCV {metric_labels[name]}")
+        fig.tight_layout()
+        path = output_dir / f"cemsp_hepatitis_{name}_violin.png"
+        fig.savefig(path, dpi=200)
+        plt.close(fig)
+        output_paths.append(path)
+
+    return output_paths
+
+
 def _print_metric(name: str, value: float, reference: float | None = None) -> None:
+    if not np.isfinite(value):
+        print(f"{name}: {value}")
+        return
     if reference is None or not np.isfinite(reference):
         print(f"{name}: {value:.6f}")
         return
@@ -586,11 +947,27 @@ def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="./experiment/cemsp/config.yaml")
     parser.add_argument("--max-factuals", type=int, default=None)
-    args = parser.parse_args()
+    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--report-path", default=str(REPORT_PATH))
+    parser.add_argument("--reference-artifact", default=str(DEFAULT_REFERENCE_ARTIFACT))
+    parser.add_argument("--no-plots", action="store_true")
+    parser.add_argument(
+        "--original-feature-enumeration",
+        action="store_true",
+        help="Enumerate all features in the CEMSP SAT map, matching the original script.",
+    )
+    args, _ = parser.parse_known_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     config_path = (PROJECT_ROOT / args.config).resolve()
     config = _apply_device(_load_config(config_path), device)
+    if args.original_feature_enumeration:
+        config["method"]["enumerate_all_features"] = True
+    output_dir = (PROJECT_ROOT / args.output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report_path = (PROJECT_ROOT / args.report_path).resolve()
+    reference_artifact_path = (PROJECT_ROOT / args.reference_artifact).resolve()
+    reference_artifact = _load_original_cemsp_artifact(reference_artifact_path)
 
     reproduction_cfg = deepcopy(config["reproduction"])
     desired_class = reproduction_cfg.get("desired_class", config["method"]["desired_class"])
@@ -670,7 +1047,47 @@ def test_reproduce() -> None:
 
     aggregated = _aggregate_figure4_metrics(primary_result, secondary_result)
     reference_model = reproduction_cfg.get("reference_model", {})
-    reference_metrics = reproduction_cfg.get("reference_metrics", {})
+    reference_metrics = deepcopy(reproduction_cfg.get("reference_metrics", {}))
+    reference_distributions = None
+    if reference_artifact is not None:
+        reference_distributions = _distributions_from_original_artifact(reference_artifact)
+        reference_metrics.update(_aggregate_from_distributions(reference_distributions))
+    reproduced_distributions = _figure4_distributions(primary_result, secondary_result)
+    distribution_summary_path = output_dir / "cemsp_hepatitis_distribution_summary.json"
+    scalar_comparison_path = output_dir / "cemsp_hepatitis_scalar_comparison.csv"
+    generated_artifact_path = output_dir / "cemsp_hepatitis_reproduced_artifact.json"
+    per_factual_path = output_dir / "cemsp_hepatitis_per_factual_diagnostics.csv"
+    reproduced_artifact = _to_original_artifact(
+        abnormal_test,
+        primary_result,
+        secondary_result,
+    )
+    generated_artifact_path.write_text(
+        json.dumps(reproduced_artifact, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    _write_distribution_summary(
+        distribution_summary_path,
+        reference_distributions,
+        reproduced_distributions,
+    )
+    _write_scalar_comparison(
+        scalar_comparison_path,
+        reference_metrics,
+        aggregated,
+    )
+    _write_per_factual_diagnostics(
+        per_factual_path,
+        reference_artifact,
+        reproduced_artifact,
+    )
+    plot_paths = []
+    if not args.no_plots:
+        plot_paths = _write_plots(
+            output_dir,
+            reference_distributions,
+            reproduced_distributions,
+        )
 
     print("CEMSP Hepatitis Figure 4 Reproduction")
     print(f"device: {device}")
@@ -678,6 +1095,8 @@ def test_reproduce() -> None:
     print(f"model_seeds: {model_seeds}")
     if "reference_source" in reproduction_cfg:
         print(f"reference_source: {reproduction_cfg['reference_source']}")
+    print(f"reference_artifact_path: {reference_artifact_path}")
+    print(f"output_dir: {output_dir}")
     print(f"num_abnormal_factuals: {int(aggregated['num_factuals'])}")
     if args.max_factuals is not None:
         print("subset_run: true")
@@ -727,7 +1146,7 @@ def test_reproduce() -> None:
             float(reference_metrics.get(key, float("nan"))),
         )
     report_path = write_reproduction_report(
-        output_path=REPORT_PATH,
+        output_path=report_path,
         paper_id="cemsp_hepatitis_figure4",
         reproduction_metadata={
             "timestamp": datetime.now(timezone.utc),
@@ -737,6 +1156,13 @@ def test_reproduce() -> None:
             "split_seed": split_seed,
             "model_seeds": model_seeds,
             "max_factuals": args.max_factuals,
+            "output_dir": str(output_dir),
+            "reference_artifact": str(reference_artifact_path),
+            "original_feature_enumeration": bool(args.original_feature_enumeration),
+            "count_diversity_proof_note": (
+                "The count-diversity theorem is qualitative proof evidence from "
+                "the CEMSP paper and is not computationally rerun by this script."
+            ),
         },
         experiments_data={
             "hepatitis_figure4": {
@@ -744,6 +1170,7 @@ def test_reproduce() -> None:
                     "dataset": str(config["dataset"]["name"]),
                     "method": str(config["method"]["name"]),
                     "num_abnormal_factuals": int(aggregated["num_factuals"]),
+                    "reference_scope": "HCV/Hepatitis fixed-input Figure 4 CEMSP artifact",
                 },
                 "metrics": {
                     "model_a_test_accuracy": {
@@ -774,6 +1201,14 @@ def test_reproduce() -> None:
         },
     )
     print(f"reproduction_report_path: {report_path}")
+    print(f"generated_artifact_path: {generated_artifact_path}")
+    print(f"scalar_comparison_path: {scalar_comparison_path}")
+    print(f"distribution_summary_path: {distribution_summary_path}")
+    print(f"per_factual_diagnostics_path: {per_factual_path}")
+    if plot_paths:
+        print("plot_paths:")
+        for path in plot_paths:
+            print(f"  {path}")
 
 
 if __name__ == "__main__":
