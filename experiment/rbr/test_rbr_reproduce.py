@@ -20,7 +20,7 @@ import torch
 import yaml
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from dataset.german.german import GermanDataset
@@ -32,18 +32,53 @@ from model.mlp.mlp import MlpModel
 DEFAULT_CURRENT_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_current.yaml"
 DEFAULT_FUTURE_CONFIG = "./experiment/rbr/german_mlp_rbr_reproduce_future.yaml"
 REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+SWEEP_DATA_PATH = Path(__file__).with_name("rbr_german_sweep_results.csv")
+PLOT_PATH = Path(__file__).with_name("rbr_german_cost_validity.png")
+RELATIVE_DELTA_TOLERANCE = 0.15
 PAPER_GERMAN_METRICS = {
     "present_accuracy": {"mean": 0.67, "std": 0.02},
     "present_auc": {"mean": 0.60, "std": 0.03},
     "shift_accuracy": {"mean": 0.66, "std": 0.23},
     "shift_auc": {"mean": 0.60, "std": 0.04},
 }
+REFERENCE_CLAIMS = {
+    "claim_1": {
+        "claim": "RBR formulates recourse robust to shifts between current and future classifiers.",
+        "paper_evidence": "Section 6 evaluates cost/current-validity/future-validity trade-offs under model shift.",
+        "validation": "Run the German MLP RBR sweep and inspect current/future validity across robustness settings.",
+    },
+    "claim_2": {
+        "claim": "RBR is model-agnostic and does not rely on local linear approximations of the black-box model.",
+        "paper_evidence": "The paper contrasts RBR with ROAR variants that use LIME/LIMELS local linear surrogates.",
+        "validation": "Instantiate method.rbr.RbrMethod directly against the framework MLP prediction adapter.",
+    },
+    "claim_3": {
+        "claim": "The German MLP experiment reports classifier accuracy/AUC and cost-validity sweep evidence.",
+        "paper_evidence": "Table 1 gives German classifier metrics; Figure 2 gives Pareto fronts for cost versus current/future validity.",
+        "validation": "Compare Table 1 scalars numerically and emit the sweep data plus a plot for Figure 2-style human review.",
+    },
+}
+ORIGINAL_EXPERIMENT_5 = {
+    "dataset": "German Credit",
+    "current_dataset": "Statlog German Credit",
+    "shifted_dataset": "South German Credit corrected data",
+    "classifier": "MLP",
+    "kfold": 5,
+    "num_future_models": 100,
+    "max_instances": 100,
+    "train_split": 0.8,
+    "split_random_state": 42,
+    "future_arrival_fraction": 0.5,
+    "varied_parameters": ["epsilon_pe", "delta_plus", "epsilon_op"],
+    "metrics": ["l1_cost", "current_validity", "future_validity", "feasible"],
+    "runtime_reference": "reference/rbr/expt/expt_5.py and reference/rbr/train.py",
+}
 DEFAULT_SWEEP_GRID = {
     "epsilon_pe": [0.0, 0.5, 1.0],
     "delta_plus": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
     "epsilon_op": [0.0, 0.5, 1.0],
 }
-NUMERICAL_FEATURES = ["age", "amount", "duration"]
+NUMERICAL_FEATURES = ["duration", "amount", "age"]
 TARGET_COLUMN = "credit_risk"
 CATEGORICAL_FEATURE = "personal_status_sex"
 
@@ -229,6 +264,55 @@ def _compare_metric_to_paper(
     }
 
 
+def _relative_delta(observed: float, reference: float) -> float:
+    denominator = max(abs(float(observed)), abs(float(reference)), 1e-12)
+    return abs(float(observed) - float(reference)) / denominator
+
+
+def _find_pareto_front(
+    rows: list[dict[str, Any]],
+    x_metric: str,
+    y_metric: str,
+) -> list[dict[str, Any]]:
+    finite_rows = [
+        row
+        for row in rows
+        if np.isfinite(float(row[x_metric])) and np.isfinite(float(row[y_metric]))
+    ]
+    ordered = sorted(finite_rows, key=lambda row: (float(row[x_metric]), -float(row[y_metric])))
+    pareto: list[dict[str, Any]] = []
+    best_y = float("-inf")
+    for row in ordered:
+        current_y = float(row[y_metric])
+        if current_y >= best_y:
+            pareto.append(row)
+            best_y = current_y
+    return pareto
+
+
+def _build_pareto_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
+    current_front = _find_pareto_front(results, "l1_cost", "current_validity")
+    future_front = _find_pareto_front(results, "l1_cost", "future_validity")
+    return {
+        "current_validity_front": [
+            {
+                "variant_label": row["variant_label"],
+                "l1_cost": float(row["l1_cost"]),
+                "current_validity": float(row["current_validity"]),
+            }
+            for row in current_front
+        ],
+        "future_validity_front": [
+            {
+                "variant_label": row["variant_label"],
+                "l1_cost": float(row["l1_cost"]),
+                "future_validity": float(row["future_validity"]),
+            }
+            for row in future_front
+        ],
+    }
+
+
 def _build_classifier_paper_comparison(
     current_model_metrics: dict[str, float],
     shifted_model_metrics: dict[str, float],
@@ -253,6 +337,31 @@ def _build_classifier_paper_comparison(
             shifted_model_metrics["auc"],
             PAPER_GERMAN_METRICS["shift_auc"]["mean"],
             PAPER_GERMAN_METRICS["shift_auc"]["std"],
+        ),
+    }
+
+
+def _build_classifier_scalar_validation(
+    classifier_comparison: dict[str, dict[str, float | bool]],
+) -> dict[str, Any]:
+    metrics: dict[str, dict[str, Any]] = {}
+    for metric_name, comparison in classifier_comparison.items():
+        observed = float(comparison["observed"])
+        reference = float(comparison["paper_mean"])
+        relative_delta = _relative_delta(observed, reference)
+        metrics[metric_name] = {
+            **comparison,
+            "relative_delta": relative_delta,
+            "within_15_percent_relative_delta": relative_delta <= RELATIVE_DELTA_TOLERANCE,
+        }
+    return {
+        "criterion": (
+            "Delta(m, m_hat) = |m_hat - m| / max(|m|, |m_hat|, 1e-12); "
+            f"delta <= {RELATIVE_DELTA_TOLERANCE}"
+        ),
+        "metrics": metrics,
+        "all_within_tolerance": all(
+            bool(item["within_15_percent_relative_delta"]) for item in metrics.values()
         ),
     }
 
@@ -300,6 +409,28 @@ def _select_recourse_factuals(model: MlpModel, testset, experiment_cfg: dict):
     if len(factuals) == 0:
         raise ValueError("No factuals selected for RBR reproduction")
     return factuals
+
+
+def _concat_frozen_datasets(template_dataset, datasets: list[object], dataset_flag: str):
+    frames = [
+        pd.concat([dataset.get(target=False), dataset.get(target=True)], axis=1)
+        for dataset in datasets
+    ]
+    combined = pd.concat(frames, axis=0, ignore_index=True)
+    combined = combined.loc[:, datasets[0].ordered_features()]
+
+    merged = template_dataset.clone()
+    merged.update(dataset_flag, True, df=combined)
+    for attr_name in (
+        "encoding",
+        "encoded_feature_type",
+        "encoded_feature_mutability",
+        "encoded_feature_actionability",
+    ):
+        if hasattr(datasets[0], attr_name):
+            merged.update(attr_name, datasets[0].attr(attr_name))
+    merged.freeze()
+    return merged
 
 
 def _compute_distance_metrics(factuals, counterfactuals) -> tuple[dict[str, float], int]:
@@ -641,6 +772,145 @@ def _summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "best_future_validity": best_future,
         "lowest_cost_full_current_validity": lowest_cost_full_valid,
+        "pareto": _build_pareto_summary(results),
+    }
+
+
+def _write_sweep_csv(results: list[dict[str, Any]], output_path: Path) -> Path:
+    rows = []
+    for item in results:
+        row = {
+            key: value
+            for key, value in item.items()
+            if key != "method" and isinstance(value, (str, int, float, type(None)))
+        }
+        row.update({f"method_{key}": value for key, value in item["method"].items()})
+        rows.append(row)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(output_path, index=False)
+    return output_path
+
+
+def _write_cost_validity_plot(results: list[dict[str, Any]], output_path: Path) -> Path | None:
+    finite_results = [
+        item
+        for item in results
+        if np.isfinite(float(item["l1_cost"]))
+        and np.isfinite(float(item["current_validity"]))
+        and np.isfinite(float(item["future_validity"]))
+    ]
+    if not finite_results:
+        return None
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, axes = plt.subplots(2, 1, figsize=(7, 8), sharex=True)
+    groups = [
+        ("epsilon_pe", "tab:blue", "o"),
+        ("delta_plus", "tab:green", "s"),
+        ("epsilon_op", "tab:red", "^"),
+    ]
+    for axis, y_metric, ylabel in (
+        (axes[0], "current_validity", "Current Validity"),
+        (axes[1], "future_validity", "Future Validity"),
+    ):
+        for parameter, color, marker in groups:
+            rows = [
+                item
+                for item in finite_results
+                if item["sweep_parameter"] == parameter
+            ]
+            rows = sorted(rows, key=lambda item: float(item["l1_cost"]))
+            if not rows:
+                continue
+            axis.plot(
+                [float(item["l1_cost"]) for item in rows],
+                [float(item[y_metric]) for item in rows],
+                marker=marker,
+                color=color,
+                alpha=0.75,
+                label=parameter,
+            )
+        front = _find_pareto_front(finite_results, "l1_cost", y_metric)
+        if front:
+            axis.plot(
+                [float(item["l1_cost"]) for item in front],
+                [float(item[y_metric]) for item in front],
+                color="black",
+                linewidth=2.0,
+                label="Pareto front",
+            )
+        axis.set_ylabel(ylabel)
+        axis.set_ylim(-0.02, 1.02)
+        axis.grid(alpha=0.25)
+        axis.legend(loc="best", fontsize=9)
+
+    axes[1].set_xlabel("L1 Cost")
+    fig.suptitle("RBR German MLP Cost-Validity Sweep")
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=250)
+    plt.close(fig)
+    return output_path
+
+
+def _build_claim_assessment(
+    classifier_validation: dict[str, Any],
+    results: list[dict[str, Any]],
+    plot_path: Path | None,
+) -> dict[str, Any]:
+    has_successful_cfs = bool(results) and any(
+        int(item["num_successful"]) > 0 for item in results
+    )
+    has_current_validity = bool(results) and any(
+        np.isfinite(float(item["current_validity"])) for item in results
+    )
+    has_future_validity = bool(results) and any(
+        np.isfinite(float(item["future_validity"])) for item in results
+    )
+
+    return {
+        "claim_1": {
+            **REFERENCE_CLAIMS["claim_1"],
+            "status": (
+                "observed_with_framework_rbr"
+                if has_successful_cfs and has_future_validity
+                else "not_observed"
+            ),
+            "evidence": {
+                "successful_counterfactuals_present": has_successful_cfs,
+                "future_validity_measured": has_future_validity,
+                "plot_path": str(plot_path) if plot_path is not None else None,
+            },
+        },
+        "claim_2": {
+            **REFERENCE_CLAIMS["claim_2"],
+            "status": "validated_by_script_construction",
+            "evidence": {
+                "uses_framework_method": "method.rbr.rbr.RbrMethod",
+                "reference_repo_imported": False,
+                "local_linear_surrogate_used": False,
+            },
+        },
+        "claim_3": {
+            **REFERENCE_CLAIMS["claim_3"],
+            "status": (
+                "scalar_table_reproduced_and_sweep_observed"
+                if classifier_validation["all_within_tolerance"]
+                and has_current_validity
+                and has_future_validity
+                else "partially_observed"
+            ),
+            "evidence": {
+                "classifier_scalar_validation": classifier_validation,
+                "sweep_rows": int(len(results)),
+                "plot_path": str(plot_path) if plot_path is not None else None,
+            },
+        },
     }
 
 
@@ -666,10 +936,28 @@ def _build_warnings(
 def run_reproduction(
     current_config_path: str = DEFAULT_CURRENT_CONFIG,
     future_config_path: str = DEFAULT_FUTURE_CONFIG,
+    *,
+    output_dir: str | Path | None = None,
+    write_artifacts: bool = False,
+    generate_plots: bool = True,
+    max_factuals: int | None = None,
+    num_future_models: int | None = None,
+    reproduction_mode: str | None = None,
 ) -> dict[str, Any]:
     device = _resolve_device()
     current_cfg = _load_config((PROJECT_ROOT / current_config_path).resolve())
     future_cfg = _load_config((PROJECT_ROOT / future_config_path).resolve())
+    current_cfg = deepcopy(current_cfg)
+    future_cfg = deepcopy(future_cfg)
+
+    current_experiment_cfg = current_cfg.setdefault("experiment", {})
+    future_experiment_cfg = future_cfg.setdefault("experiment", {})
+    if max_factuals is not None:
+        current_experiment_cfg["max_factuals"] = int(max_factuals)
+    if num_future_models is not None:
+        future_experiment_cfg["num_future_models"] = int(num_future_models)
+    if reproduction_mode is not None:
+        current_experiment_cfg["reproduction_mode"] = str(reproduction_mode)
 
     current_raw_df, shifted_raw_df = _load_raw_german_frames()
     transformer, feature_names, encoding_map = _build_joint_transformer(
@@ -677,7 +965,6 @@ def run_reproduction(
         shifted_raw_df,
     )
 
-    current_experiment_cfg = current_cfg.get("experiment", {})
     train_split = float(current_experiment_cfg.get("train_split", 0.8))
     split_random_state = int(current_experiment_cfg.get("split_random_state", 42))
     current_X_train_raw, current_X_test_raw, current_y_train, current_y_test = (
@@ -687,9 +974,21 @@ def run_reproduction(
             random_state=split_random_state,
         )
     )
+    kfold_splits = int(current_experiment_cfg.get("kfold", ORIGINAL_EXPERIMENT_5["kfold"]))
+    if kfold_splits > 1:
+        kfold = KFold(n_splits=kfold_splits)
+        first_train_index, _ = next(kfold.split(current_X_train_raw))
+        current_X_training_raw = current_X_train_raw.iloc[first_train_index].copy(deep=True)
+        current_y_training = current_y_train.iloc[first_train_index].copy(deep=True)
+        training_scope = f"first_of_{kfold_splits}_kfold_training_splits"
+    else:
+        current_X_training_raw = current_X_train_raw.copy(deep=True)
+        current_y_training = current_y_train.copy(deep=True)
+        training_scope = "full_current_training_split"
+
     current_X_train = _transform_features(
         transformer,
-        current_X_train_raw,
+        current_X_training_raw,
         feature_names,
     )
     current_X_test = _transform_features(
@@ -702,7 +1001,7 @@ def run_reproduction(
     current_trainset = _make_frozen_processed_dataset(
         template_dataset=current_template_dataset,
         X=current_X_train,
-        y=current_y_train,
+        y=current_y_training,
         feature_names=feature_names,
         encoding_map=encoding_map,
         dataset_flag="trainset",
@@ -764,9 +1063,14 @@ def run_reproduction(
     shifted_model.fit(shifted_trainset)
     shifted_model_metrics = _compute_model_metrics(shifted_model, shifted_testset)
 
+    factual_pool = _concat_frozen_datasets(
+        template_dataset=current_template_dataset,
+        datasets=[current_testset, current_trainset],
+        dataset_flag="candidate_factual_pool",
+    )
     factuals = _select_recourse_factuals(
         current_model,
-        current_testset,
+        factual_pool,
         current_experiment_cfg,
     )
 
@@ -775,8 +1079,8 @@ def run_reproduction(
         transformer=transformer,
         feature_names=feature_names,
         encoding_map=encoding_map,
-        current_X_train=current_X_train_raw,
-        current_y_train=current_y_train,
+        current_X_train=current_X_training_raw,
+        current_y_train=current_y_training,
         shifted_df=shifted_raw_df,
         future_cfg=future_cfg,
     )
@@ -830,29 +1134,66 @@ def run_reproduction(
         current_model_metrics=current_model_metrics,
         shifted_model_metrics=shifted_model_metrics,
     )
+    classifier_validation = _build_classifier_scalar_validation(classifier_comparison)
     warnings = _build_warnings(classifier_comparison, results)
+    resolved_output_dir = (
+        Path(output_dir)
+        if output_dir is not None
+        else Path(__file__).resolve().parent
+    )
+    sweep_csv_path = resolved_output_dir / SWEEP_DATA_PATH.name
+    plot_path = resolved_output_dir / PLOT_PATH.name
+    written_sweep_csv_path: Path | None = None
+    written_plot_path: Path | None = None
+    if write_artifacts:
+        written_sweep_csv_path = _write_sweep_csv(results, sweep_csv_path)
+        if generate_plots:
+            written_plot_path = _write_cost_validity_plot(results, plot_path)
+    claim_assessment = _build_claim_assessment(
+        classifier_validation=classifier_validation,
+        results=results,
+        plot_path=written_plot_path,
+    )
 
     return {
         "device": device,
+        "reference_audit": {
+            "claims": REFERENCE_CLAIMS,
+            "original_experiment_5": ORIGINAL_EXPERIMENT_5,
+            "paper_classifier_metrics_german": PAPER_GERMAN_METRICS,
+            "notes": [
+                "Table 1 provides scalar classifier accuracy/AUC targets for German Credit.",
+                "Figure 2 presents cost-validity Pareto frontiers, so this script writes the underlying sweep data and a local plot instead of comparing unavailable exact plot scalars.",
+            ],
+        },
         "setup": {
             "train_split_d1": train_split,
             "arrival_fraction_d2": float(shift_experiment_cfg.get("arrival_fraction", 0.2)),
             "num_future_models": int(len(future_models)),
+            "kfold": kfold_splits,
+            "current_model_training_scope": training_scope,
             "reproduction_mode": str(
                 current_experiment_cfg.get("reproduction_mode", "paper_sweep")
             ).lower(),
             "factual_selection": str(current_experiment_cfg.get("factual_selection", "all")).lower(),
             "max_factuals": int(current_experiment_cfg.get("max_factuals", len(factuals))),
             "selected_factuals": int(len(factuals)),
+            "factual_pool": "current test split followed by first current KFold training subset",
         },
         "classifier_metrics": {
             "present_d1": current_model_metrics,
             "shift_d2": shifted_model_metrics,
             "simulated_future_models_on_present_test": simulated_future_metrics,
             "paper_comparison": classifier_comparison,
+            "scalar_validation": classifier_validation,
         },
         "results": results,
         "summary": _summarize_results(results),
+        "claim_assessment": claim_assessment,
+        "artifacts": {
+            "sweep_csv_path": str(written_sweep_csv_path) if written_sweep_csv_path is not None else None,
+            "plot_path": str(written_plot_path) if written_plot_path is not None else None,
+        },
         "warnings": warnings,
     }
 
@@ -865,15 +1206,33 @@ def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--current-config", default=DEFAULT_CURRENT_CONFIG)
     parser.add_argument("--future-config", default=DEFAULT_FUTURE_CONFIG)
-    args = parser.parse_args()
+    parser.add_argument("--output-dir", default=str(Path(__file__).resolve().parent))
+    parser.add_argument("--max-factuals", type=int, default=None)
+    parser.add_argument("--num-future-models", type=int, default=None)
+    parser.add_argument(
+        "--reproduction-mode",
+        choices=["paper_sweep", "single_point"],
+        default=None,
+    )
+    parser.add_argument("--no-plots", action="store_true")
+    args, _ = parser.parse_known_args()
 
     summary = run_reproduction(
         current_config_path=args.current_config,
         future_config_path=args.future_config,
+        output_dir=args.output_dir,
+        write_artifacts=True,
+        generate_plots=not args.no_plots,
+        max_factuals=args.max_factuals,
+        num_future_models=args.num_future_models,
+        reproduction_mode=args.reproduction_mode,
     )
     classifier_metrics = summary["classifier_metrics"]
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report_output_path = output_dir / REPORT_PATH.name
     report_path = write_reproduction_report(
-        output_path=REPORT_PATH,
+        output_path=report_output_path,
         paper_id="rbr_german",
         reproduction_metadata={
             "timestamp": datetime.now(timezone.utc),
@@ -882,12 +1241,16 @@ def test_reproduce() -> None:
             "current_config_path": args.current_config,
             "future_config_path": args.future_config,
             "device": summary["device"],
+            "reference_audit": summary["reference_audit"],
+            "claim_assessment": summary["claim_assessment"],
+            "artifacts": summary["artifacts"],
         },
         experiments_data={
             "classifier_metrics": {
                 "configuration": {
                     "dataset": "german",
                     "mode": summary["setup"]["reproduction_mode"],
+                    "validation_criterion": classifier_metrics["scalar_validation"]["criterion"],
                 },
                 "metrics": {
                     "present_accuracy": {
@@ -930,6 +1293,10 @@ def test_reproduce() -> None:
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
     print(f"reproduction_report_path: {report_path}")
+    if summary["artifacts"]["sweep_csv_path"] is not None:
+        print(f"sweep_csv_path: {summary['artifacts']['sweep_csv_path']}")
+    if summary["artifacts"]["plot_path"] is not None:
+        print(f"plot_path: {summary['artifacts']['plot_path']}")
 
 
 if __name__ == "__main__":

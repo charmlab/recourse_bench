@@ -1,7 +1,7 @@
 name: german_mlp_rbr_reproduce_future
 experiment:
   seed: 42
-  arrival_fraction: 0.2
+  arrival_fraction: 0.5
   num_future_models: 100
   future_model_seed_start: 0
   shift_train_split: 0.8

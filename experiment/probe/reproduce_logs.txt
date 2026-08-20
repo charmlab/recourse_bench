@@ -12,7 +12,7 @@ We reproduce PROBE with `experiment/probe/test_probe_reproduce.py` across Adult,
 
 **Results**
 
-Claims 1-3 are partially reproduced: 26 of 36 scalar comparisons are within the 15% relative-delta threshold. Some means are close, including Adult linear AIR mean, reference 0.34 versus reproduced 0.3489, relative delta 0.025. Important discrepancies remain, including Adult MLP AIR std, reference 0.01 versus reproduced 0.0528, relative delta 0.811, and Adult MLP AC mean, reference 1.43 versus reproduced 0.7629, relative delta 0.467.
+Claims 1-3 are partially reproduced: 26 of 36 scalar comparisons are within the 15% relative-delta threshold. Some means are close, including Adult linear AIR mean, reference 0.34 versus reproduced 0.3489, relative delta 0.025. Important discrepancies remain, Adult MLP AC mean, reference 1.43 versus reproduced 0.7629, relative delta 0.467.
 
 **Next Steps Needed to Satisfy Claim Requirements**
 

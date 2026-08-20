@@ -79,6 +79,7 @@ def _resolve_device(model_name: str, requested_device: str | None) -> str:
 
 def _subset_dataset(dataset, indices: pd.Index) -> object:
     index = pd.Index(indices)
+    source_index = dataset.get(target=False).index
     subset_df = pd.concat(
         [dataset.get(target=False).loc[index], dataset.get(target=True).loc[index]],
         axis=1,
@@ -93,6 +94,20 @@ def _subset_dataset(dataset, indices: pd.Index) -> object:
             subset.update("evaluation_filter", evaluation_filter.loc[index].copy(deep=True))
         elif isinstance(evaluation_filter, pd.DataFrame):
             subset.update("evaluation_filter", evaluation_filter.loc[index].copy(deep=True))
+
+    for flag in ("counterfactual_sets", "counterfactual_set_validity"):
+        if not hasattr(dataset, flag):
+            continue
+        values = dataset.attr(flag)
+        if not isinstance(values, list):
+            continue
+        positions = [int(source_index.get_loc(row_index)) for row_index in index]
+        subset.update(flag, [values[position] for position in positions])
+    if hasattr(dataset, "counterfactual_set_source"):
+        subset.update(
+            "counterfactual_set_source",
+            dataset.attr("counterfactual_set_source"),
+        )
 
     subset.freeze()
     return subset
@@ -311,6 +326,25 @@ def _build_run_config(
     )
     run_cfg["model"]["device"] = resolved_device
     run_cfg["method"]["device"] = resolved_device
+
+    for evaluation_cfg in run_cfg.get("evaluation", []):
+        if evaluation_cfg.get("name") != "future_validity":
+            continue
+        future_dataset_name = evaluation_cfg.pop("future_dataset", None)
+        if (
+            future_dataset_name is None
+            or "future_config" in evaluation_cfg
+            or "future_config_path" in evaluation_cfg
+        ):
+            continue
+        future_dataset_cfg = _load_yaml_dict(
+            _resolve_component_path("datasets", str(future_dataset_name))
+        )
+        evaluation_cfg["future_config"] = _deep_merge(
+            future_dataset_cfg,
+            {"model": deepcopy(run_cfg["model"])},
+        )
+
     _apply_model_cache_config(run_cfg)
     return run_cfg
 

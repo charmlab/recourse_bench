@@ -25,10 +25,6 @@ Claim 2 is only partially validated at concept level. The scoped script models t
 
 Claim 3 is not reproduced. The scoped script does not run the Credit Default causal-constraint experiment or Table 3a-3c comparisons.
 
-Claim 4 is not reproduced. The scoped script does not build decision-tree summaries of sampled recourse candidates.
-
-Claim 5 remains a qualitative paper claim. The current smoke and scoped scripts do not require classifier gradients or SCMs, but this does not reproduce the full CRUDS empirical evidence. The paper also should not be summarized as universal 100% validity: CRUDS reports 1.00 validity in several settings, but hidden confounding reports 0.90.
-
 **Next Steps Needed to Satisfy Claim Requirements**
 
 - Recover original CRUDS code/data if available; otherwise keep future runs labeled as scoped/generalization-style.

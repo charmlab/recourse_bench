@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import sys
 from time import perf_counter
+import traceback
 from typing import Iterable
 
 import numpy as np
@@ -234,6 +235,171 @@ def _preprocess(dataset: LocalDataFrameDataset, seed: int) -> LocalDataFrameData
     return dataset
 
 
+def _feature_sets(dataset: LocalDataFrameDataset) -> tuple[list[str], list[str]]:
+    categorical: list[str] = []
+    numerical: list[str] = []
+    for feature_name, feature_type in dataset.raw_feature_type.items():
+        if feature_name == dataset.target_column:
+            continue
+        if str(feature_type).lower() == "categorical":
+            categorical.append(feature_name)
+        else:
+            numerical.append(feature_name)
+    return categorical, numerical
+
+
+def _standardize_with_base_stats(
+    base_df: pd.DataFrame,
+    shifted_df: pd.DataFrame,
+    numerical_columns: list[str],
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict[str, float | str]]]:
+    base = base_df.copy(deep=True)
+    shifted = shifted_df.copy(deep=True)
+    stats: dict[str, dict[str, float | str]] = {}
+    for column in numerical_columns:
+        if column not in base.columns:
+            continue
+        series = base[column].astype("float64")
+        mean_value = float(series.mean())
+        std_value = float(series.std(ddof=0))
+        stats[column] = {
+            "mode": "standardize",
+            "mean": mean_value,
+            "std": std_value,
+        }
+        if std_value == 0.0:
+            base[column] = 0.0
+            shifted[column] = 0.0
+        else:
+            base[column] = (base[column].astype("float64") - mean_value) / std_value
+            shifted[column] = (
+                shifted[column].astype("float64") - mean_value
+            ) / std_value
+    return base, shifted, stats
+
+
+def _encode_pair_with_shared_schema(
+    base_df: pd.DataFrame,
+    shifted_df: pd.DataFrame,
+    target_column: str,
+    categorical_columns: list[str],
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, list[str]], dict[str, str]]:
+    base_features = base_df.drop(columns=[target_column]).copy(deep=True)
+    shifted_features = shifted_df.drop(columns=[target_column]).copy(deep=True)
+    for column in categorical_columns:
+        if column in base_features.columns:
+            base_features[column] = base_features[column].astype(str)
+        if column in shifted_features.columns:
+            shifted_features[column] = shifted_features[column].astype(str)
+
+    combined = pd.concat(
+        [base_features, shifted_features],
+        axis=0,
+        ignore_index=True,
+    )
+    encoded = pd.get_dummies(
+        combined,
+        columns=[column for column in categorical_columns if column in combined],
+        dtype="float64",
+    )
+    encoded = encoded.astype("float64")
+    base_encoded = encoded.iloc[: len(base_features)].copy(deep=True)
+    shifted_encoded = encoded.iloc[len(base_features) :].copy(deep=True)
+    base_encoded.index = base_df.index
+    shifted_encoded.index = shifted_df.index
+
+    encoding_map: dict[str, list[str]] = {}
+    encoded_sources: dict[str, str] = {}
+    for source in categorical_columns:
+        prefix = f"{source}_"
+        columns = [column for column in encoded.columns if column.startswith(prefix)]
+        if columns:
+            encoding_map[source] = columns
+            for column in columns:
+                encoded_sources[column] = source
+
+    base_encoded[target_column] = base_df[target_column].to_numpy()
+    shifted_encoded[target_column] = shifted_df[target_column].to_numpy()
+    return base_encoded, shifted_encoded, encoding_map, encoded_sources
+
+
+def _build_preprocessed_pair(
+    dataset_name: str,
+    seed: int,
+) -> tuple[LocalDataFrameDataset, LocalDataFrameDataset]:
+    raw_base = _load_dataset(dataset_name, seed=seed, shifted=False)
+    raw_shifted = _load_dataset(dataset_name, seed=seed, shifted=True)
+    target_column = raw_base.target_column
+    categorical_columns, numerical_columns = _feature_sets(raw_base)
+
+    base_df = raw_base.snapshot().copy(deep=True)
+    shifted_df = raw_shifted.snapshot().copy(deep=True)
+
+    if dataset_name == "synthetic":
+        scaling_stats: dict[str, dict[str, float | str]] = {}
+        encoded_base = base_df
+        encoded_shifted = shifted_df
+        encoding_map: dict[str, list[str]] = {}
+        encoded_sources: dict[str, str] = {}
+    else:
+        encoded_base, encoded_shifted, encoding_map, encoded_sources = (
+            _encode_pair_with_shared_schema(
+                base_df=base_df,
+                shifted_df=shifted_df,
+                target_column=target_column,
+                categorical_columns=categorical_columns,
+            )
+        )
+        encoded_base, encoded_shifted, scaling_stats = _standardize_with_base_stats(
+            encoded_base,
+            encoded_shifted,
+            numerical_columns=numerical_columns,
+        )
+
+    feature_type: dict[str, str] = {}
+    feature_mutability: dict[str, bool] = {}
+    feature_actionability: dict[str, str] = {}
+    for column in encoded_base.columns:
+        if column == target_column:
+            feature_type[column] = "binary"
+            feature_mutability[column] = False
+            feature_actionability[column] = "none"
+            continue
+        source = encoded_sources.get(column, column)
+        if source in categorical_columns:
+            feature_type[column] = "binary"
+        else:
+            feature_type[column] = "numerical"
+        feature_mutability[column] = bool(raw_base.raw_feature_mutability[source])
+        feature_actionability[column] = str(raw_base.raw_feature_actionability[source])
+
+    base = LocalDataFrameDataset(
+        encoded_base,
+        name=dataset_name,
+        target_column=target_column,
+        raw_feature_type=feature_type,
+        raw_feature_mutability=feature_mutability,
+        raw_feature_actionability=feature_actionability,
+    )
+    shifted = LocalDataFrameDataset(
+        encoded_shifted,
+        name=f"{dataset_name}_shifted",
+        target_column=target_column,
+        raw_feature_type=feature_type,
+        raw_feature_mutability=feature_mutability,
+        raw_feature_actionability=feature_actionability,
+    )
+    for dataset in (base, shifted):
+        if encoding_map:
+            dataset.update("encoding", encoding_map)
+        if scaling_stats:
+            dataset.update("scaling", {column: "standardize" for column in scaling_stats})
+            dataset.update("scaling_stats", scaling_stats)
+        dataset.update("paired_preprocessed", True)
+        dataset.freeze()
+    return base, shifted
+
+
 def _split_fold(dataset: DatasetObject, fold_index: int) -> tuple[DatasetObject, DatasetObject]:
     full_df = pd.concat([dataset.get(target=False), dataset.get(target=True)], axis=1)
     start = int(fold_index / N_FOLDS * len(full_df))
@@ -417,11 +583,8 @@ def _run_one_setting(
     seed: int,
     alpha: float,
     config: ExperimentConfig,
-) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    base_dataset = _preprocess(_load_dataset(dataset_name, seed=seed), seed=seed)
-    shifted_dataset = _preprocess(
-        _load_dataset(dataset_name, seed=seed, shifted=True), seed=seed
-    )
+) -> tuple[list[dict[str, object]], list[dict[str, object]], dict[str, object]]:
+    base_dataset, shifted_dataset = _build_preprocessed_pair(dataset_name, seed=seed)
     trainset, testset = _split_fold(base_dataset, fold_index=seed % N_FOLDS)
     shifted_trainset, shifted_testset = _split_fold(
         shifted_dataset, fold_index=seed % N_FOLDS
@@ -431,6 +594,17 @@ def _run_one_setting(
     model.fit(trainset)
     shifted_model = _model_for(model_name, seed, config.device, len(shifted_trainset))
     shifted_model.fit(shifted_trainset)
+
+    test_features = testset.get(target=False)
+    test_target = testset.get(target=True).iloc[:, 0].astype(int).to_numpy()
+    test_prediction = _prediction_indices(model, test_features)
+    train_prediction = _prediction_indices(model, trainset.get(target=False))
+    shifted_prediction = _prediction_indices(
+        shifted_model, shifted_testset.get(target=False)
+    )
+    shifted_target = shifted_testset.get(target=True).iloc[:, 0].astype(int).to_numpy()
+    recourse_needed_test = int(np.sum(test_prediction == 0))
+    recourse_needed_train = int(np.sum(train_prediction == 0))
 
     factuals = _select_factuals(model, testset, config.max_factuals)
     method = _fit_larr(
@@ -502,7 +676,24 @@ def _run_one_setting(
                 "factuals": len(factuals),
             }
         )
-    return metric_records, generated_records
+    diagnostics = {
+        "dataset": dataset_name,
+        "model": model_name,
+        "seed": seed,
+        "alpha": alpha,
+        "train_rows": len(trainset),
+        "test_rows": len(testset),
+        "shifted_train_rows": len(shifted_trainset),
+        "shifted_test_rows": len(shifted_testset),
+        "feature_count": int(test_features.shape[1]),
+        "recourse_needed_train": recourse_needed_train,
+        "recourse_needed_test": recourse_needed_test,
+        "selected_factuals": len(factuals),
+        "target_accuracy": float(np.mean(test_prediction == test_target)),
+        "shifted_target_accuracy": float(np.mean(shifted_prediction == shifted_target)),
+        "selected_lambda": float(method._method.lamb),
+    }
+    return metric_records, generated_records, diagnostics
 
 
 def _aggregate(records: list[dict[str, object]], group_cols: list[str]) -> list[dict[str, object]]:
@@ -556,6 +747,7 @@ def run_reproduction(config: ExperimentConfig) -> dict[str, object]:
     config.output_dir.mkdir(parents=True, exist_ok=True)
     metric_records: list[dict[str, object]] = []
     validity_cost_records: list[dict[str, object]] = []
+    setting_diagnostics: list[dict[str, object]] = []
     failures: list[dict[str, object]] = []
 
     for dataset_name in config.datasets:
@@ -564,7 +756,7 @@ def run_reproduction(config: ExperimentConfig) -> dict[str, object]:
                 for seed in config.seeds:
                     with seed_context(seed):
                         try:
-                            metrics, validity_cost = _run_one_setting(
+                            metrics, validity_cost, diagnostics = _run_one_setting(
                                 dataset_name,
                                 model_name,
                                 seed,
@@ -573,6 +765,7 @@ def run_reproduction(config: ExperimentConfig) -> dict[str, object]:
                             )
                             metric_records.extend(metrics)
                             validity_cost_records.extend(validity_cost)
+                            setting_diagnostics.append(diagnostics)
                         except Exception as error:
                             failures.append(
                                 {
@@ -581,6 +774,7 @@ def run_reproduction(config: ExperimentConfig) -> dict[str, object]:
                                     "alpha": alpha,
                                     "seed": seed,
                                     "error": repr(error),
+                                    "traceback": traceback.format_exc(limit=8),
                                 }
                             )
 
@@ -609,6 +803,7 @@ def run_reproduction(config: ExperimentConfig) -> dict[str, object]:
         },
         "robustness_consistency_smoothness": metric_summary,
         "future_validity_cost": validity_cost_summary,
+        "setting_diagnostics": setting_diagnostics,
         "failures": failures,
     }
 

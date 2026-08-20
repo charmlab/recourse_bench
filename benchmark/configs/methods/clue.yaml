@@ -16,7 +16,7 @@ method:
 
 compatibility:
   allowed_models: [mlp_bayesian]
-  allowed_datasets: [compas_clue]
+  # allowed_datasets: [compas_clue]
 
 method_benchmark:
   use_dataset_desired_class: false

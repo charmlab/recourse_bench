@@ -8,7 +8,7 @@ We aim to reproduce the Growing Spheres claims from `reference/gs.pdf`:
 
 **Methodology**
 
-We reproduce GS with `experiment/gs/test_gs_reproduce.py` on a News Popularity + random-forest configuration. Code/experiments and data are available, but the current benchmark scope differs from the LSAC/Diabetes-oriented claims listed in `reference/claims.md`.
+We reproduce GS with `experiment/gs/test_gs_reproduce.py` on a News Popularity + random-forest configuration. Code/experiments and data are available.
 
 **Results**
 

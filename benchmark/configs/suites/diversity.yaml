@@ -1,0 +1,41 @@
+name: diversity
+base_config: base.yaml
+output_csv: ./benchmark/results/diversity_results.csv
+
+datasets:
+  - german
+  - adult
+  - compas_carla
+
+models:
+  - linear
+  # - mlp
+
+methods:
+  - dice
+  - diverse_dist
+  - cols
+  - cemsp
+
+method:
+  total_cfs: 5
+  num_cfs: 5
+  max_counterfactuals: 5
+
+evaluation:
+  - name: validity
+  - name: distance
+    metrics: [l1, l2]
+  - name: diversity
+
+benchmark:
+  device: cpu
+  desired_class: 1
+  sample_target: 50
+  min_factuals: 25
+  allow_partial_factuals: true
+  sample_seed: 0
+  factual_filter: prediction_not_equal_desired_class
+  prediction_batch_size: 512
+  method_batch_size: 10
+  continue_on_error: true

@@ -2,9 +2,9 @@
 
 We aim to reproduce the argumentative ensembling claims from `reference/arg_ensembling.pdf`:
 
-1. We define ensemble recourse through argumentation-style properties such as coherence and non-emptiness : [Qualitative] : [Formal definitions and propositions in the paper]
-2. We show that the proposed aggregation properties hold under the stated assumptions : [Qualitative] : [Proofs / theoretical results]
-3. We empirically evaluate accuracy and simplicity across datasets, methods, and ensemble sizes : [Quantitative] : [Table 4]
+1. Arg_ensembling defines ensemble recourse through argumentation-style properties such as coherence and non-emptiness : [Qualitative] : [Formal definitions and propositions in the paper]
+2. Arg_ensembling shows that the proposed aggregation properties hold under the stated assumptions : [Qualitative] : [Proofs / theoretical results]
+3. Arg_ensembling empirically evaluates accuracy and simplicity across datasets, methods, and ensemble sizes : [Quantitative] : [Table 4]
 
 **Methodology**
 

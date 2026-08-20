@@ -2,22 +2,35 @@
 
 We aim to reproduce the LARR claims from `reference/larr.pdf`:
 
-1. We generate recourse that remains robust and consistent under local model perturbations : [Quantitative] : [German robustness/consistency metrics]
-2. We study validity-cost and smoothness/prediction-error trade-offs : [Quantitative] : [Figure 2 / Figure 10 / Figure 11-style sweeps]
-3. We provide theoretical support for the optimization formulation : [Qualitative] : [Proof / optimality result]
-4. We compare LARR against baseline recourse methods across sweep settings : [Quantitative] : [Empirical sweep tables/figures]
+1. LARR generates recourse that follows the intended robustness-consistency tradeoff under local model perturbations : [Quantitative] : [Figure 1-style beta sweep]
+2. LARR studies smoothness / prediction-error and validity-cost behavior : [Quantitative] : [Figure 2 / Figure 3-style sweeps]
+3. LARR provides theoretical support for the optimization formulation : [Qualitative] : [Proof / optimality result]
+4. LARR compares favorably against robust recourse baselines such as ROAR and RBR : [Quantitative] : [Baseline empirical comparisons]
 
 **Methodology**
 
-We reproduce LARR with `experiment/larr/test_larr_reproduce.py` on a German dataset configuration. Code/experiments and data are available. The current report focuses on average robustness and average consistency in the RecourseBench environment rather than the full sweep breadth.
+We reproduce LARR with `experiment/larr/test_larr_reproduce.py`.
+
+The latest paper-profile artifact is `experiment/larr/larr_reproduction_paper_20260812T224549Z.json`.
+
+This run covers synthetic, German Credit, and SBA datasets; linear and MLP models; seeds 0 through 4; alpha 0.5; beta 0.00 through 1.00; lambda values 0.1, 0.2, and 0.3; and at most 100 factuals per setting. No settings failed.
+
+The reproduction uses the framework `method/larr` implementation for counterfactual generation. The internal LARR library is used only for paper-aligned metric calculations.
 
 **Results**
 
-Claim 1 is strongly reproduced for the covered German metrics: average robustness is reference 0.27 versus reproduced 0.2566, relative delta 0.050, and average consistency is reference 0.40 versus reproduced 0.4343, relative delta 0.079. Claims 2 and 4 are only partially reproduced because the full sweeps are not covered. Claim 3 is proof-level evidence.
+Claim 1 is partially validated. The beta endpoints match the expected tradeoff behavior across all six dataset/model settings:
+
+- beta = 1.0 gives average robustness 0.0.
+- beta = 0.0 gives average consistency 0.0.
+
+Claim 2 is partially validated. The script now reproduces the main LARR-only sweep structure for robustness, consistency, smoothness-style prediction error, validity, and cost. Linear-model validity is strong across synthetic, German, and SBA. MLP validity is mixed, especially for Synthetic-MLP.
+
+Claim 4 is not validated by the current script because ROAR, RBR, and other baseline comparisons are not run.
+
+Overall status: Partially validated.
 
 **Next Steps Needed to Satisfy Claim Requirements**
 
-- Expand to the full prediction-error and validity-cost sweeps.
-- Add scalar targets for each sweep point with seed variance.
-- Confirm the model class, loss, and local approximation settings.
-- Add a proof-inspection note for the theoretical claim.
+- Add ROAR and, if feasible, RBR baseline comparisons.
+- Investigate low Synthetic-MLP validity and mixed MLP validity-cost behavior.

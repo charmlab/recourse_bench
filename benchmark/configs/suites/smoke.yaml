@@ -1,9 +1,9 @@
 name: smoke
 base_config: base.yaml
-output_csv: ./benchmark/results/smoke_results.csv
+output_csv: ./benchmark/results/smoke_multiseed_results.csv
 
 datasets:
-  - adult
+  - compas
 
 models:
   - linear
@@ -13,26 +13,32 @@ models:
 methods:
   - apas
   - arg_ensembling
-  - cemsp
   - cchvae
+  - cemsp
   - cfrl
   - cfvae
+  - claproar
   - clue
   - cogs
   - cols
+  - cruds
   - cvas_proj
   - dice
   - diverse_dist
   - face
+  - feature_tweak
+  - gravitational
   - gs
   - larr
   - mace
   - probe
   - proplace
   - rbr
+  - revise
   - roar
   - sns
   - trex
+  - wachter
 
 benchmark:
   sample_seeds: [0, 1, 2, 3]

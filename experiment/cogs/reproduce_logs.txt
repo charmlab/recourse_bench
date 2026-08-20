@@ -9,7 +9,7 @@ We aim to reproduce the CoGS claims from `reference/cogs.pdf`:
 
 **Methodology**
 
-We reproduce CoGS with `experiment/cogs/test_cogs_reproduce.py`. Code/experiments and data are available, but the recorded report is heavily scoped: Adult, random forest, and very few factuals. It runs in the current RecourseBench environment rather than the full paper setup.
+We reproduce CoGS with `experiment/cogs/test_cogs_reproduce.py`. Code/experiments and data are available, but the current report is heavily scoped: Adult, random forest, and very few factuals. It runs in the current RecourseBench environment rather than the full paper setup.
 
 **Results**
 

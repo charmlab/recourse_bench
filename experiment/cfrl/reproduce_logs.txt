@@ -10,7 +10,7 @@ We aim to reproduce the CFRL claims from `reference/cfrl.pdf`:
 
 **Methodology**
 
-We reproduce CFRL with `experiment/cfrl/test_cfrl_reproduce.py` in the RecourseBench PyTorch environment. The current script covers Adult with a random-forest black-box model, CFRL training for 100,000 steps, and batch size 128. The local framework includes `reference/cfrl.pdf`, an implementation, and an Adult configuration, but the project artifact list did not confirm exact original code/data availability.
+We reproduce CFRL with `experiment/cfrl/test_cfrl_reproduce.py` in the RecourseBench PyTorch environment. The current script covers Adult with a random-forest black-box model, CFRL training for 100,000 steps, and batch size 128. The local framework includes an implementation, and an Adult configuration, but there is no exact original code/data availability.
 
 **Results**
 
