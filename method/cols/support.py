@@ -344,7 +344,31 @@ def _resolve_search_states(
     states: list[object],
     current_index: int,
 ) -> list[object]:
-    return list(states)
+    if not states:
+        return []
+
+    current_state = states[current_index]
+    actionability = spec.actionability
+    if (not spec.mutable) or actionability in {"none", "same"}:
+        return [current_state]
+
+    if actionability == "any":
+        return list(states)
+
+    if actionability == "same-or-increase":
+        legal_states = list(states[current_index:])
+    elif actionability == "increase":
+        legal_states = list(states[current_index + 1 :])
+    elif actionability == "same-or-decrease":
+        legal_states = list(states[: current_index + 1])
+    elif actionability == "decrease":
+        legal_states = list(states[:current_index])
+    else:
+        legal_states = list(states)
+
+    if not legal_states:
+        return [current_state]
+    return legal_states
 
 
 def _build_percentile_lookup(

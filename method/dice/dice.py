@@ -99,6 +99,8 @@ class DiceMethod(MethodObject):
         self._posthoc_sparsity_algorithm = str(posthoc_sparsity_algorithm).lower()
         self._posthoc_sparsity_enabled = bool(posthoc_sparsity_enabled)
         self._respect_mutability = bool(respect_mutability)
+        self._last_counterfactual_sets: list[pd.DataFrame] = []
+        self._last_counterfactual_validity: list[pd.Series] = []
 
         if self._total_cfs < 1:
             raise ValueError("total_cfs/num must be >= 1")
@@ -304,11 +306,21 @@ class DiceMethod(MethodObject):
 
         factuals = factuals.loc[:, self._feature_names].copy(deep=True)
         selected_rows: list[pd.Series] = []
+        self._last_counterfactual_sets = []
+        self._last_counterfactual_validity = []
 
         with seed_context(self._seed):
             for _, row in factuals.iterrows():
                 query = row.to_frame().T
                 diverse_counterfactuals = self.get_diverse_counterfactuals(query)
+                self._last_counterfactual_sets.append(
+                    diverse_counterfactuals.reindex(columns=self._feature_names).copy(
+                        deep=True
+                    )
+                )
+                self._last_counterfactual_validity.append(
+                    pd.Series(True, index=diverse_counterfactuals.index, dtype=bool)
+                )
                 if diverse_counterfactuals.empty:
                     selected_rows.append(pd.Series(np.nan, index=self._feature_names))
                     continue
@@ -333,3 +345,22 @@ class DiceMethod(MethodObject):
             candidates=candidates,
             desired_class=self._desired_class,
         )
+
+    def counterfactual_set_metadata(
+        self,
+        factual_index: pd.Index,
+        feature_columns: pd.Index,
+    ) -> dict[str, object] | None:
+        if not self._last_counterfactual_sets:
+            return None
+        return {
+            "counterfactual_sets": [
+                counterfactual_set.reindex(columns=feature_columns).copy(deep=True)
+                for counterfactual_set in self._last_counterfactual_sets
+            ],
+            "counterfactual_set_validity": [
+                validity_mask.copy(deep=True)
+                for validity_mask in self._last_counterfactual_validity
+            ],
+            "counterfactual_set_source": self.__class__.__name__,
+        }

@@ -37,6 +37,13 @@ class MethodObject(ABC):
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         raise NotImplementedError
 
+    def counterfactual_set_metadata(
+        self,
+        factual_index: pd.Index,
+        feature_columns: pd.Index,
+    ) -> dict[str, object] | None:
+        return None
+
     def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
@@ -48,6 +55,7 @@ class MethodObject(ABC):
         factuals = testset.get(target=False)
         counterfactual_batches: list[pd.DataFrame] = []
         runtime_batches: list[pd.Series] = []
+        metadata_batches: dict[str, list[object]] = {}
 
         for start in range(0, factuals.shape[0], batch_size):
             batch = factuals.iloc[start : start + batch_size]
@@ -75,6 +83,13 @@ class MethodObject(ABC):
                     dtype="float64",
                 )
             )
+            counterfactual_set_metadata = self.counterfactual_set_metadata(
+                factual_index=counterfactual_batch.index,
+                feature_columns=counterfactual_batch.columns,
+            )
+            if counterfactual_set_metadata is not None:
+                for flag, value in counterfactual_set_metadata.items():
+                    metadata_batches.setdefault(flag, []).append(value)
 
         if counterfactual_batches:
             counterfactual_features = pd.concat(counterfactual_batches, axis=0)
@@ -108,6 +123,21 @@ class MethodObject(ABC):
             pd.DataFrame(runtime_seconds, columns=["runtime_seconds"]),
         )
         output.update("runtime_total_seconds", float(runtime_seconds.sum()))
+        for flag, batches in metadata_batches.items():
+            if all(isinstance(batch_value, list) for batch_value in batches):
+                output.update(
+                    flag,
+                    [
+                        item
+                        for batch_value in batches
+                        for item in batch_value
+                    ],
+                )
+            else:
+                if batches and all(batch_value == batches[0] for batch_value in batches):
+                    output.update(flag, batches[0])
+                else:
+                    output.update(flag, batches)
 
         prediction = self._target_model.predict(testset, batch_size=batch_size)
         predicted_label = prediction.argmax(dim=1).cpu().numpy().astype(np.int64)

@@ -58,6 +58,8 @@ class CemspMethod(MethodObject):
         self._explicit_upper_bounds = explicit_upper_bounds
         self._max_counterfactuals = int(max_counterfactuals)
         self._return_mode = str(return_mode).lower()
+        self._last_counterfactual_sets: list[pd.DataFrame] = []
+        self._last_counterfactual_validity: list[pd.Series] = []
         self._enumerate_all_features = bool(enumerate_all_features)
 
         if self._device != self._target_model._device:
@@ -364,6 +366,8 @@ class CemspMethod(MethodObject):
             raise ValueError("Input factuals cannot contain NaN")
 
         factuals = factuals.loc[:, self._feature_names].copy(deep=True)
+        self._last_counterfactual_sets = []
+        self._last_counterfactual_validity = []
         with seed_context(self._seed):
             original_predictions = self._adapter.predict_label_indices(factuals)
             desired_classes = resolve_target_classes(
@@ -380,6 +384,14 @@ class CemspMethod(MethodObject):
                     factual,
                     desired_class,
                 )
+                counterfactual_set = pd.DataFrame(
+                    counterfactuals_list,
+                    columns=self._feature_names,
+                )
+                self._last_counterfactual_sets.append(counterfactual_set)
+                self._last_counterfactual_validity.append(
+                    pd.Series(True, index=counterfactual_set.index, dtype=bool)
+                )
                 candidate = self._select_counterfactual(factual, counterfactuals_list)
                 if candidate is None:
                     rows.append(
@@ -395,3 +407,22 @@ class CemspMethod(MethodObject):
             candidates=candidates,
             desired_class=self._desired_class,
         )
+
+    def counterfactual_set_metadata(
+        self,
+        factual_index: pd.Index,
+        feature_columns: pd.Index,
+    ) -> dict[str, object] | None:
+        if not self._last_counterfactual_sets:
+            return None
+        return {
+            "counterfactual_sets": [
+                counterfactual_set.reindex(columns=feature_columns).copy(deep=True)
+                for counterfactual_set in self._last_counterfactual_sets
+            ],
+            "counterfactual_set_validity": [
+                validity_mask.copy(deep=True)
+                for validity_mask in self._last_counterfactual_validity
+            ],
+            "counterfactual_set_source": self.__class__.__name__,
+        }
