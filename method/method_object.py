@@ -11,6 +11,24 @@ from model.model_object import ModelObject
 
 
 class MethodObject(ABC):
+    """Base class for an algorithmic recourse method.
+
+    A method wraps a trained target model and generates counterfactuals that
+    flip (or move toward) a desired class. Subclasses implement :meth:`fit` and
+    :meth:`get_counterfactuals`; the inherited :meth:`predict` wraps the raw
+    counterfactual dataframe into a frozen counterfactual
+    :class:`~dataset.dataset_object.DatasetObject` and attaches runtime,
+    prediction, and target-label metadata.
+
+    Attributes
+    ----------
+    _need_grad : bool
+        Whether the method requires a differentiable target model.
+    _desired_class : int or str or None
+        Target class for recourse. ``None`` means "flip" for binary problems
+        and "keep current label" otherwise.
+    """
+
     _target_model: ModelObject
     _seed: int | None = None
     _device: str
@@ -27,14 +45,51 @@ class MethodObject(ABC):
         desired_class: int | str | None = None,
         **kwargs,
     ):
+        """Configure the method against a target model.
+
+        Parameters
+        ----------
+        target_model : ModelObject
+            The (to-be-)trained classifier to generate recourse for. The method
+            must check model-type and device compatibility.
+        seed : int, optional
+            Seed for any stochastic search.
+        device : str, default "cpu"
+            Device, which must match ``target_model``'s device.
+        desired_class : int or str or None, optional
+            Class label to steer counterfactuals toward.
+        **kwargs
+            Implementation-specific hyperparameters.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def fit(self, trainset: DatasetObject | None):
+        """Fit the method (train auxiliary models, build search structures).
+
+        Parameters
+        ----------
+        trainset : DatasetObject or None
+            Finalized training data. Methods that need no training should set
+            ``self._is_trained = True`` in ``__init__``; otherwise set it here.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
+        """Generate counterfactuals for a batch of factual rows.
+
+        Parameters
+        ----------
+        factuals : pandas.DataFrame
+            Feature rows to explain (no target column).
+
+        Returns
+        -------
+        pandas.DataFrame
+            Same rows and feature columns as ``factuals``. Rows with no valid
+            counterfactual must be filled with ``NaN``.
+        """
         raise NotImplementedError
 
     def counterfactual_set_metadata(
@@ -45,6 +100,35 @@ class MethodObject(ABC):
         return None
 
     def predict(self, testset: DatasetObject, batch_size: int = 20) -> DatasetObject:
+        """Generate counterfactuals over a dataset and package the result.
+
+        Calls :meth:`get_counterfactuals` in batches, validates that row count
+        and feature columns are preserved, and returns a frozen counterfactual
+        dataset. Failed rows carry ``NaN`` features and target ``-1``. The
+        returned object also stores ``runtime_seconds``, ``runtime_total_seconds``,
+        ``factual_prediction_index``, ``target_prediction_index``, and (when
+        ``desired_class`` is set) an ``evaluation_filter``.
+
+        Parameters
+        ----------
+        testset : DatasetObject
+            Frozen factual dataset. Must not already be a counterfactual dataset.
+        batch_size : int, default 20
+            Factual rows per call to :meth:`get_counterfactuals`.
+
+        Returns
+        -------
+        DatasetObject
+            A frozen counterfactual dataset aligned to ``testset``.
+
+        Raises
+        ------
+        RuntimeError
+            If the method is not trained.
+        ValueError
+            If ``batch_size < 1``, ``testset`` is already a counterfactual, or
+            :meth:`get_counterfactuals` does not preserve rows/columns.
+        """
         if not self._is_trained:
             raise RuntimeError("Method is not trained")
         if batch_size < 1:

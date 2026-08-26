@@ -5,9 +5,18 @@ cache/
 .vscode/
 logs/
 tmp/
-reference/
+/reference/
 AGENTS.md
 .omx/
 webapp/benchmark-live/data/runtime_results.csv
 _runs/
 benchmark/results/figures/
+
+# Python packaging build artifacts
+build/
+dist/
+*.egg-info/
+
+# Documentation build artifacts
+docs/_build/
+_site/
