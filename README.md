@@ -266,28 +266,28 @@ Some reproduction scripts implement additional paper logic and should be invoked
 | `cemsp` | `python experiment/cemsp/test_cemsp_reproduce.py` | Optional `--max-factuals`. |
 | `cfrl` | `python experiment/cfrl/test_cfrl_reproduce.py` | Builds its reproduction config in the script. |
 | `cfvae` | `python experiment/cfvae/test_cfvae_reproduce.py --weights-dir <dir>` | Requires CFVAE reproduction weights. |
-| `claproar` | `python experiment/claproar/smoke.py` | Uses `-p/--path`. |
+| `claproar` | `python experiment/claproar/test_claproar_reproduce.py` | Uses `-p/--path`. |
 | `clue` | `python experiment/clue/test_clue_reproduce.py --bnn-art-path <pth> --vae-art-path <pth> --vaeac-art-path <pth> --vaeac-gt-path <pth> --under-vaeac-gt-path <pth>` | Requires pretrained CLUE artifacts. |
 | `cogs` | `python experiment/cogs/test_cogs_reproduce.py` | Optional `--max-factuals`. |
 | `cols` | `python experiment/cols/test_cols_reproduce.py` | Optional `--max-runs`, `--max-factuals`, and method/profile overrides. |
-| `cruds` | `python experiment/cruds/smoke.py` | Uses `-p/--path`. |
+| `cruds` | `python experiment/cruds/test_cruds_reproduce.py` | Uses `-p/--path`. |
 | `cvas_proj` | `python experiment/cvas_proj/test_cvas_proj_reproduce.py` | Uses current/future configs; `--smoke` is available. |
 | `dice` | `python experiment/dice/test_dice_reproduce.py` | Optional `--assert-paper`, `--autorepro`, `--num-factuals`. |
 | `diverse_dist` | `python experiment/diverse_dist/test_diverse_dist_reproduce.py` | Uses `--config`, default `experiment/diverse_dist/config.yaml`. |
 | `face` | `python experiment/face/test_face_reproduce.py` | Runs built-in FACE synthetic-data reproduction variants. |
-| `feature_tweak` | `python experiment/feature_tweak/smoke.py` | Uses `-p/--path`. |
-| `gravitational` | `python experiment/gravitational/smoke.py` | Uses `-p/--path`. |
+| `feature_tweak` | `python experiment/feature_tweak/test_feature_tweak_reproduce.py` | Uses `-p/--path`. |
+| `gravitational` | `python experiment/gravitational/test_gravitational_reproduce.py` | Uses `-p/--path`. |
 | `gs` | `python experiment/gs/test_gs_reproduce.py` | Supports `--mode smoke` and `--factual-limit`. |
 | `larr` | `python experiment/larr/test_larr_reproduce.py` | Runs built-in LARR reproduction. |
 | `mace` | `python experiment/mace/test_mace_reproduce.py` | Supports `--dataset`, `--norm`, `--num-factuals`, and `--strict`. |
 | `probe` | `python experiment/probe/test_probe_reproduce.py` | Uses `-p/--path`. |
 | `proplace` | `python experiment/proplace/test_proplace_reproduce.py` | Optional `--max-factuals` and `--row-limit`. |
 | `rbr` | `python experiment/rbr/test_rbr_reproduce.py` | Uses current/future German configs. |
-| `revise` | `python experiment/revise/smoke.py` | Uses `-p/--path`. |
+| `revise` | `python experiment/revise/test_revise_reproduce.py` | Uses `-p/--path`. |
 | `roar` | `python experiment/roar/test_roar_reproduce.py` | Uses current/future German configs. |
 | `sns` | `python experiment/sns/test_sns_reproduce.py` | Optional `--max-factuals`, `--max-related-models`. |
 | `trex` | `python experiment/trex/test_trex_reproduce.py` | Supports device, split, tau, and factual/model-count overrides. |
-| `wachter` | `python experiment/wachter/smoke.py` | Uses `-p/--path`. |
+| `wachter` | `python experiment/wachter/test_wachter_reproduce.py` | Uses `-p/--path`. |
 
 Long reproduction jobs write logs under `logs/` and cache intermediate artifacts under `cache/`, according to their configs.
 
