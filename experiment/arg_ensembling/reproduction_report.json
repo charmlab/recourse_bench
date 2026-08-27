@@ -1,0 +1,2096 @@
+{
+  "paper_id": "arg_ensembling_table4",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-13T20:58:30.494211Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_arg_ensembling_reproduce.py",
+    "config_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/arg_ensembling/config.yaml",
+    "experiment_name": "arg_ensembling_table4_reproduction",
+    "datasets": [
+      "heloc",
+      "compas",
+      "credit"
+    ]
+  },
+  "experiments": {
+    "heloc_avg_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "avg",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.7362531645569621,
+          "delta": 0.03565779519978008,
+          "cv_star": 0.028880510042598406
+        },
+        "simplicity": {
+          "original": 0.485,
+          "reproduced": 0.425,
+          "delta": 0.12371134020618557,
+          "cv_star": 0.10490045654965266
+        }
+      }
+    },
+    "heloc_avg_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "avg",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.7337468354430381,
+          "delta": 0.03236379946865424,
+          "cv_star": 0.02616870417504065
+        },
+        "simplicity": {
+          "original": 0.5,
+          "reproduced": 0.5,
+          "delta": 0.0,
+          "cv_star": 0.0
+        }
+      }
+    },
+    "heloc_avg_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "avg",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.734210970464135,
+          "delta": 0.03297549537952276,
+          "cv_star": 0.026671600565940312
+        },
+        "simplicity": {
+          "original": 0.51,
+          "reproduced": 0.5166666666666667,
+          "delta": 0.012903225806451694,
+          "cv_star": 0.010331105569284038
+        }
+      }
+    },
+    "heloc_Sn_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sn",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.76,
+          "delta": 0.06052631578947374,
+          "cv_star": 0.049650984974767796
+        },
+        "simplicity": {
+          "original": 0.503,
+          "reproduced": 0.42254682539683147,
+          "delta": 0.1599466691911899,
+          "cv_star": 0.13829685703623096
+        }
+      }
+    },
+    "heloc_Sn_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sn",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531,
+          "cv_star": 0.04742789386007336
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.496180337193766,
+          "delta": 0.02326705276817723,
+          "cv_star": 0.018726684517853722
+        }
+      }
+    },
+    "heloc_Sn_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sn",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531,
+          "cv_star": 0.04742789386007336
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.514011374350289,
+          "delta": 0.011695022036987728,
+          "cv_star": 0.009358054388186737
+        }
+      }
+    },
+    "heloc_Sv_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sv",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.76,
+          "delta": 0.06052631578947374,
+          "cv_star": 0.049650984974767796
+        },
+        "simplicity": {
+          "original": 0.503,
+          "reproduced": 0.42254682539683147,
+          "delta": 0.1599466691911899,
+          "cv_star": 0.13829685703623096
+        }
+      }
+    },
+    "heloc_Sv_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sv",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531,
+          "cv_star": 0.04742789386007336
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.496180337193766,
+          "delta": 0.02326705276817723,
+          "cv_star": 0.018726684517853722
+        }
+      }
+    },
+    "heloc_Sv_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sv",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.76,
+          "delta": 0.05789473684210531,
+          "cv_star": 0.04742789386007336
+        },
+        "simplicity": {
+          "original": 0.508,
+          "reproduced": 0.514011374350289,
+          "delta": 0.011695022036987728,
+          "cv_star": 0.009358054388186737
+        }
+      }
+    },
+    "heloc_Sa,d_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.762,
+          "delta": 0.06299212598425202,
+          "cv_star": 0.051739520574625476
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.4118215277777787,
+          "delta": 0.18772874205566334,
+          "cv_star": 0.16480678506921845
+        }
+      }
+    },
+    "heloc_Sa,d_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.763,
+          "delta": 0.07077326343381396,
+          "cv_star": 0.05836513173516686
+        },
+        "simplicity": {
+          "original": 0.505,
+          "reproduced": 0.47323798858305394,
+          "delta": 0.06289507211276449,
+          "cv_star": 0.05165721564498991
+        }
+      }
+    },
+    "heloc_Sa,d_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.76,
+          "delta": 0.06578947368421058,
+          "cv_star": 0.05411531488672563
+        },
+        "simplicity": {
+          "original": 0.501,
+          "reproduced": 0.4941710321752474,
+          "delta": 0.013630674300903431,
+          "cv_star": 0.010917541736894333
+        }
+      }
+    },
+    "heloc_Sa,d-A_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.72,
+          "reproduced": 0.778,
+          "delta": 0.07455012853470444,
+          "cv_star": 0.061600423861711974
+        },
+        "simplicity": {
+          "original": 0.478,
+          "reproduced": 0.3007221230158733,
+          "delta": 0.3708742196320642,
+          "cv_star": 0.3621925804416494
+        }
+      }
+    },
+    "heloc_Sa,d-A_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.726,
+          "reproduced": 0.778,
+          "delta": 0.06683804627249364,
+          "cv_star": 0.05500764188751738
+        },
+        "simplicity": {
+          "original": 0.547,
+          "reproduced": 0.37834223896910596,
+          "delta": 0.3083322870765888,
+          "cv_star": 0.2899822826411591
+        }
+      }
+    },
+    "heloc_Sa,d-A_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.728,
+          "reproduced": 0.778,
+          "delta": 0.06426735218509003,
+          "cv_star": 0.052821721702182384
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.41479406108344524,
+          "delta": 0.18186575723186343,
+          "cv_star": 0.15914482063716526
+        }
+      }
+    },
+    "heloc_Sa,d-S_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.769,
+          "delta": 0.07672301690507159,
+          "cv_star": 0.06346749506593256
+        },
+        "simplicity": {
+          "original": 0.606,
+          "reproduced": 0.6284870039682545,
+          "delta": 0.03577958466328188,
+          "cv_star": 0.028980948460915177
+        }
+      }
+    },
+    "heloc_Sa,d-S_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.712,
+          "reproduced": 0.761,
+          "delta": 0.0643889618922471,
+          "cv_star": 0.05292499838819887
+        },
+        "simplicity": {
+          "original": 0.542,
+          "reproduced": 0.5317564139077295,
+          "delta": 0.018899605336292428,
+          "cv_star": 0.015177972830068697
+        }
+      }
+    },
+    "heloc_Sa,d-S_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.759,
+          "delta": 0.06324110671936764,
+          "cv_star": 0.051950702291256604
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.5299690733701633,
+          "delta": 0.01881067003923126,
+          "cv_star": 0.01510587217489682
+        }
+      }
+    },
+    "heloc_Sa,d-AS_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.764,
+          "delta": 0.0628272251308901,
+          "cv_star": 0.051599684032531894
+        },
+        "simplicity": {
+          "original": 0.529,
+          "reproduced": 0.4245923611111121,
+          "delta": 0.1973679374081057,
+          "cv_star": 0.17419554001561985
+        }
+      }
+    },
+    "heloc_Sa,d-AS_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.764,
+          "delta": 0.06937172774869116,
+          "cv_star": 0.05716778552982771
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.4754867981068635,
+          "delta": 0.08560231133295483,
+          "cv_star": 0.07114114489950639
+        }
+      }
+    },
+    "heloc_Sa,d-AS_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,d-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.76,
+          "delta": 0.06710526315789479,
+          "cv_star": 0.05523519614782601
+        },
+        "simplicity": {
+          "original": 0.506,
+          "reproduced": 0.49543214328635854,
+          "delta": 0.020885092319449537,
+          "cv_star": 0.016789312374853017
+        }
+      }
+    },
+    "heloc_Sa,s_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.714,
+          "reproduced": 0.762,
+          "delta": 0.06299212598425202,
+          "cv_star": 0.051739520574625476
+        },
+        "simplicity": {
+          "original": 0.511,
+          "reproduced": 0.41450902777777865,
+          "delta": 0.18882773429006136,
+          "cv_star": 0.16587217644677066
+        }
+      }
+    },
+    "heloc_Sa,s_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.763,
+          "delta": 0.07077326343381396,
+          "cv_star": 0.05836513173516686
+        },
+        "simplicity": {
+          "original": 0.5,
+          "reproduced": 0.4660460242973397,
+          "delta": 0.06790795140532058,
+          "cv_star": 0.05591912102881377
+        }
+      }
+    },
+    "heloc_Sa,s_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.76,
+          "delta": 0.06578947368421058,
+          "cv_star": 0.05411531488672563
+        },
+        "simplicity": {
+          "original": 0.502,
+          "reproduced": 0.48987562272358776,
+          "delta": 0.024152145968948695,
+          "cv_star": 0.01944776712438648
+        }
+      }
+    },
+    "heloc_Sa,s-A_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.72,
+          "reproduced": 0.778,
+          "delta": 0.07455012853470444,
+          "cv_star": 0.061600423861711974
+        },
+        "simplicity": {
+          "original": 0.478,
+          "reproduced": 0.3007221230158733,
+          "delta": 0.3708742196320642,
+          "cv_star": 0.3621925804416494
+        }
+      }
+    },
+    "heloc_Sa,s-A_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.726,
+          "reproduced": 0.778,
+          "delta": 0.06683804627249364,
+          "cv_star": 0.05500764188751738
+        },
+        "simplicity": {
+          "original": 0.547,
+          "reproduced": 0.37834223896910596,
+          "delta": 0.3083322870765888,
+          "cv_star": 0.2899822826411591
+        }
+      }
+    },
+    "heloc_Sa,s-A_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.728,
+          "reproduced": 0.778,
+          "delta": 0.06426735218509003,
+          "cv_star": 0.052821721702182384
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.41479406108344524,
+          "delta": 0.18186575723186343,
+          "cv_star": 0.15914482063716526
+        }
+      }
+    },
+    "heloc_Sa,s-S_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.769,
+          "delta": 0.07672301690507159,
+          "cv_star": 0.06346749506593256
+        },
+        "simplicity": {
+          "original": 0.607,
+          "reproduced": 0.6284870039682545,
+          "delta": 0.03418846186569653,
+          "cv_star": 0.027669747937617502
+        }
+      }
+    },
+    "heloc_Sa,s-S_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.712,
+          "reproduced": 0.761,
+          "delta": 0.0643889618922471,
+          "cv_star": 0.05292499838819887
+        },
+        "simplicity": {
+          "original": 0.541,
+          "reproduced": 0.5297885567648724,
+          "delta": 0.020723554963267433,
+          "cv_star": 0.016658094493833993
+        }
+      }
+    },
+    "heloc_Sa,s-S_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.759,
+          "delta": 0.06324110671936764,
+          "cv_star": 0.051950702291256604
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.5289779027352428,
+          "delta": 0.016972169704669682,
+          "cv_star": 0.01361683191689013
+        }
+      }
+    },
+    "heloc_Sa,s-AS_M_10": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.716,
+          "reproduced": 0.765,
+          "delta": 0.0640522875816994,
+          "cv_star": 0.052639110483333515
+        },
+        "simplicity": {
+          "original": 0.529,
+          "reproduced": 0.43009236111111215,
+          "delta": 0.1869709619827748,
+          "cv_star": 0.16407292588487837
+        }
+      }
+    },
+    "heloc_Sa,s-AS_M_20": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.711,
+          "reproduced": 0.764,
+          "delta": 0.06937172774869116,
+          "cv_star": 0.05716778552982771
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.47281001239257786,
+          "delta": 0.09074997616811953,
+          "cv_star": 0.07562253563703616
+        }
+      }
+    },
+    "heloc_Sa,s-AS_M_30": {
+      "configuration": {
+        "dataset": "heloc",
+        "method": "Sa,s-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.76,
+          "delta": 0.06710526315789479,
+          "cv_star": 0.05523519614782601
+        },
+        "simplicity": {
+          "original": 0.507,
+          "reproduced": 0.4942598218577871,
+          "delta": 0.025128556493516564,
+          "cv_star": 0.02024399547724641
+        }
+      }
+    },
+    "compas_avg_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "avg",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.855,
+          "reproduced": 0.8445344129554655,
+          "delta": 0.012240452683666065,
+          "cv_star": 0.00979718145259189
+        },
+        "simplicity": {
+          "original": 0.57,
+          "reproduced": 0.425,
+          "delta": 0.25438596491228066,
+          "cv_star": 0.23185285162021213
+        }
+      }
+    },
+    "compas_avg_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "avg",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.855,
+          "reproduced": 0.8450607287449394,
+          "delta": 0.01162487866088954,
+          "cv_star": 0.009301599329814662
+        },
+        "simplicity": {
+          "original": 0.558,
+          "reproduced": 0.5,
+          "delta": 0.10394265232974918,
+          "cv_star": 0.08721874758491921
+        }
+      }
+    },
+    "compas_avg_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "avg",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.855,
+          "reproduced": 0.8456680161943321,
+          "delta": 0.010914600942301648,
+          "cv_star": 0.008730154961562354
+        },
+        "simplicity": {
+          "original": 0.533,
+          "reproduced": 0.5166666666666667,
+          "delta": 0.030644152595372065,
+          "cv_star": 0.024756596578538185
+        }
+      }
+    },
+    "compas_Sn_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sn",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745,
+          "cv_star": 0.015009342053488051
+        },
+        "simplicity": {
+          "original": 0.495,
+          "reproduced": 0.4251773809523876,
+          "delta": 0.1410557960557826,
+          "cv_star": 0.120723578919926
+        }
+      }
+    },
+    "compas_Sn_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sn",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.836,
+          "delta": 0.025641025641025664,
+          "cv_star": 0.02066221113856797
+        },
+        "simplicity": {
+          "original": 0.49,
+          "reproduced": 0.5010972974232939,
+          "delta": 0.022145993363679315,
+          "cv_star": 0.017814287389165736
+        }
+      }
+    },
+    "compas_Sn_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sn",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.859,
+          "reproduced": 0.839,
+          "delta": 0.023282887077997694,
+          "cv_star": 0.01873957900671064
+        },
+        "simplicity": {
+          "original": 0.493,
+          "reproduced": 0.5167088978408677,
+          "delta": 0.045884438878328375,
+          "cv_star": 0.03735792124400228
+        }
+      }
+    },
+    "compas_Sv_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sv",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745,
+          "cv_star": 0.015009342053488051
+        },
+        "simplicity": {
+          "original": 0.495,
+          "reproduced": 0.4251773809523876,
+          "delta": 0.1410557960557826,
+          "cv_star": 0.120723578919926
+        }
+      }
+    },
+    "compas_Sv_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sv",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.836,
+          "delta": 0.025641025641025664,
+          "cv_star": 0.02066221113856797
+        },
+        "simplicity": {
+          "original": 0.49,
+          "reproduced": 0.5010972974232939,
+          "delta": 0.022145993363679315,
+          "cv_star": 0.017814287389165736
+        }
+      }
+    },
+    "compas_Sv_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sv",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.859,
+          "reproduced": 0.839,
+          "delta": 0.023282887077997694,
+          "cv_star": 0.01873957900671064
+        },
+        "simplicity": {
+          "original": 0.493,
+          "reproduced": 0.5167088978408677,
+          "delta": 0.045884438878328375,
+          "cv_star": 0.03735792124400228
+        }
+      }
+    },
+    "compas_Sa,d_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.86,
+          "reproduced": 0.839,
+          "delta": 0.02441860465116281,
+          "cv_star": 0.01966497669868417
+        },
+        "simplicity": {
+          "original": 0.492,
+          "reproduced": 0.4031435515873022,
+          "delta": 0.18060253742418253,
+          "cv_star": 0.15792969016539654
+        }
+      }
+    },
+    "compas_Sa,d_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.839,
+          "delta": 0.022144522144522165,
+          "cv_star": 0.01781309068693278
+        },
+        "simplicity": {
+          "original": 0.479,
+          "reproduced": 0.5009012879481638,
+          "delta": 0.043723760499554336,
+          "cv_star": 0.035559434592549906
+        }
+      }
+    },
+    "compas_Sa,d_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.838,
+          "delta": 0.023310023310023333,
+          "cv_star": 0.018761677566860063
+        },
+        "simplicity": {
+          "original": 0.48,
+          "reproduced": 0.5124156172513407,
+          "delta": 0.06326040065917969,
+          "cv_star": 0.0519670693877971
+        }
+      }
+    },
+    "compas_Sa,d-A_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.863,
+          "reproduced": 0.843,
+          "delta": 0.023174971031286233,
+          "cv_star": 0.018651702903513874
+        },
+        "simplicity": {
+          "original": 0.436,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.4307428988580614,
+          "cv_star": 0.4367083986077872
+        }
+      }
+    },
+    "compas_Sa,d-A_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.866,
+          "reproduced": 0.846,
+          "delta": 0.023094688221709028,
+          "cv_star": 0.018586334785861372
+        },
+        "simplicity": {
+          "original": 0.619,
+          "reproduced": 0.5461074942418704,
+          "delta": 0.11775849072395728,
+          "cv_star": 0.09953696726822693
+        }
+      }
+    },
+    "compas_Sa,d-A_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.869,
+          "reproduced": 0.852,
+          "delta": 0.01956271576524743,
+          "cv_star": 0.01571576663590091
+        },
+        "simplicity": {
+          "original": 0.583,
+          "reproduced": 0.4083658011300597,
+          "delta": 0.29954408039440866,
+          "cv_star": 0.2802611394717486
+        }
+      }
+    },
+    "compas_Sa,d-S_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.861,
+          "reproduced": 0.843,
+          "delta": 0.020905923344947754,
+          "cv_star": 0.016806235116229577
+        },
+        "simplicity": {
+          "original": 0.699,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.08736074839858932,
+          "cv_star": 0.07266927074121211
+        }
+      }
+    },
+    "compas_Sa,d-S_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.857,
+          "reproduced": 0.842,
+          "delta": 0.017502917152858826,
+          "cv_star": 0.01404641192763155
+        },
+        "simplicity": {
+          "original": 0.586,
+          "reproduced": 0.5502431530275288,
+          "delta": 0.061018510191930324,
+          "cv_star": 0.0500674481748105
+        }
+      }
+    },
+    "compas_Sa,d-S_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745,
+          "cv_star": 0.015009342053488051
+        },
+        "simplicity": {
+          "original": 0.551,
+          "reproduced": 0.5545759888242119,
+          "delta": 0.006448149390299961,
+          "cv_star": 0.005146062720580207
+        }
+      }
+    },
+    "compas_Sa,d-AS_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.864,
+          "reproduced": 0.843,
+          "delta": 0.024305555555555577,
+          "cv_star": 0.019572815120717284
+        },
+        "simplicity": {
+          "original": 0.567,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.2597046414048643,
+          "cv_star": 0.237423809875755
+        }
+      }
+    },
+    "compas_Sa,d-AS_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745,
+          "cv_star": 0.015009342053488051
+        },
+        "simplicity": {
+          "original": 0.519,
+          "reproduced": 0.5395381927100686,
+          "delta": 0.03806624440599189,
+          "cv_star": 0.03086904632907525
+        }
+      }
+    },
+    "compas_Sa,d-AS_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,d-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.838,
+          "delta": 0.02102803738317759,
+          "cv_star": 0.01690544547701015
+        },
+        "simplicity": {
+          "original": 0.518,
+          "reproduced": 0.5194471197765931,
+          "delta": 0.0027858846868097954,
+          "cv_star": 0.002219248983732838
+        }
+      }
+    },
+    "compas_Sa,s_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.86,
+          "reproduced": 0.839,
+          "delta": 0.02441860465116281,
+          "cv_star": 0.01966497669868417
+        },
+        "simplicity": {
+          "original": 0.492,
+          "reproduced": 0.4061643849206356,
+          "delta": 0.17446263227513087,
+          "cv_star": 0.1520474755458323
+        }
+      }
+    },
+    "compas_Sa,s_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.839,
+          "delta": 0.022144522144522165,
+          "cv_star": 0.01781309068693278
+        },
+        "simplicity": {
+          "original": 0.476,
+          "reproduced": 0.4927908712814972,
+          "delta": 0.03407301608049826,
+          "cv_star": 0.027574694826873872
+        }
+      }
+    },
+    "compas_Sa,s_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.858,
+          "reproduced": 0.838,
+          "delta": 0.023310023310023333,
+          "cv_star": 0.018761677566860063
+        },
+        "simplicity": {
+          "original": 0.479,
+          "reproduced": 0.5120093672513407,
+          "delta": 0.06447024090310587,
+          "cv_star": 0.05299403158457316
+        }
+      }
+    },
+    "compas_Sa,s-A_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.863,
+          "reproduced": 0.843,
+          "delta": 0.023174971031286233,
+          "cv_star": 0.018651702903513874
+        },
+        "simplicity": {
+          "original": 0.436,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.4307428988580614,
+          "cv_star": 0.4367083986077872
+        }
+      }
+    },
+    "compas_Sa,s-A_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.866,
+          "reproduced": 0.846,
+          "delta": 0.023094688221709028,
+          "cv_star": 0.018586334785861372
+        },
+        "simplicity": {
+          "original": 0.619,
+          "reproduced": 0.5461074942418704,
+          "delta": 0.11775849072395728,
+          "cv_star": 0.09953696726822693
+        }
+      }
+    },
+    "compas_Sa,s-A_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.869,
+          "reproduced": 0.852,
+          "delta": 0.01956271576524743,
+          "cv_star": 0.01571576663590091
+        },
+        "simplicity": {
+          "original": 0.583,
+          "reproduced": 0.4083658011300597,
+          "delta": 0.29954408039440866,
+          "cv_star": 0.2802611394717486
+        }
+      }
+    },
+    "compas_Sa,s-S_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.861,
+          "reproduced": 0.843,
+          "delta": 0.020905923344947754,
+          "cv_star": 0.016806235116229577
+        },
+        "simplicity": {
+          "original": 0.698,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.08866638395166716,
+          "cv_star": 0.07380571966371939
+        }
+      }
+    },
+    "compas_Sa,s-S_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.857,
+          "reproduced": 0.842,
+          "delta": 0.017502917152858826,
+          "cv_star": 0.01404641192763155
+        },
+        "simplicity": {
+          "original": 0.587,
+          "reproduced": 0.5534889863608622,
+          "delta": 0.05708860926599281,
+          "cv_star": 0.04674810266658382
+        }
+      }
+    },
+    "compas_Sa,s-S_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.84,
+          "delta": 0.018691588785046745,
+          "cv_star": 0.015009342053488051
+        },
+        "simplicity": {
+          "original": 0.545,
+          "reproduced": 0.552692357871831,
+          "delta": 0.013917974008996217,
+          "cv_star": 0.011149268139499199
+        }
+      }
+    },
+    "compas_Sa,s-AS_M_10": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.864,
+          "reproduced": 0.843,
+          "delta": 0.024305555555555577,
+          "cv_star": 0.019572815120717284
+        },
+        "simplicity": {
+          "original": 0.585,
+          "reproduced": 0.7659105158730163,
+          "delta": 0.23620320144946316,
+          "cv_star": 0.21306138702900565
+        }
+      }
+    },
+    "compas_Sa,s-AS_M_20": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.842,
+          "delta": 0.016355140186915904,
+          "cv_star": 0.013117705304697448
+        },
+        "simplicity": {
+          "original": 0.529,
+          "reproduced": 0.5470276768370528,
+          "delta": 0.03295569420050165,
+          "cv_star": 0.026655316432453276
+        }
+      }
+    },
+    "compas_Sa,s-AS_M_30": {
+      "configuration": {
+        "dataset": "compas",
+        "method": "Sa,s-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.856,
+          "reproduced": 0.839,
+          "delta": 0.01985981308411217,
+          "cv_star": 0.015956834442705292
+        },
+        "simplicity": {
+          "original": 0.532,
+          "reproduced": 0.5258089253321485,
+          "delta": 0.011637358398217133,
+          "cv_star": 0.009311643383954984
+        }
+      }
+    },
+    "credit_avg_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "avg",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.66,
+          "reproduced": 0.663913043478261,
+          "delta": 0.005893909626719156,
+          "cv_star": 0.00470243425912244
+        },
+        "simplicity": {
+          "original": 0.505,
+          "reproduced": 0.425,
+          "delta": 0.15841584158415845,
+          "cv_star": 0.13685937700384795
+        }
+      }
+    },
+    "credit_avg_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "avg",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.66,
+          "reproduced": 0.6663043478260869,
+          "delta": 0.009461663947797645,
+          "cv_star": 0.007562484424261905
+        },
+        "simplicity": {
+          "original": 0.51,
+          "reproduced": 0.5,
+          "delta": 0.01960784313725492,
+          "cv_star": 0.01575237878880924
+        }
+      }
+    },
+    "credit_avg_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "avg",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.66,
+          "reproduced": 0.6615942028985509,
+          "delta": 0.002409638554217032,
+          "cv_star": 0.0019191679827139211
+        },
+        "simplicity": {
+          "original": 0.52,
+          "reproduced": 0.5166666666666667,
+          "delta": 0.006410256410256345,
+          "cv_star": 0.0051157243011887964
+        }
+      }
+    },
+    "credit_Sn_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sn",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.696,
+          "reproduced": 0.717391304347826,
+          "delta": 0.02981818181818184,
+          "cv_star": 0.024079217631767832
+        },
+        "simplicity": {
+          "original": 0.509,
+          "reproduced": 0.4125646997929602,
+          "delta": 0.18946031474860478,
+          "cv_star": 0.16648600272919034
+        }
+      }
+    },
+    "credit_Sn_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sn",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.705,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.005214723926380447,
+          "cv_star": 0.004159131843823752
+        },
+        "simplicity": {
+          "original": 0.533,
+          "reproduced": 0.5014325442508913,
+          "delta": 0.05922599577693937,
+          "cv_star": 0.04855175413358908
+        }
+      }
+    },
+    "credit_Sn_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sn",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.0004292635064695398,
+          "cv_star": 0.0003415503359305116
+        },
+        "simplicity": {
+          "original": 0.545,
+          "reproduced": 0.5171509607029746,
+          "delta": 0.051099154673441144,
+          "cv_star": 0.041714927393846565
+        }
+      }
+    },
+    "credit_Sv_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sv",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.696,
+          "reproduced": 0.717391304347826,
+          "delta": 0.02981818181818184,
+          "cv_star": 0.024079217631767832
+        },
+        "simplicity": {
+          "original": 0.509,
+          "reproduced": 0.4125646997929602,
+          "delta": 0.18946031474860478,
+          "cv_star": 0.16648600272919034
+        }
+      }
+    },
+    "credit_Sv_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sv",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.705,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.005214723926380447,
+          "cv_star": 0.004159131843823752
+        },
+        "simplicity": {
+          "original": 0.533,
+          "reproduced": 0.5014325442508913,
+          "delta": 0.05922599577693937,
+          "cv_star": 0.04855175413358908
+        }
+      }
+    },
+    "credit_Sv_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sv",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.709,
+          "reproduced": 0.7086956521739131,
+          "delta": 0.0004292635064695398,
+          "cv_star": 0.0003415503359305116
+        },
+        "simplicity": {
+          "original": 0.545,
+          "reproduced": 0.5171509607029746,
+          "delta": 0.051099154673441144,
+          "cv_star": 0.041714927393846565
+        }
+      }
+    },
+    "credit_Sa,d_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523,
+          "cv_star": 0.002268881685791067
+        },
+        "simplicity": {
+          "original": 0.525,
+          "reproduced": 0.41990596963423044,
+          "delta": 0.20017910545860873,
+          "cv_star": 0.1769526109734604
+        }
+      }
+    },
+    "credit_Sa,d_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7,
+          "delta": 0.02428571428571415,
+          "cv_star": 0.019556640911341495
+        },
+        "simplicity": {
+          "original": 0.556,
+          "reproduced": 0.525704629403142,
+          "delta": 0.05448807661305404,
+          "cv_star": 0.04455896569351893
+        }
+      }
+    },
+    "credit_Sa,d_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.682,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.0196249999999999,
+          "cv_star": 0.015766298709470848
+        },
+        "simplicity": {
+          "original": 0.563,
+          "reproduced": 0.5314770952810949,
+          "delta": 0.05599094976714932,
+          "cv_star": 0.04582337494084192
+        }
+      }
+    },
+    "credit_Sa,d-A_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.7,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.01829268292682932,
+          "cv_star": 0.014686063916951413
+        },
+        "simplicity": {
+          "original": 0.457,
+          "reproduced": 0.621583850931677,
+          "delta": 0.2647814139395453,
+          "cv_star": 0.24277324676786072
+        }
+      }
+    },
+    "credit_Sa,d-A_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.706,
+          "reproduced": 0.7,
+          "delta": 0.008498583569405107,
+          "cv_star": 0.006789432109543671
+        },
+        "simplicity": {
+          "original": 0.522,
+          "reproduced": 0.5570022568964218,
+          "delta": 0.0628404220324922,
+          "cv_star": 0.051610874178186265
+        }
+      }
+    },
+    "credit_Sa,d-A_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.02020820575627677,
+          "cv_star": 0.016239615992298513
+        },
+        "simplicity": {
+          "original": 0.554,
+          "reproduced": 0.5495210309327587,
+          "delta": 0.008084781709821881,
+          "cv_star": 0.006457508240111866
+        }
+      }
+    },
+    "credit_Sa,d-S_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.67,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.06036585365853652,
+          "cv_star": 0.04951525794068006
+        },
+        "simplicity": {
+          "original": 0.61,
+          "reproduced": 0.621583850931677,
+          "delta": 0.01863602298276293,
+          "cv_star": 0.014964303051436319
+        }
+      }
+    },
+    "credit_Sa,d-S_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.686,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0013924050632911052,
+          "cv_star": 0.0011084231322038523
+        },
+        "simplicity": {
+          "original": 0.564,
+          "reproduced": 0.5410225210525554,
+          "delta": 0.04074021089972431,
+          "cv_star": 0.03308253402507524
+        }
+      }
+    },
+    "credit_Sa,d-S_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523,
+          "cv_star": 0.002268881685791067
+        },
+        "simplicity": {
+          "original": 0.568,
+          "reproduced": 0.5365208558683338,
+          "delta": 0.05542102840082077,
+          "cv_star": 0.045343654098671415
+        }
+      }
+    },
+    "credit_Sa,d-AS_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.042134146341463334,
+          "cv_star": 0.03423881989628398
+        },
+        "simplicity": {
+          "original": 0.537,
+          "reproduced": 0.621583850931677,
+          "delta": 0.13607794154384206,
+          "cv_star": 0.11615221693300022
+        }
+      }
+    },
+    "credit_Sa,d-AS_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6782608695652174,
+          "delta": 0.009838146620120718,
+          "cv_star": 0.007864885662216917
+        },
+        "simplicity": {
+          "original": 0.559,
+          "reproduced": 0.540297883371396,
+          "delta": 0.03345638037317371,
+          "cv_star": 0.027067172423418176
+        }
+      }
+    },
+    "credit_Sa,d-AS_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,d-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.684,
+          "reproduced": 0.6782608695652174,
+          "delta": 0.008390541571319724,
+          "cv_star": 0.006702754819750019
+        },
+        "simplicity": {
+          "original": 0.566,
+          "reproduced": 0.5358324500712324,
+          "delta": 0.0532995581780346,
+          "cv_star": 0.043560414318285445
+        }
+      }
+    },
+    "credit_Sa,s_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523,
+          "cv_star": 0.002268881685791067
+        },
+        "simplicity": {
+          "original": 0.522,
+          "reproduced": 0.4222610420979985,
+          "delta": 0.19107080057854703,
+          "cv_star": 0.1680506801166401
+        }
+      }
+    },
+    "credit_Sa,s_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7,
+          "delta": 0.02428571428571415,
+          "cv_star": 0.019556640911341495
+        },
+        "simplicity": {
+          "original": 0.555,
+          "reproduced": 0.5280234699828521,
+          "delta": 0.04860636039125756,
+          "cv_star": 0.039629239469479854
+        }
+      }
+    },
+    "credit_Sa,s_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.682,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.0196249999999999,
+          "cv_star": 0.015766298709470848
+        },
+        "simplicity": {
+          "original": 0.563,
+          "reproduced": 0.5329052353777132,
+          "delta": 0.05345428884953246,
+          "cv_star": 0.04369034454372285
+        }
+      }
+    },
+    "credit_Sa,s-A_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-A",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.7,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.01829268292682932,
+          "cv_star": 0.014686063916951413
+        },
+        "simplicity": {
+          "original": 0.437,
+          "reproduced": 0.621583850931677,
+          "delta": 0.29695728203847116,
+          "cv_star": 0.27741884433339453
+        }
+      }
+    },
+    "credit_Sa,s-A_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-A",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.706,
+          "reproduced": 0.7,
+          "delta": 0.008498583569405107,
+          "cv_star": 0.006789432109543671
+        },
+        "simplicity": {
+          "original": 0.521,
+          "reproduced": 0.5566399380558422,
+          "delta": 0.06402691510120641,
+          "cv_star": 0.05261756940179344
+        }
+      }
+    },
+    "credit_Sa,s-A_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-A",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.71,
+          "reproduced": 0.6956521739130435,
+          "delta": 0.02020820575627677,
+          "cv_star": 0.016239615992298513
+        },
+        "simplicity": {
+          "original": 0.552,
+          "reproduced": 0.5495210309327587,
+          "delta": 0.0044908859913792044,
+          "cv_star": 0.0035805177788623835
+        }
+      }
+    },
+    "credit_Sa,s-S_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-S",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.67,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.06036585365853652,
+          "cv_star": 0.04951525794068006
+        },
+        "simplicity": {
+          "original": 0.611,
+          "reproduced": 0.621583850931677,
+          "delta": 0.01702722957781664,
+          "cv_star": 0.01366138596428864
+        }
+      }
+    },
+    "credit_Sa,s-S_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-S",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.686,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0013924050632911052,
+          "cv_star": 0.0011084231322038523
+        },
+        "simplicity": {
+          "original": 0.563,
+          "reproduced": 0.5408413616322656,
+          "delta": 0.039358149853879844,
+          "cv_star": 0.031937721299155925
+        }
+      }
+    },
+    "credit_Sa,s-S_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-S",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523,
+          "cv_star": 0.002268881685791067
+        },
+        "simplicity": {
+          "original": 0.568,
+          "reproduced": 0.5357962181871743,
+          "delta": 0.056696798966242405,
+          "cv_star": 0.04641790058718894
+        }
+      }
+    },
+    "credit_Sa,s-AS_M_10": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-AS",
+        "model_pool_size": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.683,
+          "reproduced": 0.7130434782608696,
+          "delta": 0.042134146341463334,
+          "cv_star": 0.03423881989628398
+        },
+        "simplicity": {
+          "original": 0.535,
+          "reproduced": 0.621583850931677,
+          "delta": 0.13929552835373463,
+          "cv_star": 0.1191042596633696
+        }
+      }
+    },
+    "credit_Sa,s-AS_M_20": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-AS",
+        "model_pool_size": 20
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.685,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0028481012658227523,
+          "cv_star": 0.002268881685791067
+        },
+        "simplicity": {
+          "original": 0.559,
+          "reproduced": 0.5408413616322656,
+          "delta": 0.03248414734836218,
+          "cv_star": 0.02626762162566572
+        }
+      }
+    },
+    "credit_Sa,s-AS_M_30": {
+      "configuration": {
+        "dataset": "credit",
+        "method": "Sa,s-AS",
+        "model_pool_size": 30
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.684,
+          "reproduced": 0.6869565217391305,
+          "delta": 0.0043037974683543985,
+          "cv_star": 0.0034310331574762456
+        },
+        "simplicity": {
+          "original": 0.566,
+          "reproduced": 0.5365208558683338,
+          "delta": 0.052083293518844866,
+          "cv_star": 0.04253981307318128
+        }
+      }
+    }
+  }
+}

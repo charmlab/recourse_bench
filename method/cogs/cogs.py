@@ -9,6 +9,9 @@ from method.cogs.support import (
     Evolution,
     RecourseModelAdapter,
     ensure_supported_target_model,
+    gower_fitness_function_with_ck_robustness,
+    gower_fitness_function_with_k_robustness_scores,
+    gower_fitness_function_with_worst_c_setbacks,
     gower_fitness_function,
     resolve_feature_groups,
     resolve_target_classes,
@@ -35,10 +38,12 @@ class CogsMethod(MethodObject):
         num_features_mutation_strength: float = 0.25,
         num_features_mutation_strength_decay: float | None = None,
         num_features_mutation_strength_decay_generations: list[int] | None = None,
-        init_temperature: float = 0.8,
+        init_temperature: float | None = None,
         selection_name: str = "tournament_2",
         noisy_evaluations: bool = False,
         fitness_name: str = "gower",
+        optimize_c_robust: bool = False,
+        optimize_k_robust: int = 0,
         apply_fixes: bool = False,
         verbose: bool = False,
         **kwargs,
@@ -66,10 +71,14 @@ class CogsMethod(MethodObject):
             if num_features_mutation_strength_decay_generations is None
             else [int(value) for value in num_features_mutation_strength_decay_generations]
         )
-        self._init_temperature = float(init_temperature)
+        self._init_temperature = (
+            None if init_temperature is None else float(init_temperature)
+        )
         self._selection_name = str(selection_name)
         self._noisy_evaluations = bool(noisy_evaluations)
         self._fitness_name = str(fitness_name).lower()
+        self._optimize_c_robust = bool(optimize_c_robust)
+        self._optimize_k_robust = int(optimize_k_robust)
         self._apply_fixes = bool(apply_fixes)
         self._verbose = bool(verbose)
 
@@ -83,7 +92,7 @@ class CogsMethod(MethodObject):
             raise ValueError("n_generations must be >= 1")
         if self._num_features_mutation_strength <= 0:
             raise ValueError("num_features_mutation_strength must be > 0")
-        if not (0.0 <= self._init_temperature <= 1.0):
+        if self._init_temperature is not None and not (0.0 <= self._init_temperature <= 1.0):
             raise ValueError("init_temperature must be between 0 and 1")
         if (
             self._num_features_mutation_strength_decay is not None
@@ -92,6 +101,8 @@ class CogsMethod(MethodObject):
             raise ValueError("num_features_mutation_strength_decay must be > 0")
         if self._fitness_name != "gower":
             raise ValueError("fitness_name must currently be 'gower'")
+        if self._optimize_k_robust < 0:
+            raise ValueError("optimize_k_robust must be >= 0")
 
     def fit(self, trainset: DatasetObject | None):
         if trainset is None:
@@ -120,18 +131,26 @@ class CogsMethod(MethodObject):
             self._plausibility_constraints = list(
                 feature_groups.plausibility_constraints
             )
-            self._feature_intervals: list[object] = []
+            provided_intervals = getattr(trainset, "feature_intervals", None)
+            if provided_intervals is not None:
+                self._feature_intervals = [np.asarray(interval, dtype=np.float64) if not isinstance(interval, tuple) else interval for interval in provided_intervals]
+            else:
+                self._feature_intervals = []
+                for feature_index, feature_name in enumerate(self._feature_names):
+                    feature_values = train_array[:, feature_index]
+                    if feature_name in feature_groups.categorical:
+                        interval = np.unique(feature_values)
+                    else:
+                        interval = (
+                            float(np.min(feature_values)),
+                            float(np.max(feature_values)),
+                        )
+                    self._feature_intervals.append(interval)
 
-            for feature_index, feature_name in enumerate(self._feature_names):
-                feature_values = train_array[:, feature_index]
-                if feature_name in feature_groups.categorical:
-                    interval = np.unique(feature_values)
-                else:
-                    interval = (
-                        float(np.min(feature_values)),
-                        float(np.max(feature_values)),
-                    )
-                self._feature_intervals.append(interval)
+            provided_perturbations = getattr(trainset, "perturbations", None)
+            self._perturbations = (
+                None if provided_perturbations is None else list(provided_perturbations)
+            )
 
             self._feature_intervals = np.asarray(self._feature_intervals, dtype=object)
             self._is_trained = True
@@ -141,14 +160,34 @@ class CogsMethod(MethodObject):
         factual: np.ndarray,
         desired_class: int | str,
     ) -> np.ndarray | None:
+        fitness_function = gower_fitness_function
+        fitness_kwargs = {
+            "blackbox": self._adapter,
+            "desired_class": desired_class,
+            "apply_fixes": self._apply_fixes,
+        }
+        if self._optimize_c_robust and self._optimize_k_robust > 0:
+            if self._perturbations is None:
+                raise ValueError("optimize_c_robust/optimize_k_robust require dataset perturbations")
+            fitness_function = gower_fitness_function_with_ck_robustness
+            fitness_kwargs["perturbations"] = self._perturbations
+            fitness_kwargs["n_samples_k_robust"] = self._optimize_k_robust
+        elif self._optimize_c_robust:
+            if self._perturbations is None:
+                raise ValueError("optimize_c_robust requires dataset perturbations")
+            fitness_function = gower_fitness_function_with_worst_c_setbacks
+            fitness_kwargs["perturbations"] = self._perturbations
+        elif self._optimize_k_robust > 0:
+            if self._perturbations is None:
+                raise ValueError("optimize_k_robust requires dataset perturbations")
+            fitness_function = gower_fitness_function_with_k_robustness_scores
+            fitness_kwargs["perturbations"] = self._perturbations
+            fitness_kwargs["n_samples_k_robust"] = self._optimize_k_robust
+
         evolution = Evolution(
             x=factual,
-            fitness_function=gower_fitness_function,
-            fitness_function_kwargs={
-                "blackbox": self._adapter,
-                "desired_class": desired_class,
-                "apply_fixes": self._apply_fixes,
-            },
+            fitness_function=fitness_function,
+            fitness_function_kwargs=fitness_kwargs,
             feature_intervals=self._feature_intervals,
             indices_categorical_features=self._indices_categorical_features,
             plausibility_constraints=self._plausibility_constraints,
@@ -161,18 +200,14 @@ class CogsMethod(MethodObject):
             num_features_mutation_strength_decay_generations=self._num_features_mutation_strength_decay_generations,
             init_temperature=self._init_temperature,
             selection_name=self._selection_name,
-            noisy_evaluations=self._noisy_evaluations,
+            noisy_evaluations=self._noisy_evaluations or self._optimize_k_robust > 0,
             verbose=self._verbose,
         )
         evolution.run()
         elite = evolution.elite
         if elite is None:
             return None
-        candidate = np.asarray(elite, dtype=np.float64).copy()
-        predicted = self._adapter.predict(candidate.reshape(1, -1))[0]
-        if predicted != desired_class:
-            return None
-        return candidate
+        return np.asarray(elite, dtype=np.float64).copy()
 
     def get_counterfactuals(self, factuals: pd.DataFrame) -> pd.DataFrame:
         if not self._is_trained:

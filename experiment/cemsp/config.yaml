@@ -46,7 +46,7 @@ reproduction:
   normal_range:
     lower: [35.6, 30.0, 10.0, 10.0, 0.0, 5.32, 5.368, 59.0, 10.0, 66.0]
     upper: [46.0, 120.0, 35.0, 35.0, 21.0, 12.92, 5.368, 84.0, 42.0, 87.0]
-  reference_source: bundled original repo cfgen-update/hepatitis/Hepatitis_cemsp.json
+  reference_source: experiment/cemsp/Hepatitis_cemsp.json
   reference_model:
     test_accuracy: 0.957
     test_f1: 0.9754601226993865

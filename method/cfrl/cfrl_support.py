@@ -94,6 +94,21 @@ class CfrlSchema:
         raise KeyError(f"Unknown CFRL feature alias: {name}")
 
 
+@dataclass(frozen=True)
+class CfrlPredictor:
+    target_model: ModelObject
+    schema: CfrlSchema
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        model_input = cfrl_to_benchmark_frame(x, schema=self.schema)
+        preds = self.target_model.get_prediction(model_input, proba=True)
+        if isinstance(preds, torch.Tensor):
+            return preds.detach().cpu().numpy()
+        if isinstance(preds, pd.DataFrame):
+            return preds.to_numpy()
+        return np.asarray(preds)
+
+
 def build_cfrl_schema(trainset: DatasetObject) -> CfrlSchema:
     feature_df = trainset.get(target=False)
     output_columns = list(feature_df.columns)
@@ -347,16 +362,7 @@ def build_predictor(
     target_model: ModelObject,
     schema: CfrlSchema,
 ) -> Callable[[np.ndarray], np.ndarray]:
-    def predictor(x: np.ndarray) -> np.ndarray:
-        model_input = cfrl_to_benchmark_frame(x, schema=schema)
-        preds = target_model.get_prediction(model_input, proba=True)
-        if isinstance(preds, torch.Tensor):
-            return preds.detach().cpu().numpy()
-        if isinstance(preds, pd.DataFrame):
-            return preds.to_numpy()
-        return np.asarray(preds)
-
-    return predictor
+    return CfrlPredictor(target_model=target_model, schema=schema)
 
 
 def resolve_immutable_features_and_ranges(

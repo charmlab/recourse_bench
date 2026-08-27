@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+import pytest
 import torch
 import yaml
 
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if ROOT.as_posix() not in sys.path:
     sys.path.insert(0, ROOT.as_posix())
 
-from experiment import Experiment
+from experiments import Experiment
 
 
 def resolve_device() -> str:
@@ -26,12 +27,13 @@ def load_config(path: Path) -> dict:
     return config
 
 
-def main() -> None:
+@pytest.mark.fast
+def test_reproduce() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-p",
         "--path",
-        default=Path(__file__).with_name("credit_linear_wachter_smoke.yaml").as_posix(),
+        default=Path(__file__).with_name("smoke_config.yaml").as_posix(),
     )
     args = parser.parse_args()
 
@@ -46,4 +48,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test_reproduce()

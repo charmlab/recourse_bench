@@ -1,0 +1,31 @@
+**Scope of Reproducibility**
+
+We aim to reproduce the FeatureTweak claims from `reference/feature_tweak.pdf`:
+
+1. We identify actionable feature changes that alter model outcomes in an advertising/intervention setting : [Quantitative] : [Yahoo Gemini experiment]
+2. We distinguish adjustable from static features when recommending recourse : [Qualitative] : [Feature-actionability setup]
+3. We improve target outcomes through constrained feature interventions : [Quantitative] : [Original intervention metrics]
+
+**Methodology**
+
+We run two levels of coverage:
+
+1. `experiment/feature_tweak/smoke.py` with `experiment/feature_tweak/smoke_config.yaml`, which remains a small Credit + random-forest executability check.
+2. `experiment/feature_tweak/test_feature_tweak_reproduce.py`, a deterministic scoped tree-ensemble check anchored to the Yahoo Gemini actionable feature-tweaking setup. The script trains a tiny random forest with one mutable feature and two static features, then verifies that recommended tweaks flip the outcome without changing static features. It writes `experiment/feature_tweak/reproduction_report.json`.
+
+The original Yahoo Gemini data are not available, so the new script is not an exact reproduction of the advertising experiment or original intervention metrics.
+
+**Results**
+
+Claim 1 is partially validated in a scoped synthetic setting: the feature-tweaking algorithm identified actionable feature changes that flipped all three negative factuals to the positive class, giving target flip rate 1.0. This does not reproduce the original Yahoo Gemini setting.
+
+Claim 2 is partially validated: the scoped script explicitly distinguishes one actionable feature from two static features and observed zero static-feature violations, matching the paper's actionability setup at mechanism level.
+
+Claim 3 is partially validated only as a local intervention trend. The target outcome improved for all scoped factuals and the mutable feature changed in all cases, with mean mutable change 0.3700. The original intervention metrics and paper scalar deltas are not reproduced.
+
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Recover the original Yahoo Gemini data, or use a documented substitute and classify the result as replicable/generalisability-style.
+- Recreate the original adjustable/static feature constraints and paper-scale offline evaluation.
+- Add scalar targets for the intervention outcomes.
+- Keep `smoke.py` as an executability check and `test_feature_tweak_reproduce.py` as scoped mechanism evidence.

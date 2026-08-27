@@ -1,37 +1,23 @@
-Level Badge
-Level 1: Minimal Reproduction
-Reason: The pre-standardization reproduction log did not assign a numeric reproduction badge.
+**Scope of Reproducibility**
 
-Method
-ROAR benchmark reproduction
+We aim to reproduce the ROAR claims from `reference/roar.pdf`:
 
-Summary
-- Restored original badge: `No explicit original level badge`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 7`, `R_rep = 5`
-- Average raw delta across extracted scalar results: `0.087796`
-- Average variance-adjusted delta across extracted scalar results: `0.036479`
+1. We generate recourse that remains valid under plausible model shifts : [Quantitative] : [Correction, temporal, and geospatial experiments]
+2. We compare robust recourse costs and future validity against baseline variants : [Quantitative] : [L1/PFC tables across linear and MLP models]
+3. We provide a bounded-cost or robustness guarantee for the optimization setup : [Qualitative] : [Theoretical result]
+4. We evaluate present validity, future validity, cost, and variation metrics across multiple settings : [Quantitative] : [Empirical robustness/cost tables]
 
-Scalar Result Coverage
-- `R = 7` total extracted scalar results
-- `R_rep = 5` extracted scalar results with `Δ <= 0.15`
-- `R - R_rep = 2` extracted scalar results outside the threshold
+**Methodology**
 
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
+We reproduce ROAR with `experiment/roar/test_roar_reproduce.py` across correction, temporal, and geospatial settings with linear/MLP models and L1/PFC variants. Code/experiments and data are available. The current run is broad, but it executes in the RecourseBench environment.
 
-Reference Scope
-- Single German MLP setting only; current log does not claim full paper-wide experiment coverage.
+**Results**
 
-Observed Result Highlights
-- Most extracted scalar targets are within the threshold.
-- The current script/log covers one benchmark setting rather than the full paper experiment set.
+Claims 1, 2, and 4 are partially reproduced: 36 of 72 scalar comparisons are within the 15% relative-delta threshold. Several validity means are close, such as correction linear L1 M2 validity, reference 0.94 versus reproduced 0.90, relative delta 0.043. Cost and standard-deviation metrics often drift; correction linear PFC cost is reference 0.36 versus reproduced 1.2017, relative delta 0.700. Claim 3 is proof-level evidence.
 
-Notes / Caveats
-- Coverage gate fails because full paper coverage is not established.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Next Steps
-- Add any remaining paper datasets/settings not covered by the current German MLP run.
-- Only assign Level 3 after full experiment coverage is explicit.
+- Verify correction, temporal, and geospatial configs against the original release.
+- Investigate PFC cost and zero-variance standard-deviation discrepancies.
+- Add proof-inspection notes for bounded-cost guarantees.
+- Annotate which metrics are directionally reproduced versus within threshold.

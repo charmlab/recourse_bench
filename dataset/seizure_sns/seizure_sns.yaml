@@ -1,0 +1,722 @@
+name: seizure_sns
+target_column: target
+feature_order:
+- f0
+- f1
+- f2
+- f3
+- f4
+- f5
+- f6
+- f7
+- f8
+- f9
+- f10
+- f11
+- f12
+- f13
+- f14
+- f15
+- f16
+- f17
+- f18
+- f19
+- f20
+- f21
+- f22
+- f23
+- f24
+- f25
+- f26
+- f27
+- f28
+- f29
+- f30
+- f31
+- f32
+- f33
+- f34
+- f35
+- f36
+- f37
+- f38
+- f39
+- f40
+- f41
+- f42
+- f43
+- f44
+- f45
+- f46
+- f47
+- f48
+- f49
+- f50
+- f51
+- f52
+- f53
+- f54
+- f55
+- f56
+- f57
+- f58
+- f59
+- f60
+- f61
+- f62
+- f63
+- f64
+- f65
+- f66
+- f67
+- f68
+- f69
+- f70
+- f71
+- f72
+- f73
+- f74
+- f75
+- f76
+- f77
+- f78
+- f79
+- f80
+- f81
+- f82
+- f83
+- f84
+- f85
+- f86
+- f87
+- f88
+- f89
+- f90
+- f91
+- f92
+- f93
+- f94
+- f95
+- f96
+- f97
+- f98
+- f99
+- f100
+- f101
+- f102
+- f103
+- f104
+- f105
+- f106
+- f107
+- f108
+- f109
+- f110
+- f111
+- f112
+- f113
+- f114
+- f115
+- f116
+- f117
+- f118
+- f119
+- f120
+- f121
+- f122
+- f123
+- f124
+- f125
+- f126
+- f127
+- f128
+- f129
+- f130
+- f131
+- f132
+- f133
+- f134
+- f135
+- f136
+- f137
+- f138
+- f139
+- f140
+- f141
+- f142
+- f143
+- f144
+- f145
+- f146
+- f147
+- f148
+- f149
+- f150
+- f151
+- f152
+- f153
+- f154
+- f155
+- f156
+- f157
+- f158
+- f159
+- f160
+- f161
+- f162
+- f163
+- f164
+- f165
+- f166
+- f167
+- f168
+- f169
+- f170
+- f171
+- f172
+- f173
+- f174
+- f175
+- f176
+- f177
+- target
+raw_feature_type:
+  f0: numerical
+  f1: numerical
+  f2: numerical
+  f3: numerical
+  f4: numerical
+  f5: numerical
+  f6: numerical
+  f7: numerical
+  f8: numerical
+  f9: numerical
+  f10: numerical
+  f11: numerical
+  f12: numerical
+  f13: numerical
+  f14: numerical
+  f15: numerical
+  f16: numerical
+  f17: numerical
+  f18: numerical
+  f19: numerical
+  f20: numerical
+  f21: numerical
+  f22: numerical
+  f23: numerical
+  f24: numerical
+  f25: numerical
+  f26: numerical
+  f27: numerical
+  f28: numerical
+  f29: numerical
+  f30: numerical
+  f31: numerical
+  f32: numerical
+  f33: numerical
+  f34: numerical
+  f35: numerical
+  f36: numerical
+  f37: numerical
+  f38: numerical
+  f39: numerical
+  f40: numerical
+  f41: numerical
+  f42: numerical
+  f43: numerical
+  f44: numerical
+  f45: numerical
+  f46: numerical
+  f47: numerical
+  f48: numerical
+  f49: numerical
+  f50: numerical
+  f51: numerical
+  f52: numerical
+  f53: numerical
+  f54: numerical
+  f55: numerical
+  f56: numerical
+  f57: numerical
+  f58: numerical
+  f59: numerical
+  f60: numerical
+  f61: numerical
+  f62: numerical
+  f63: numerical
+  f64: numerical
+  f65: numerical
+  f66: numerical
+  f67: numerical
+  f68: numerical
+  f69: numerical
+  f70: numerical
+  f71: numerical
+  f72: numerical
+  f73: numerical
+  f74: numerical
+  f75: numerical
+  f76: numerical
+  f77: numerical
+  f78: numerical
+  f79: numerical
+  f80: numerical
+  f81: numerical
+  f82: numerical
+  f83: numerical
+  f84: numerical
+  f85: numerical
+  f86: numerical
+  f87: numerical
+  f88: numerical
+  f89: numerical
+  f90: numerical
+  f91: numerical
+  f92: numerical
+  f93: numerical
+  f94: numerical
+  f95: numerical
+  f96: numerical
+  f97: numerical
+  f98: numerical
+  f99: numerical
+  f100: numerical
+  f101: numerical
+  f102: numerical
+  f103: numerical
+  f104: numerical
+  f105: numerical
+  f106: numerical
+  f107: numerical
+  f108: numerical
+  f109: numerical
+  f110: numerical
+  f111: numerical
+  f112: numerical
+  f113: numerical
+  f114: numerical
+  f115: numerical
+  f116: numerical
+  f117: numerical
+  f118: numerical
+  f119: numerical
+  f120: numerical
+  f121: numerical
+  f122: numerical
+  f123: numerical
+  f124: numerical
+  f125: numerical
+  f126: numerical
+  f127: numerical
+  f128: numerical
+  f129: numerical
+  f130: numerical
+  f131: numerical
+  f132: numerical
+  f133: numerical
+  f134: numerical
+  f135: numerical
+  f136: numerical
+  f137: numerical
+  f138: numerical
+  f139: numerical
+  f140: numerical
+  f141: numerical
+  f142: numerical
+  f143: numerical
+  f144: numerical
+  f145: numerical
+  f146: numerical
+  f147: numerical
+  f148: numerical
+  f149: numerical
+  f150: numerical
+  f151: numerical
+  f152: numerical
+  f153: numerical
+  f154: numerical
+  f155: numerical
+  f156: numerical
+  f157: numerical
+  f158: numerical
+  f159: numerical
+  f160: numerical
+  f161: numerical
+  f162: numerical
+  f163: numerical
+  f164: numerical
+  f165: numerical
+  f166: numerical
+  f167: numerical
+  f168: numerical
+  f169: numerical
+  f170: numerical
+  f171: numerical
+  f172: numerical
+  f173: numerical
+  f174: numerical
+  f175: numerical
+  f176: numerical
+  f177: numerical
+  target: binary
+raw_feature_mutability:
+  f0: true
+  f1: true
+  f2: true
+  f3: true
+  f4: true
+  f5: true
+  f6: true
+  f7: true
+  f8: true
+  f9: true
+  f10: true
+  f11: true
+  f12: true
+  f13: true
+  f14: true
+  f15: true
+  f16: true
+  f17: true
+  f18: true
+  f19: true
+  f20: true
+  f21: true
+  f22: true
+  f23: true
+  f24: true
+  f25: true
+  f26: true
+  f27: true
+  f28: true
+  f29: true
+  f30: true
+  f31: true
+  f32: true
+  f33: true
+  f34: true
+  f35: true
+  f36: true
+  f37: true
+  f38: true
+  f39: true
+  f40: true
+  f41: true
+  f42: true
+  f43: true
+  f44: true
+  f45: true
+  f46: true
+  f47: true
+  f48: true
+  f49: true
+  f50: true
+  f51: true
+  f52: true
+  f53: true
+  f54: true
+  f55: true
+  f56: true
+  f57: true
+  f58: true
+  f59: true
+  f60: true
+  f61: true
+  f62: true
+  f63: true
+  f64: true
+  f65: true
+  f66: true
+  f67: true
+  f68: true
+  f69: true
+  f70: true
+  f71: true
+  f72: true
+  f73: true
+  f74: true
+  f75: true
+  f76: true
+  f77: true
+  f78: true
+  f79: true
+  f80: true
+  f81: true
+  f82: true
+  f83: true
+  f84: true
+  f85: true
+  f86: true
+  f87: true
+  f88: true
+  f89: true
+  f90: true
+  f91: true
+  f92: true
+  f93: true
+  f94: true
+  f95: true
+  f96: true
+  f97: true
+  f98: true
+  f99: true
+  f100: true
+  f101: true
+  f102: true
+  f103: true
+  f104: true
+  f105: true
+  f106: true
+  f107: true
+  f108: true
+  f109: true
+  f110: true
+  f111: true
+  f112: true
+  f113: true
+  f114: true
+  f115: true
+  f116: true
+  f117: true
+  f118: true
+  f119: true
+  f120: true
+  f121: true
+  f122: true
+  f123: true
+  f124: true
+  f125: true
+  f126: true
+  f127: true
+  f128: true
+  f129: true
+  f130: true
+  f131: true
+  f132: true
+  f133: true
+  f134: true
+  f135: true
+  f136: true
+  f137: true
+  f138: true
+  f139: true
+  f140: true
+  f141: true
+  f142: true
+  f143: true
+  f144: true
+  f145: true
+  f146: true
+  f147: true
+  f148: true
+  f149: true
+  f150: true
+  f151: true
+  f152: true
+  f153: true
+  f154: true
+  f155: true
+  f156: true
+  f157: true
+  f158: true
+  f159: true
+  f160: true
+  f161: true
+  f162: true
+  f163: true
+  f164: true
+  f165: true
+  f166: true
+  f167: true
+  f168: true
+  f169: true
+  f170: true
+  f171: true
+  f172: true
+  f173: true
+  f174: true
+  f175: true
+  f176: true
+  f177: true
+  target: false
+raw_feature_actionability:
+  f0: any
+  f1: any
+  f2: any
+  f3: any
+  f4: any
+  f5: any
+  f6: any
+  f7: any
+  f8: any
+  f9: any
+  f10: any
+  f11: any
+  f12: any
+  f13: any
+  f14: any
+  f15: any
+  f16: any
+  f17: any
+  f18: any
+  f19: any
+  f20: any
+  f21: any
+  f22: any
+  f23: any
+  f24: any
+  f25: any
+  f26: any
+  f27: any
+  f28: any
+  f29: any
+  f30: any
+  f31: any
+  f32: any
+  f33: any
+  f34: any
+  f35: any
+  f36: any
+  f37: any
+  f38: any
+  f39: any
+  f40: any
+  f41: any
+  f42: any
+  f43: any
+  f44: any
+  f45: any
+  f46: any
+  f47: any
+  f48: any
+  f49: any
+  f50: any
+  f51: any
+  f52: any
+  f53: any
+  f54: any
+  f55: any
+  f56: any
+  f57: any
+  f58: any
+  f59: any
+  f60: any
+  f61: any
+  f62: any
+  f63: any
+  f64: any
+  f65: any
+  f66: any
+  f67: any
+  f68: any
+  f69: any
+  f70: any
+  f71: any
+  f72: any
+  f73: any
+  f74: any
+  f75: any
+  f76: any
+  f77: any
+  f78: any
+  f79: any
+  f80: any
+  f81: any
+  f82: any
+  f83: any
+  f84: any
+  f85: any
+  f86: any
+  f87: any
+  f88: any
+  f89: any
+  f90: any
+  f91: any
+  f92: any
+  f93: any
+  f94: any
+  f95: any
+  f96: any
+  f97: any
+  f98: any
+  f99: any
+  f100: any
+  f101: any
+  f102: any
+  f103: any
+  f104: any
+  f105: any
+  f106: any
+  f107: any
+  f108: any
+  f109: any
+  f110: any
+  f111: any
+  f112: any
+  f113: any
+  f114: any
+  f115: any
+  f116: any
+  f117: any
+  f118: any
+  f119: any
+  f120: any
+  f121: any
+  f122: any
+  f123: any
+  f124: any
+  f125: any
+  f126: any
+  f127: any
+  f128: any
+  f129: any
+  f130: any
+  f131: any
+  f132: any
+  f133: any
+  f134: any
+  f135: any
+  f136: any
+  f137: any
+  f138: any
+  f139: any
+  f140: any
+  f141: any
+  f142: any
+  f143: any
+  f144: any
+  f145: any
+  f146: any
+  f147: any
+  f148: any
+  f149: any
+  f150: any
+  f151: any
+  f152: any
+  f153: any
+  f154: any
+  f155: any
+  f156: any
+  f157: any
+  f158: any
+  f159: any
+  f160: any
+  f161: any
+  f162: any
+  f163: any
+  f164: any
+  f165: any
+  f166: any
+  f167: any
+  f168: any
+  f169: any
+  f170: any
+  f171: any
+  f172: any
+  f173: any
+  f174: any
+  f175: any
+  f176: any
+  f177: any
+  target: none

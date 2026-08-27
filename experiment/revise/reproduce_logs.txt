@@ -1,0 +1,31 @@
+**Scope of Reproducibility**
+
+We aim to reproduce the REVISE claims from `reference/revise.pdf`:
+
+1. We generate realistic individual recourse by optimizing in the latent space of a generative model : [Quantitative] : [Credit and tabular recourse experiments]
+2. We compare latent-manifold recourse against input-space or baseline counterfactual methods : [Quantitative] : [Quantitative tables and examples]
+3. We analyze linear/MLP classifiers and causal-system examples for actionability and realism : [Quantitative] : [MLP/linear comparisons and causal experiments]
+
+**Methodology**
+
+We run two levels of coverage:
+
+1. `experiment/revise/smoke.py` with `experiment/revise/smoke_config.yaml`, which remains a small Credit + linear-model executability check with short VAE training.
+2. `experiment/revise/test_revise_reproduce.py`, a deterministic scoped manifold check anchored to Algorithm 1 and Section 3 latent-space optimization over a generative model. The script compares direct input-space optimization against latent-space optimization through a known decoder `x = [z, z^2]` and writes `experiment/revise/reproduction_report.json`.
+
+The project artifact list marks REVISE as having no original code/experiments and no original data, so exact same-tools reproduction is blocked. The new script is not the original credit, MLP/linear, or causal-system experiment.
+
+**Results**
+
+Claim 1 is partially validated at mechanism level. The latent-space counterfactual achieved target probability 0.9925 and zero manifold residual under the known decoder, showing that optimization through a generative model can produce valid recourse on the modeled data manifold.
+
+Claim 2 is partially validated in a scoped synthetic comparison. Direct input-space optimization also achieved high target probability, 0.9940, but had manifold residual 0.3443. Latent-space optimization had comparable distance, 1.4407 versus 1.4392, while staying exactly on the manifold. This validates the trend behind latent-manifold recourse but does not reproduce the paper's quantitative tables or baseline suite.
+
+Claim 3 is not reproduced. The scoped script does not analyze the paper's linear/MLP classifier comparisons or causal-system examples.
+
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Recover original artifacts if possible, or keep future experiments labeled as scoped/generalization-style.
+- Recreate VAE, classifier, credit, and causal-system setups.
+- Add scalar targets for validity, proximity, realism, and actionability.
+- Keep `smoke.py` as an implementation health check and `test_revise_reproduce.py` as scoped mechanism evidence.

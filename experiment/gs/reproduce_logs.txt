@@ -1,37 +1,22 @@
-Level Badge
-Level 1: Minimal Reproduction
-Reason: The pre-standardization reproduction log did not assign a numeric reproduction badge.
+**Scope of Reproducibility**
 
-Method
-GS benchmark reproduction
+We aim to reproduce the Growing Spheres claims from `reference/gs.pdf`:
 
-Summary
-- Restored original badge: `No explicit original level badge`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 4`, `R_rep = 2`
-- Average raw delta across extracted scalar results: `0.318292`
-- Average variance-adjusted delta across extracted scalar results: `0.318292`
+1. We generate counterfactual explanations for black-box classifiers by expanding a search sphere around the factual point : [Quantitative] : [Growing Spheres experiments]
+2. We find sparse feature changes that flip the classifier decision : [Quantitative] : [Sparsity / L0 metrics]
+3. We use the method to inspect dataset/model behavior, including bias-audit style examples : [Qualitative] : [LSAC/Diabetes-style analyses]
 
-Scalar Result Coverage
-- `R = 4` total extracted scalar results
-- `R_rep = 2` extracted scalar results with `Δ <= 0.15`
-- `R - R_rep = 2` extracted scalar results outside the threshold
+**Methodology**
 
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
+We reproduce GS with `experiment/gs/test_gs_reproduce.py` on a News Popularity + random-forest configuration. Code/experiments and data are available.
 
-Reference Scope
-- Single paper-mode news-popularity reproduction only; the current log does not establish full paper-wide experiment coverage.
+**Results**
 
-Observed Result Highlights
-- Some scalar targets reproduce within the threshold, while others remain outside it.
-- The current script/log covers one benchmark setup rather than the full paper experiment set.
+Claims 1 and 2 are partially reproduced. AUC is close, reference 0.700 versus reproduced 0.6945, relative delta 0.008, but L0 sparsity metrics diverge: max L0 is reference 17.0 versus reproduced 54.0, relative delta 0.685. Claim 3 is not reproduced for the LSAC/bias-audit scope.
 
-Notes / Caveats
-- Coverage gate fails because full paper coverage is not demonstrated.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Next Steps
-- Expand the reproduction scope if the original paper reports additional settings.
-- Reassess the remaining outlier metrics after broader coverage is in place.
+- Align the benchmark with the paper's intended LSAC/Diabetes settings or explicitly justify the News scope.
+- Investigate feature encoding and stopping criteria behind L0 drift.
+- Add protected-attribute/bias-audit experiments if those claims remain in scope.
+- Expand the scalar report beyond four comparisons.

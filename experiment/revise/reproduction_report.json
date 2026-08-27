@@ -1,0 +1,60 @@
+{
+  "paper_id": "Towards Realistic Individual Recourse and Actionable Explanations in Black-Box Decision Making Systems",
+  "reproduction_metadata": {
+    "source_script": "test_revise_reproduce.py",
+    "paper_reference": "reference/revise.pdf",
+    "paper_anchor": "Algorithm 1 and Section 3 latent-space optimization over a generative model",
+    "scope": "Scoped synthetic manifold check; original credit and causal experiments are unavailable.",
+    "timestamp_utc": "2026-08-12T20:43:19.021928Z"
+  },
+  "experiments": {
+    "latent_manifold_counterfactual": {
+      "configuration": {
+        "factual_latent": [
+          -0.6000000238418579
+        ],
+        "decoder": "x = [z, z^2]",
+        "decision_rule": "sigmoid(8 * (x0 - 0.2))",
+        "optimizer_steps": 200
+      },
+      "metrics": {
+        "input_space_target_probability": {
+          "original": null,
+          "reproduced": 0.994022786617279,
+          "delta": null,
+          "cv_star": null
+        },
+        "latent_space_target_probability": {
+          "original": null,
+          "reproduced": 0.9924579858779907,
+          "delta": null,
+          "cv_star": null
+        },
+        "input_space_manifold_residual": {
+          "original": null,
+          "reproduced": 0.3442990779876709,
+          "delta": null,
+          "cv_star": null
+        },
+        "latent_space_manifold_residual": {
+          "original": 0,
+          "reproduced": 0.0,
+          "delta": 0.0,
+          "cv_star": null
+        },
+        "input_space_distance": {
+          "original": null,
+          "reproduced": 1.4392253160476685,
+          "delta": null,
+          "cv_star": null
+        },
+        "latent_space_distance": {
+          "original": null,
+          "reproduced": 1.4407048225402832,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

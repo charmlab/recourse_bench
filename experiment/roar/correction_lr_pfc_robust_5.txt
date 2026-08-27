@@ -1,0 +1,210 @@
+{
+  "aggregate": {
+    "M1_acc": {
+      "mean": 0.704,
+      "std": 0.013564659966250548,
+      "values": [
+        0.725,
+        0.695,
+        0.715,
+        0.69,
+        0.695
+      ]
+    },
+    "M1_auc": {
+      "mean": 0.6449989939421561,
+      "std": 0.02395120901363122,
+      "values": [
+        0.6660656328885685,
+        0.6175595238095238,
+        0.6761630003606203,
+        0.6466226393233692,
+        0.618584173328699
+      ]
+    },
+    "M1_validity": {
+      "mean": 1.0,
+      "std": 0.0,
+      "values": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "M2_acc": {
+      "mean": 0.708,
+      "std": 0.03234192325759246,
+      "values": [
+        0.71,
+        0.66,
+        0.76,
+        0.695,
+        0.715
+      ]
+    },
+    "M2_auc": {
+      "mean": 0.646657481209145,
+      "std": 0.0449298390634345,
+      "values": [
+        0.6357886904761906,
+        0.595751742449386,
+        0.7049851190476191,
+        0.6929672112153864,
+        0.6037946428571428
+      ]
+    },
+    "M2_validity": {
+      "mean": 1.0,
+      "std": 0.0,
+      "values": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "cost": {
+      "mean": 1.2016569375991821,
+      "std": 0.08953443740850744,
+      "values": [
+        1.0991504192352295,
+        1.1333417892456055,
+        1.1752761602401733,
+        1.349080204963684,
+        1.2514361143112183
+      ]
+    },
+    "lambda": {
+      "mean": 0.1,
+      "std": 0.0,
+      "values": [
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.1
+      ]
+    }
+  },
+  "cost": "pfc",
+  "dataset": "correction",
+  "factual_limit": null,
+  "lambda_factual_limit": null,
+  "lambda_mode": "fixed",
+  "lambda_value": 0.1,
+  "model": "linear",
+  "n_trials": 5,
+  "paper_comparison": {
+    "cost": {
+      "delta": 0.8416569375991821,
+      "observed_mean": 1.2016569375991821,
+      "observed_std": 0.08953443740850744,
+      "paper_mean": 0.36,
+      "paper_std": 0.08,
+      "relative_delta": 0.7004136632213415
+    },
+    "m1_validity": {
+      "delta": 0.0,
+      "observed_mean": 1.0,
+      "observed_std": 0.0,
+      "paper_mean": 1.0,
+      "paper_std": 0.0,
+      "relative_delta": 0.0
+    },
+    "m2_validity": {
+      "delta": 0.0,
+      "observed_mean": 1.0,
+      "observed_std": 0.0,
+      "paper_mean": 1.0,
+      "paper_std": 0.0,
+      "relative_delta": 0.0
+    }
+  },
+  "paper_metrics_source": "User-supplied Table 1 values from reference/roar.pdf",
+  "recourse": "ROAR",
+  "trial_results": {
+    "0": {
+      "cost": 1.0991504192352295,
+      "fold": 0,
+      "lambda": 0.1,
+      "m1_metrics": [
+        0.725,
+        0.6660656328885685
+      ],
+      "m1_validity": 1.0,
+      "m2_metrics": [
+        0.71,
+        0.6357886904761906
+      ],
+      "m2_validity": 1.0,
+      "num_factuals": 20
+    },
+    "1": {
+      "cost": 1.1333417892456055,
+      "fold": 1,
+      "lambda": 0.1,
+      "m1_metrics": [
+        0.695,
+        0.6175595238095238
+      ],
+      "m1_validity": 1.0,
+      "m2_metrics": [
+        0.66,
+        0.595751742449386
+      ],
+      "m2_validity": 1.0,
+      "num_factuals": 17
+    },
+    "2": {
+      "cost": 1.1752761602401733,
+      "fold": 2,
+      "lambda": 0.1,
+      "m1_metrics": [
+        0.715,
+        0.6761630003606203
+      ],
+      "m1_validity": 1.0,
+      "m2_metrics": [
+        0.76,
+        0.7049851190476191
+      ],
+      "m2_validity": 1.0,
+      "num_factuals": 8
+    },
+    "3": {
+      "cost": 1.349080204963684,
+      "fold": 3,
+      "lambda": 0.1,
+      "m1_metrics": [
+        0.69,
+        0.6466226393233692
+      ],
+      "m1_validity": 1.0,
+      "m2_metrics": [
+        0.695,
+        0.6929672112153864
+      ],
+      "m2_validity": 1.0,
+      "num_factuals": 15
+    },
+    "4": {
+      "cost": 1.2514361143112183,
+      "fold": 4,
+      "lambda": 0.1,
+      "m1_metrics": [
+        0.695,
+        0.618584173328699
+      ],
+      "m1_validity": 1.0,
+      "m2_metrics": [
+        0.715,
+        0.6037946428571428
+      ],
+      "m2_validity": 1.0,
+      "num_factuals": 10
+    }
+  }
+}

@@ -1,0 +1,1171 @@
+{
+  "paper_id": "rbr_german",
+  "reproduction_metadata": {
+    "timestamp": "2026-08-13T22:01:54.973135Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_rbr_reproduce.py",
+    "current_config_path": "./experiment/rbr/german_mlp_rbr_reproduce_current.yaml",
+    "future_config_path": "./experiment/rbr/german_mlp_rbr_reproduce_future.yaml",
+    "device": "cuda",
+    "reference_audit": {
+      "claims": {
+        "claim_1": {
+          "claim": "RBR formulates recourse robust to shifts between current and future classifiers.",
+          "paper_evidence": "Section 6 evaluates cost/current-validity/future-validity trade-offs under model shift.",
+          "validation": "Run the German MLP RBR sweep and inspect current/future validity across robustness settings."
+        },
+        "claim_2": {
+          "claim": "RBR is model-agnostic and does not rely on local linear approximations of the black-box model.",
+          "paper_evidence": "The paper contrasts RBR with ROAR variants that use LIME/LIMELS local linear surrogates.",
+          "validation": "Instantiate method.rbr.RbrMethod directly against the framework MLP prediction adapter."
+        },
+        "claim_3": {
+          "claim": "The German MLP experiment reports classifier accuracy/AUC and cost-validity sweep evidence.",
+          "paper_evidence": "Table 1 gives German classifier metrics; Figure 2 gives Pareto fronts for cost versus current/future validity.",
+          "validation": "Compare Table 1 scalars numerically and emit the sweep data plus a plot for Figure 2-style human review."
+        }
+      },
+      "original_experiment_5": {
+        "dataset": "German Credit",
+        "current_dataset": "Statlog German Credit",
+        "shifted_dataset": "South German Credit corrected data",
+        "classifier": "MLP",
+        "kfold": 5,
+        "num_future_models": 100,
+        "max_instances": 100,
+        "train_split": 0.8,
+        "split_random_state": 42,
+        "future_arrival_fraction": 0.5,
+        "varied_parameters": [
+          "epsilon_pe",
+          "delta_plus",
+          "epsilon_op"
+        ],
+        "metrics": [
+          "l1_cost",
+          "current_validity",
+          "future_validity",
+          "feasible"
+        ],
+        "runtime_reference": "reference/rbr/expt/expt_5.py and reference/rbr/train.py"
+      },
+      "paper_classifier_metrics_german": {
+        "present_accuracy": {
+          "mean": 0.67,
+          "std": 0.02
+        },
+        "present_auc": {
+          "mean": 0.6,
+          "std": 0.03
+        },
+        "shift_accuracy": {
+          "mean": 0.66,
+          "std": 0.23
+        },
+        "shift_auc": {
+          "mean": 0.6,
+          "std": 0.04
+        }
+      },
+      "notes": [
+        "Table 1 provides scalar classifier accuracy/AUC targets for German Credit.",
+        "Figure 2 presents cost-validity Pareto frontiers, so this script writes the underlying sweep data and a local plot instead of comparing unavailable exact plot scalars."
+      ]
+    },
+    "claim_assessment": {
+      "claim_1": {
+        "claim": "RBR formulates recourse robust to shifts between current and future classifiers.",
+        "paper_evidence": "Section 6 evaluates cost/current-validity/future-validity trade-offs under model shift.",
+        "validation": "Run the German MLP RBR sweep and inspect current/future validity across robustness settings.",
+        "status": "observed_with_framework_rbr",
+        "evidence": {
+          "successful_counterfactuals_present": true,
+          "future_validity_measured": true,
+          "plot_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/rbr/rbr_german_cost_validity.png"
+        }
+      },
+      "claim_2": {
+        "claim": "RBR is model-agnostic and does not rely on local linear approximations of the black-box model.",
+        "paper_evidence": "The paper contrasts RBR with ROAR variants that use LIME/LIMELS local linear surrogates.",
+        "validation": "Instantiate method.rbr.RbrMethod directly against the framework MLP prediction adapter.",
+        "status": "validated_by_script_construction",
+        "evidence": {
+          "uses_framework_method": "method.rbr.rbr.RbrMethod",
+          "reference_repo_imported": false,
+          "local_linear_surrogate_used": false
+        }
+      },
+      "claim_3": {
+        "claim": "The German MLP experiment reports classifier accuracy/AUC and cost-validity sweep evidence.",
+        "paper_evidence": "Table 1 gives German classifier metrics; Figure 2 gives Pareto fronts for cost versus current/future validity.",
+        "validation": "Compare Table 1 scalars numerically and emit the sweep data plus a plot for Figure 2-style human review.",
+        "status": "scalar_table_reproduced_and_sweep_observed",
+        "evidence": {
+          "classifier_scalar_validation": {
+            "criterion": "Delta(m, m_hat) = |m_hat - m| / max(|m|, |m_hat|, 1e-12); delta <= 0.15",
+            "metrics": {
+              "present_accuracy": {
+                "observed": 0.69,
+                "paper_mean": 0.67,
+                "paper_std": 0.02,
+                "delta": 0.019999999999999907,
+                "abs_delta": 0.019999999999999907,
+                "within_one_std": true,
+                "within_two_std": true,
+                "relative_delta": 0.02898550724637668,
+                "within_15_percent_relative_delta": true
+              },
+              "present_auc": {
+                "observed": 0.598452380952381,
+                "paper_mean": 0.6,
+                "paper_std": 0.03,
+                "delta": -0.00154761904761902,
+                "abs_delta": 0.00154761904761902,
+                "within_one_std": true,
+                "within_two_std": true,
+                "relative_delta": 0.0025793650793650333,
+                "within_15_percent_relative_delta": true
+              },
+              "shift_accuracy": {
+                "observed": 0.675,
+                "paper_mean": 0.66,
+                "paper_std": 0.23,
+                "delta": 0.015000000000000013,
+                "abs_delta": 0.015000000000000013,
+                "within_one_std": true,
+                "within_two_std": true,
+                "relative_delta": 0.02222222222222224,
+                "within_15_percent_relative_delta": true
+              },
+              "shift_auc": {
+                "observed": 0.6288690476190477,
+                "paper_mean": 0.6,
+                "paper_std": 0.04,
+                "delta": 0.02886904761904774,
+                "abs_delta": 0.02886904761904774,
+                "within_one_std": true,
+                "within_two_std": true,
+                "relative_delta": 0.045906294368197056,
+                "within_15_percent_relative_delta": true
+              }
+            },
+            "all_within_tolerance": true
+          },
+          "sweep_rows": 12,
+          "plot_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/rbr/rbr_german_cost_validity.png"
+        }
+      }
+    },
+    "artifacts": {
+      "sweep_csv_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/rbr/rbr_german_sweep_results.csv",
+      "plot_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/rbr/rbr_german_cost_validity.png"
+    }
+  },
+  "experiments": {
+    "classifier_metrics": {
+      "configuration": {
+        "dataset": "german",
+        "mode": "paper_sweep",
+        "validation_criterion": "Delta(m, m_hat) = |m_hat - m| / max(|m|, |m_hat|, 1e-12); delta <= 0.15"
+      },
+      "metrics": {
+        "present_accuracy": {
+          "original": 0.67,
+          "reproduced": 0.69,
+          "delta": 0.02898550724637668,
+          "cv_star": 0.023396915553966537
+        },
+        "present_auc": {
+          "original": 0.6,
+          "reproduced": 0.598452380952381,
+          "delta": 0.0025793650793650333,
+          "cv_star": 0.002054522037320567
+        },
+        "shift_accuracy": {
+          "original": 0.66,
+          "reproduced": 0.675,
+          "delta": 0.02222222222222224,
+          "cv_star": 0.017876295029997002
+        },
+        "shift_auc": {
+          "original": 0.6,
+          "reproduced": 0.6288690476190477,
+          "delta": 0.045906294368197056,
+          "cv_star": 0.03737613344489335
+        }
+      }
+    },
+    "variant_epsilon_pe=0.0000": {
+      "configuration": {
+        "variant_label": "epsilon_pe=0.0000",
+        "sweep_parameter": "epsilon_pe",
+        "sweep_value": 0.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6703000664710999,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.1313131313131315,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.2862926191731714,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.24653960764408112,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_epsilon_pe=0.5000": {
+      "configuration": {
+        "variant_label": "epsilon_pe=0.5000",
+        "sweep_parameter": "epsilon_pe",
+        "sweep_value": 0.5
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.5,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6716000437736511,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.2875377480139085,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.24774931371212006,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_epsilon_pe=1.0000": {
+      "configuration": {
+        "variant_label": "epsilon_pe=1.0000",
+        "sweep_parameter": "epsilon_pe",
+        "sweep_value": 1.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 98,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.98,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6639000177383423,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 6.948979591836735,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.48745405673980713,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.28995440184297716,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.25036337971687317,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.48745405673980713,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_delta_plus=0.0000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.0000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.5009999871253967,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 2.4,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.2860631048679352,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.22279328646018282,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.2066287398338318,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.2860631048679352,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_delta_plus=0.2000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.2000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.2
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.2,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6703000664710999,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.1313131313131315,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.2862926191731714,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.24653960764408112,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_delta_plus=0.4000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.4000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.4
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.4,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.7468000650405884,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.555555555555555,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.6852108836174011,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.36357511894105304,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.29467833042144775,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.6852108836174011,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_delta_plus=0.6000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.6000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.6
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.6,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.7925999164581299,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.555555555555555,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.8852108120918274,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.4461712004763013,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.34835442900657654,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.8852108120918274,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_delta_plus=0.8000": {
+      "configuration": {
+        "variant_label": "delta_plus=0.8000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 0.8
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.8,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.823199987411499,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.686868686868687,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 1.0852110385894775,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.5281912905149271,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.40048977732658386,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 1.0852110385894775,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_delta_plus=1.0000": {
+      "configuration": {
+        "variant_label": "delta_plus=1.0000",
+        "sweep_parameter": "delta_plus",
+        "sweep_value": 1.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.8369998931884766,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.808080808080808,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 1.2852109670639038,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.6138505404344836,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.45696374773979187,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 1.2852109670639038,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_epsilon_op=0.0000": {
+      "configuration": {
+        "variant_label": "epsilon_op=0.0000",
+        "sweep_parameter": "epsilon_op",
+        "sweep_value": 0.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 99,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.99,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6703000664710999,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.1313131313131315,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.2862926191731714,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.24653960764408112,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.48521092534065247,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_epsilon_op=0.5000": {
+      "configuration": {
+        "variant_label": "epsilon_op=0.5000",
+        "sweep_parameter": "epsilon_op",
+        "sweep_value": 0.5
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 0.5,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 97,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.97,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6562000513076782,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.360824742268041,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.4888690710067749,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.2894089144554625,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.25003746151924133,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.4888690710067749,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "variant_epsilon_op=1.0000": {
+      "configuration": {
+        "variant_label": "epsilon_op=1.0000",
+        "sweep_parameter": "epsilon_op",
+        "sweep_value": 1.0
+      },
+      "metrics": {
+        "sweep_value": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_factuals": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "num_successful": {
+          "original": null,
+          "reproduced": 96,
+          "delta": null,
+          "cv_star": null
+        },
+        "current_validity": {
+          "original": null,
+          "reproduced": 0.96,
+          "delta": null,
+          "cv_star": null
+        },
+        "future_validity": {
+          "original": null,
+          "reproduced": 0.6527999639511108,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l0": {
+          "original": null,
+          "reproduced": 7.385416666666667,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l1": {
+          "original": null,
+          "reproduced": 0.4916890561580658,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_l2": {
+          "original": null,
+          "reproduced": 0.29008984349983025,
+          "delta": null,
+          "cv_star": null
+        },
+        "distance_linf": {
+          "original": null,
+          "reproduced": 0.25094208121299744,
+          "delta": null,
+          "cv_star": null
+        },
+        "l1_cost": {
+          "original": null,
+          "reproduced": 0.4916890561580658,
+          "delta": null,
+          "cv_star": null
+        },
+        "train_max_distance": {
+          "original": null,
+          "reproduced": 8.383910179138184,
+          "delta": null,
+          "cv_star": null
+        },
+        "effective_perturb_radius": {
+          "original": null,
+          "reproduced": 1.6767820358276369,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

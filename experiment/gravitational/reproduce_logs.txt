@@ -1,0 +1,31 @@
+**Scope of Reproducibility**
+
+We aim to reproduce the Gravitational claims from `reference/gravitaional-claproar.pdf`:
+
+1. We model how individual recourse recommendations can induce population-level distribution shift : [Quantitative] : [Section VII repeated-retraining simulation]
+2. We show that gravitational recourse reduces downstream model deterioration relative to baselines : [Quantitative] : [Group-level model-shift results]
+3. We maintain useful individual recourse quality while accounting for macro-level effects : [Quantitative] : [Validity, distance, and retraining metrics]
+
+**Methodology**
+
+We run two levels of coverage:
+
+1. `experiment/gravitational/smoke.py` with `experiment/gravitational/smoke_config.yaml`, which remains a small Credit + linear-model executability check.
+2. `experiment/gravitational/test_gravitational_reproduce.py`, a deterministic scoped toy check anchored to the Gravitational counterfactual penalty in Eq. 7 and the Section VII mitigation discussion. The script compares a boundary-only variant with `grav_penalty_lambda = 0.0` against a Gravitational variant with `grav_penalty_lambda = 0.5`, using a fixed target-class center, and writes `experiment/gravitational/reproduction_report.json`.
+
+The scoped script is not the original repeated-retraining/domain-shift simulation and does not use the paper's datasets, folds, model-update schedule, or full baseline suite.
+
+**Results**
+
+Claim 1 is not reproduced at population-dynamics level. The scoped script does not simulate repeated recourse uptake and retraining. It only checks the local target-domain penalty used as a mitigation strategy.
+
+Claim 2 is partially validated as a mechanism-level trend: both variants achieved validity 1.0, and the Gravitational variant reduced mean target-center distance from 2.0529 to 0.0011. This supports the paper's claim that the penalty pulls counterfactuals toward target-domain support, but it does not measure downstream model deterioration or compare PP-MMD/F-score trajectories.
+
+Claim 3 is partially validated for individual recourse usefulness because validity remained 1.0, but the Gravitational variant had a larger mean recourse distance, 2.2855 versus 0.9628. This matches the expected trade-off between private recourse distance and macro-level mitigation, but the macro-level outcomes are not reproduced.
+
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Add the Section VII repeated-retraining/domain-shift simulation.
+- Include baseline recourse generators and group-level performance metrics.
+- Record model update schedule, population response assumptions, and seeds.
+- Keep `smoke.py` as a quick health check and `test_gravitational_reproduce.py` as scoped mechanism evidence.

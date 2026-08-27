@@ -1,0 +1,38 @@
+name: toy_smoke
+logger:
+  level: INFO
+  path: ./logs/toy_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: toydata
+preprocess:
+  - name: scale
+    seed: 7
+    scaling: standardize
+    range: true
+  - name: split
+    seed: 7
+    split: 0.25
+    sample: 4
+model:
+  name: linear
+  seed: 7
+  device: cpu
+  epochs: 30
+  learning_rate: 0.03
+  batch_size: 8
+  optimizer: adam
+  criterion: cross_entropy
+method:
+  name: toy
+  seed: 7
+  device: cpu
+  desired_class: 1
+  max_iterations: 50
+  step_size: 0.05
+  lambda_: 0.08
+  clamp: true
+evaluation:
+  - name: validity
+  - name: distance

@@ -72,7 +72,7 @@ def sort_states(values: Sequence[object], ordered: bool) -> list[object]:
 
 
 def is_ordered_feature(source_type: str, actionability: str) -> bool:
-    return source_type == "numerical" or actionability in {
+    return source_type in {"numerical", "ordered_categorical", "ordinal"} or actionability in {
         "same-or-increase",
         "same-or-decrease",
     }
@@ -344,7 +344,31 @@ def _resolve_search_states(
     states: list[object],
     current_index: int,
 ) -> list[object]:
-    return list(states)
+    if not states:
+        return []
+
+    current_state = states[current_index]
+    actionability = spec.actionability
+    if (not spec.mutable) or actionability in {"none", "same"}:
+        return [current_state]
+
+    if actionability == "any":
+        return list(states)
+
+    if actionability == "same-or-increase":
+        legal_states = list(states[current_index:])
+    elif actionability == "increase":
+        legal_states = list(states[current_index + 1 :])
+    elif actionability == "same-or-decrease":
+        legal_states = list(states[: current_index + 1])
+    elif actionability == "decrease":
+        legal_states = list(states[:current_index])
+    else:
+        legal_states = list(states)
+
+    if not legal_states:
+        return [current_state]
+    return legal_states
 
 
 def _build_percentile_lookup(

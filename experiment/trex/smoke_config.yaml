@@ -1,0 +1,52 @@
+name: trex_smoke
+logger:
+  level: INFO
+  path: ./logs/trex_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+  sample: 8
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers: [64, 32]
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: trex
+  seed: 0
+  device: cpu
+  norm: 2
+  cf_confidence: 0.5
+  cf_steps: 20
+  cf_step_size: 0.02
+  tau: 0.75
+  k: 100
+  sigma: 0.1
+  trex_step_size: 0.01
+  trex_max_steps: 30
+  trex_epsilon: 1.0
+  trex_p: 2
+  batch_size: 1
+  clamp: true
+evaluation:
+  - name: validity
+  - name: distance

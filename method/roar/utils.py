@@ -91,6 +91,7 @@ def roar_optimize(
     coeff: np.ndarray,
     intercept: float,
     cat_feature_indices: list[list[int]] | None = None,
+    feature_weights: np.ndarray | None = None,
     lr: float = 1e-3,
     lambda_param: float = 0.1,
     delta_max: float = 0.1,
@@ -122,6 +123,13 @@ def roar_optimize(
     intercept_tensor = torch.tensor(intercept, dtype=torch.float32, device=device)
     original = torch.tensor(x, dtype=torch.float32, device=device).reshape(-1)
     lambda_tensor = torch.tensor(lambda_param, dtype=torch.float32, device=device)
+    feature_weight_tensor = None
+    if feature_weights is not None:
+        feature_weight_tensor = torch.tensor(
+            feature_weights, dtype=torch.float32, device=device
+        ).reshape(-1)
+        if feature_weight_tensor.shape[0] != original.shape[0]:
+            raise ValueError("feature_weights must match the input dimensionality")
 
     candidate = Variable(original.clone(), requires_grad=True)
     optimizer = optim.Adam([candidate], lr=lr)
@@ -160,7 +168,10 @@ def roar_optimize(
         if loss_type == "MSE":
             probability = probability.clamp(min=1e-6, max=1 - 1e-6)
             prediction = torch.log(probability / (1 - probability))
-        distance = torch.dist(candidate, original, p=float(norm))
+        delta = candidate - original
+        if feature_weight_tensor is not None:
+            delta = feature_weight_tensor * delta
+        distance = torch.norm(delta, p=float(norm))
         loss = (
             loss_fn(prediction.squeeze(), target_probability) + lambda_tensor * distance
         )

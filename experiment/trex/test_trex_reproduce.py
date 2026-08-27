@@ -1,0 +1,1308 @@
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import math
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+import numpy as np
+import pandas as pd
+import torch
+import yaml
+from sklearn.metrics import roc_auc_score
+from sklearn.neighbors import LocalOutlierFactor
+from tqdm.auto import tqdm
+
+from dataset.dataset_object import DatasetObject
+from experiment.utils import write_reproduction_report
+from method.trex.trex import TrexMethod
+from model.mlp.mlp import MlpModel
+
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yaml")
+DEFAULT_TAU_GRID = [0.70, 0.75, 0.80, 0.85]
+REPORT_PATH = Path(__file__).with_name("reproduction_report.json")
+
+
+class FrameDataset(DatasetObject):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        *,
+        target_column: str,
+        name: str = "frame_dataset",
+    ):
+        self._rawdf = df.copy(deep=True)
+        self._freeze = False
+        self.name = name
+        self.target_column = target_column
+        self.feature_order = list(self._rawdf.columns)
+        self.raw_feature_type = {
+            column: ("binary" if column == target_column else "numerical")
+            for column in self._rawdf.columns
+        }
+        self.raw_feature_mutability = {
+            column: column != target_column for column in self._rawdf.columns
+        }
+        self.raw_feature_actionability = {
+            column: ("none" if column == target_column else "any")
+            for column in self._rawdf.columns
+        }
+
+    def _read_df(self, path: str) -> pd.DataFrame:
+        raise NotImplementedError("FrameDataset reads from an in-memory DataFrame")
+
+
+@dataclass(frozen=True)
+class DataSelection:
+    name: str
+    train_path: Path
+    test_path: Path
+    target_column: str
+    paper_targets: dict[str, dict[str, float]]
+
+
+@dataclass
+class ModelBundle:
+    model: MlpModel
+    seed: int
+    variant: str
+
+
+@dataclass
+class RunMetrics:
+    tau: float
+    norm: int
+    current_validity_pct: float
+    cost: float
+    lof: float
+    wi_validity_pct: float
+    lo_validity_pct: float
+    num_factuals: int
+    num_valid_counterfactuals: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tau": float(self.tau),
+            "norm": int(self.norm),
+            "current_validity_pct": float(self.current_validity_pct),
+            "cost": float(self.cost),
+            "lof": float(self.lof),
+            "wi_validity_pct": float(self.wi_validity_pct),
+            "lo_validity_pct": float(self.lo_validity_pct),
+            "num_factuals": int(self.num_factuals),
+            "num_valid_counterfactuals": int(self.num_valid_counterfactuals),
+        }
+
+
+def _load_config(config_path: Path) -> dict[str, Any]:
+    with config_path.open("r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+    if not isinstance(config, dict):
+        raise ValueError("Reproduction config must parse to a dictionary")
+    return config
+
+
+def _resolve_project_path(path_value: str) -> Path:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = (PROJECT_ROOT / path).resolve()
+    return path
+
+
+def _resolve_data_configs(
+    config: dict[str, Any],
+    dataset_name: str | None,
+) -> list[dict[str, Any]]:
+    data_cfg = config.get("data")
+    if not isinstance(data_cfg, list) or not data_cfg:
+        raise ValueError("TreX reproduction expects one or more data sections")
+
+    entries = [item for item in data_cfg if isinstance(item, dict)]
+    if len(entries) != len(data_cfg):
+        raise ValueError("Each data section entry must be a dictionary")
+
+    if dataset_name is None:
+        return entries
+
+    for item in entries:
+        if str(item.get("name")) == dataset_name:
+            return [item]
+    available = ", ".join(str(item.get("name")) for item in entries)
+    raise ValueError(f"Unknown dataset '{dataset_name}'. Available: {available}")
+
+
+def _resolve_settings(
+    config: dict[str, Any],
+    args: argparse.Namespace,
+    data_item: dict[str, Any],
+) -> dict[str, Any]:
+    experiment_cfg = config.get("experiment", {})
+    data_overrides = data_item.get("overrides", {})
+    model_overrides = config.get("model", {}).get("overrides", {})
+    method_overrides = config.get("method", {}).get("overrides", {})
+    evaluation_cfg = config.get("evaluation", {})
+    evaluation_overrides = evaluation_cfg.get("overrides", {})
+
+    device = _resolve_device(args.device or str(experiment_cfg.get("device", "auto")))
+    learning_rate = (
+        float(args.learning_rate)
+        if args.learning_rate is not None
+        else float(model_overrides.get("learning_rate", 0.001))
+    )
+    train_batch_size = (
+        int(args.train_batch_size)
+        if args.train_batch_size is not None
+        else int(model_overrides.get("batch_size", 32))
+    )
+    wi_models = (
+        int(args.wi_models)
+        if args.wi_models is not None
+        else int(evaluation_overrides.get("wi_models", 50))
+    )
+    lo_models = (
+        int(args.lo_models)
+        if args.lo_models is not None
+        else int(evaluation_overrides.get("lo_models", 50))
+    )
+    pilot_model_count = (
+        int(args.pilot_model_count)
+        if args.pilot_model_count is not None
+        else int(evaluation_overrides.get("pilot_model_count", 10))
+    )
+    pilot_factual_limit = (
+        int(args.pilot_factual_limit)
+        if args.pilot_factual_limit is not None
+        else int(evaluation_overrides.get("pilot_factual_limit", 64))
+    )
+    factual_limit = (
+        int(args.factual_limit)
+        if args.factual_limit is not None
+        else evaluation_overrides.get("factual_limit")
+    )
+    if factual_limit is not None:
+        factual_limit = int(factual_limit)
+
+    tau_grid = (
+        [float(value) for value in args.tau_grid]
+        if args.tau_grid is not None
+        else [float(value) for value in method_overrides.get("tau_grid", DEFAULT_TAU_GRID)]
+    )
+    tau_l1 = (
+        float(args.tau_l1)
+        if args.tau_l1 is not None
+        else (
+            None
+            if method_overrides.get("tau_l1") is None
+            else float(method_overrides.get("tau_l1"))
+        )
+    )
+    tau_l2 = (
+        float(args.tau_l2)
+        if args.tau_l2 is not None
+        else (
+            None
+            if method_overrides.get("tau_l2") is None
+            else float(method_overrides.get("tau_l2"))
+        )
+    )
+    k = int(args.k) if args.k is not None else int(method_overrides.get("k", 1000))
+    sigma = (
+        float(args.sigma)
+        if args.sigma is not None
+        else float(method_overrides.get("sigma", 0.1))
+    )
+    cf_confidence = (
+        float(args.cf_confidence)
+        if args.cf_confidence is not None
+        else float(method_overrides.get("cf_confidence", 0.5))
+    )
+    cf_steps = (
+        int(args.cf_steps)
+        if args.cf_steps is not None
+        else int(method_overrides.get("cf_steps", 60))
+    )
+    cf_step_size = (
+        float(args.cf_step_size)
+        if args.cf_step_size is not None
+        else float(method_overrides.get("cf_step_size", 0.02))
+    )
+    trex_step_size = (
+        float(args.trex_step_size)
+        if args.trex_step_size is not None
+        else float(method_overrides.get("trex_step_size", 0.01))
+    )
+    trex_max_steps = (
+        int(args.trex_max_steps)
+        if args.trex_max_steps is not None
+        else int(method_overrides.get("trex_max_steps", 200))
+    )
+    trex_epsilon = (
+        float(args.trex_epsilon)
+        if args.trex_epsilon is not None
+        else float(method_overrides.get("trex_epsilon", 1.0))
+    )
+    lof_neighbors = int(evaluation_overrides.get("lof_n_neighbors", 1))
+    desired_class = int(method_overrides.get("desired_class", 1))
+
+    train_path = _resolve_project_path(str(data_overrides["train_path"]))
+    test_path = _resolve_project_path(str(data_overrides["test_path"]))
+    target_column = str(data_overrides.get("target_column", "target"))
+    paper_targets = data_overrides.get(
+        "paper_targets",
+        evaluation_cfg.get("paper_targets", {}),
+    )
+    if not isinstance(paper_targets, dict):
+        raise ValueError("paper_targets must be a dictionary when provided")
+
+    settings = {
+        "config_path": str(Path(args.config).resolve()),
+        "experiment_name": str(experiment_cfg.get("name", "trex_reproduce")),
+        "seed": int(experiment_cfg.get("seed", 0)),
+        "device": device,
+        "data_name": str(data_item.get("name", "trex_dataset")),
+        "train_path": train_path,
+        "test_path": test_path,
+        "target_column": target_column,
+        "model": {
+            "epochs": int(model_overrides.get("epochs", 50)),
+            "learning_rate": learning_rate,
+            "batch_size": train_batch_size,
+            "layers": [int(value) for value in model_overrides.get("layers", [128, 128])],
+            "optimizer": str(model_overrides.get("optimizer", "adam")),
+            "criterion": str(model_overrides.get("criterion", "cross_entropy")),
+            "output_activation": str(
+                model_overrides.get("output_activation", "softmax")
+            ),
+        },
+        "method": {
+            "seed": int(method_overrides.get("seed", experiment_cfg.get("seed", 0))),
+            "desired_class": desired_class,
+            "cf_confidence": cf_confidence,
+            "cf_steps": cf_steps,
+            "cf_step_size": cf_step_size,
+            "k": k,
+            "sigma": sigma,
+            "trex_step_size": trex_step_size,
+            "trex_max_steps": trex_max_steps,
+            "trex_epsilon": trex_epsilon,
+            "trex_p": method_overrides.get("trex_p", 2),
+            "batch_size": int(method_overrides.get("batch_size", 1)),
+            "clamp": method_overrides.get("clamp", True),
+            "tau_grid": tau_grid,
+            "tau_l1": tau_l1,
+            "tau_l2": tau_l2,
+        },
+        "evaluation": {
+            "wi_models": wi_models,
+            "lo_models": lo_models,
+            "pilot_model_count": pilot_model_count,
+            "pilot_factual_limit": pilot_factual_limit,
+            "factual_limit": factual_limit,
+            "lof_n_neighbors": lof_neighbors,
+            "paper_targets": paper_targets,
+        },
+    }
+
+    if settings["evaluation"]["wi_models"] < 1 or settings["evaluation"]["lo_models"] < 1:
+        raise ValueError("WI and LO model counts must be >= 1")
+    if settings["evaluation"]["pilot_model_count"] < 1:
+        raise ValueError("pilot_model_count must be >= 1")
+    if settings["evaluation"]["pilot_factual_limit"] < 1:
+        raise ValueError("pilot_factual_limit must be >= 1")
+    if settings["evaluation"]["factual_limit"] is not None and settings["evaluation"]["factual_limit"] < 1:
+        raise ValueError("factual_limit must be >= 1 when provided")
+    if settings["model"]["batch_size"] < 1:
+        raise ValueError("model batch_size must be >= 1")
+    if settings["model"]["learning_rate"] <= 0:
+        raise ValueError("model learning_rate must be > 0")
+    if not settings["train_path"].exists():
+        raise FileNotFoundError(f"Missing train csv: {settings['train_path']}")
+    if not settings["test_path"].exists():
+        raise FileNotFoundError(f"Missing test csv: {settings['test_path']}")
+
+    return settings
+
+
+def _resolve_device(device: str) -> str:
+    device = device.lower()
+    if device == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if device not in {"cpu", "cuda"}:
+        raise ValueError("device must be one of: auto, cpu, cuda")
+    if device == "cuda" and not torch.cuda.is_available():
+        raise ValueError("CUDA is unavailable in the current environment")
+    return device
+
+
+def _make_dataset(
+    features: pd.DataFrame,
+    target: pd.Series,
+    *,
+    target_column: str,
+    name: str,
+    **flags: object,
+) -> FrameDataset:
+    combined = pd.concat([features, target.rename(target_column)], axis=1)
+    dataset = FrameDataset(combined, target_column=target_column, name=name)
+    for flag, value in flags.items():
+        dataset.update(flag, value)
+    dataset.freeze()
+    return dataset
+
+
+def _count_values(series: pd.Series) -> dict[int, int]:
+    counts = series.astype(int).value_counts().sort_index()
+    return {int(index): int(value) for index, value in counts.items()}
+
+
+def load_processed_reproduction_data(
+    *,
+    train_path: Path,
+    test_path: Path,
+    target_column: str,
+    data_name: str,
+) -> dict[str, Any]:
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+    if target_column not in train_df.columns or target_column not in test_df.columns:
+        raise KeyError(f"Target column '{target_column}' must exist in both split CSVs")
+
+    feature_columns = [column for column in train_df.columns if column != target_column]
+    if feature_columns != [column for column in test_df.columns if column != target_column]:
+        raise ValueError("Train/test feature columns must match exactly")
+
+    X_train = train_df.loc[:, feature_columns].astype(np.float32).reset_index(drop=True)
+    y_train = train_df.loc[:, target_column].astype(int).reset_index(drop=True)
+    X_test = test_df.loc[:, feature_columns].astype(np.float32).reset_index(drop=True)
+    y_test = test_df.loc[:, target_column].astype(int).reset_index(drop=True)
+
+    trainset = _make_dataset(
+        X_train,
+        y_train,
+        target_column=target_column,
+        name=f"{data_name}_train_reproduction",
+        trainset=True,
+    )
+    testset = _make_dataset(
+        X_test,
+        y_test,
+        target_column=target_column,
+        name=f"{data_name}_test_reproduction",
+        testset=True,
+    )
+    full_target = pd.concat([y_train, y_test], ignore_index=True)
+
+    return {
+        "feature_order": feature_columns,
+        "trainset": trainset,
+        "testset": testset,
+        "train_features": X_train.copy(deep=True),
+        "test_features": X_test.copy(deep=True),
+        "train_target": y_train.copy(deep=True),
+        "test_target": y_test.copy(deep=True),
+        "input_dim": int(len(feature_columns)),
+        "full_target_counts": _count_values(full_target),
+        "train_target_counts": _count_values(y_train),
+        "test_target_counts": _count_values(y_test),
+    }
+
+
+def _build_model(
+    *,
+    seed: int,
+    device: str,
+    model_cfg: dict[str, Any],
+) -> MlpModel:
+    return MlpModel(
+        seed=seed,
+        device=device,
+        epochs=int(model_cfg["epochs"]),
+        learning_rate=float(model_cfg["learning_rate"]),
+        batch_size=int(model_cfg["batch_size"]),
+        layers=[int(value) for value in model_cfg["layers"]],
+        optimizer=str(model_cfg["optimizer"]),
+        criterion=str(model_cfg["criterion"]),
+        output_activation=str(model_cfg["output_activation"]),
+        save_name=None,
+    )
+
+
+def train_model_bundle(
+    trainset: FrameDataset,
+    testset: FrameDataset,
+    *,
+    seed: int,
+    device: str,
+    model_cfg: dict[str, Any],
+    variant: str,
+) -> ModelBundle:
+    model = _build_model(
+        seed=seed,
+        device=device,
+        model_cfg=model_cfg,
+    )
+    model.fit(trainset)
+    _ = compute_model_metrics(model, testset)
+    return ModelBundle(model=model, seed=seed, variant=variant)
+
+
+def compute_model_metrics(model: MlpModel, testset: FrameDataset) -> dict[str, float]:
+    probabilities = model.predict_proba(testset).detach().cpu()
+    prediction = probabilities.argmax(dim=1)
+
+    y = testset.get(target=True).iloc[:, 0].astype(int)
+    class_to_index = model.get_class_to_index()
+    encoded_target = torch.tensor(
+        [class_to_index[int(value)] for value in y.tolist()],
+        dtype=torch.long,
+    )
+
+    accuracy = float((prediction == encoded_target).to(dtype=torch.float32).mean())
+    unique_labels = sorted(set(encoded_target.tolist()))
+    if len(unique_labels) < 2:
+        auc = float("nan")
+    else:
+        positive_index = class_to_index.get(1, max(class_to_index.values()))
+        auc = float(
+            roc_auc_score(
+                encoded_target.numpy(),
+                probabilities[:, positive_index].numpy(),
+            )
+        )
+    return {"test_accuracy": accuracy, "test_auc": auc}
+
+
+def select_rejected_factuals(
+    model: MlpModel,
+    testset: FrameDataset,
+    *,
+    desired_class: int,
+) -> FrameDataset:
+    probabilities = model.predict_proba(testset).detach().cpu()
+    predicted = probabilities.argmax(dim=1).numpy()
+    labels = testset.get(target=True).iloc[:, 0].astype(int)
+    undesired_class = 1 - int(desired_class)
+    rejected_mask = pd.Series(
+        (labels.to_numpy() == undesired_class) & (predicted == undesired_class),
+        index=testset.get(target=False).index,
+        dtype=bool,
+    )
+
+    factual_features = testset.get(target=False).loc[rejected_mask].copy(deep=True)
+    factual_target = testset.get(target=True).iloc[:, 0].loc[rejected_mask].copy(deep=True)
+    factuals = _make_dataset(
+        factual_features,
+        factual_target,
+        target_column=testset.target_column,
+        name=f"{testset.name}_rejected_factuals",
+        testset=True,
+    )
+    return factuals
+
+
+def build_lo_trainset(
+    train_features: pd.DataFrame,
+    train_target: pd.Series,
+    *,
+    sample_seed: int,
+    target_column: str,
+    name: str,
+) -> FrameDataset:
+    sample_count = max(1, int(round(0.01 * len(train_features))))
+    rng = np.random.default_rng(sample_seed)
+    sampled_positions = rng.choice(len(train_features), size=sample_count, replace=True)
+    unique_positions = np.unique(sampled_positions)
+    keep_mask = np.ones(len(train_features), dtype=bool)
+    keep_mask[unique_positions] = False
+
+    lo_features = train_features.iloc[keep_mask].copy(deep=True)
+    lo_target = train_target.iloc[keep_mask].copy(deep=True)
+    return _make_dataset(
+        lo_features,
+        lo_target,
+        target_column=target_column,
+        name=name,
+        trainset=True,
+    )
+
+
+def train_changed_models(
+    *,
+    trainset: FrameDataset,
+    testset: FrameDataset,
+    train_features: pd.DataFrame,
+    train_target: pd.Series,
+    wi_models: int,
+    lo_models: int,
+    device: str,
+    model_cfg: dict[str, Any],
+) -> tuple[list[ModelBundle], list[ModelBundle]]:
+    wi_bundles: list[ModelBundle] = []
+    lo_bundles: list[ModelBundle] = []
+
+    for offset in tqdm(
+        range(wi_models),
+        desc="Training WI models",
+        unit="model",
+        leave=False,
+    ):
+        seed = offset + 1
+        wi_bundles.append(
+            train_model_bundle(
+                trainset,
+                testset,
+                seed=seed,
+                device=device,
+                model_cfg=model_cfg,
+                variant="wi",
+            )
+        )
+
+    for offset in tqdm(
+        range(lo_models),
+        desc="Training LO models",
+        unit="model",
+        leave=False,
+    ):
+        seed = 1001 + offset
+        lo_trainset = build_lo_trainset(
+            train_features,
+            train_target,
+            sample_seed=5001 + offset,
+            target_column=trainset.target_column,
+            name=f"{trainset.name}_lo_{seed}",
+        )
+        lo_bundles.append(
+            train_model_bundle(
+                lo_trainset,
+                testset,
+                seed=seed,
+                device=device,
+                model_cfg=model_cfg,
+                variant="lo",
+            )
+        )
+
+    return wi_bundles, lo_bundles
+
+
+def _valid_counterfactual_mask(counterfactuals: FrameDataset) -> pd.Series:
+    cf_features = counterfactuals.get(target=False)
+    return ~cf_features.isna().any(axis=1)
+
+
+def _distance_mean(
+    factual_features: pd.DataFrame,
+    counterfactual_features: pd.DataFrame,
+    *,
+    norm: int,
+) -> float:
+    diff = counterfactual_features.to_numpy(dtype=np.float32) - factual_features.to_numpy(
+        dtype=np.float32
+    )
+    if norm == 1:
+        values = np.linalg.norm(diff, ord=1, axis=1)
+    elif norm == 2:
+        values = np.linalg.norm(diff, ord=2, axis=1)
+    else:
+        raise ValueError("norm must be 1 or 2")
+    return float(np.mean(values))
+
+
+def _predict_counterfactuals_with_progress(
+    method: TrexMethod,
+    testset: FrameDataset,
+    *,
+    batch_size: int,
+    desc: str,
+) -> FrameDataset:
+    if not method._is_trained:
+        raise RuntimeError("Method is not trained")
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
+    if getattr(testset, "counterfactual", False):
+        raise ValueError("testset must not already be marked as counterfactual")
+
+    factuals = testset.get(target=False)
+    counterfactual_batches: list[pd.DataFrame] = []
+
+    with tqdm(
+        total=factuals.shape[0],
+        desc=desc,
+        unit="cf",
+        leave=False,
+    ) as progress:
+        for start in range(0, factuals.shape[0], batch_size):
+            batch = factuals.iloc[start : start + batch_size]
+            counterfactual_batch = method.get_counterfactuals(batch)
+
+            if counterfactual_batch.shape[0] != batch.shape[0]:
+                raise ValueError(
+                    "get_counterfactuals() must preserve the input row count"
+                )
+            if set(counterfactual_batch.columns) != set(batch.columns):
+                raise ValueError(
+                    "get_counterfactuals() must preserve the input feature columns"
+                )
+
+            counterfactual_batch = counterfactual_batch.reindex(
+                index=batch.index,
+                columns=batch.columns,
+            )
+            counterfactual_batches.append(counterfactual_batch)
+            progress.update(batch.shape[0])
+
+    if counterfactual_batches:
+        counterfactual_features = pd.concat(counterfactual_batches, axis=0)
+        counterfactual_features = counterfactual_features.reindex(index=factuals.index)
+    else:
+        counterfactual_features = factuals.iloc[0:0].copy(deep=True)
+
+    target_column = testset.target_column
+    counterfactual_target = pd.DataFrame(
+        -1.0,
+        index=counterfactual_features.index,
+        columns=[target_column],
+    )
+    counterfactual_df = pd.concat(
+        [counterfactual_features, counterfactual_target],
+        axis=1,
+    )
+    counterfactual_df = counterfactual_df.reindex(columns=testset.ordered_features())
+
+    output = testset.clone()
+    output.update("counterfactual", True, df=counterfactual_df)
+
+    if method._desired_class is not None:
+        class_to_index = method._target_model.get_class_to_index()
+        prediction = method._target_model.predict(testset, batch_size=batch_size)
+        predicted_label = prediction.argmax(dim=1).cpu().numpy()
+        evaluation_filter = pd.DataFrame(
+            predicted_label != class_to_index[method._desired_class],
+            index=counterfactual_df.index,
+            columns=["evaluation_filter"],
+            dtype=bool,
+        )
+        output.update("evaluation_filter", evaluation_filter)
+
+    output.freeze()
+    return output
+
+
+def evaluate_changed_model_validity(
+    bundles: list[ModelBundle],
+    *,
+    valid_counterfactuals: pd.DataFrame,
+    denominator: int,
+    desired_class: int,
+    desc: str,
+) -> float:
+    if denominator == 0:
+        return float("nan")
+    if valid_counterfactuals.shape[0] == 0:
+        return 0.0
+
+    results: list[float] = []
+    for bundle in tqdm(
+        bundles,
+        desc=desc,
+        unit="model",
+        leave=False,
+    ):
+        probabilities = bundle.model.get_prediction(valid_counterfactuals, proba=True)
+        predicted = probabilities.argmax(dim=1).detach().cpu().numpy()
+        success_count = int(np.sum(predicted == int(desired_class)))
+        results.append(100.0 * success_count / denominator)
+    return float(np.mean(results)) if results else float("nan")
+
+
+def evaluate_run(
+    *,
+    target_model: MlpModel,
+    trainset: FrameDataset,
+    factuals: FrameDataset,
+    wi_bundles: list[ModelBundle],
+    lo_bundles: list[ModelBundle],
+    norm: int,
+    tau: float,
+    device: str,
+    method_cfg: dict[str, Any],
+    lof_n_neighbors: int,
+) -> RunMetrics:
+    method = TrexMethod(
+        target_model=target_model,
+        seed=int(method_cfg["seed"]),
+        device=device,
+        desired_class=int(method_cfg["desired_class"]),
+        norm=norm,
+        cf_confidence=float(method_cfg["cf_confidence"]),
+        cf_steps=int(method_cfg["cf_steps"]),
+        cf_step_size=float(method_cfg["cf_step_size"]),
+        tau=tau,
+        k=int(method_cfg["k"]),
+        sigma=float(method_cfg["sigma"]),
+        trex_step_size=float(method_cfg["trex_step_size"]),
+        trex_max_steps=int(method_cfg["trex_max_steps"]),
+        trex_epsilon=float(method_cfg["trex_epsilon"]),
+        trex_p=method_cfg["trex_p"],
+        batch_size=int(method_cfg["batch_size"]),
+        clamp=method_cfg["clamp"],
+    )
+    method.fit(trainset)
+    counterfactuals = _predict_counterfactuals_with_progress(
+        method,
+        factuals,
+        batch_size=int(method_cfg["batch_size"]),
+        desc=f"Generating L{norm} counterfactuals",
+    )
+
+    factual_features = factuals.get(target=False)
+    counterfactual_features = counterfactuals.get(target=False)
+    valid_mask = _valid_counterfactual_mask(counterfactuals)
+
+    denominator = int(len(factual_features))
+    num_valid = int(valid_mask.sum())
+    current_validity_pct = (
+        100.0 * num_valid / denominator if denominator > 0 else float("nan")
+    )
+
+    if num_valid == 0:
+        cost = float("nan")
+        lof_value = float("nan")
+        valid_counterfactuals = counterfactual_features.iloc[0:0].copy(deep=True)
+    else:
+        factual_valid = factual_features.loc[valid_mask].copy(deep=True)
+        valid_counterfactuals = counterfactual_features.loc[valid_mask].copy(deep=True)
+        cost = _distance_mean(factual_valid, valid_counterfactuals, norm=norm)
+
+        lof = LocalOutlierFactor(n_neighbors=lof_n_neighbors, novelty=True)
+        lof.fit(trainset.get(target=False).to_numpy(dtype=np.float32))
+        lof_value = float(
+            lof.predict(valid_counterfactuals.to_numpy(dtype=np.float32)).mean()
+        )
+
+    wi_validity_pct = evaluate_changed_model_validity(
+        wi_bundles,
+        valid_counterfactuals=valid_counterfactuals,
+        denominator=denominator,
+        desired_class=int(method_cfg["desired_class"]),
+        desc=f"WI validity L{norm}",
+    )
+    lo_validity_pct = evaluate_changed_model_validity(
+        lo_bundles,
+        valid_counterfactuals=valid_counterfactuals,
+        denominator=denominator,
+        desired_class=int(method_cfg["desired_class"]),
+        desc=f"LO validity L{norm}",
+    )
+
+    return RunMetrics(
+        tau=float(tau),
+        norm=int(norm),
+        current_validity_pct=float(current_validity_pct),
+        cost=float(cost),
+        lof=float(lof_value),
+        wi_validity_pct=float(wi_validity_pct),
+        lo_validity_pct=float(lo_validity_pct),
+        num_factuals=denominator,
+        num_valid_counterfactuals=num_valid,
+    )
+
+
+def _metric_gap(value: float, target: float) -> float:
+    if math.isnan(value):
+        return float("inf")
+    return abs(value - target)
+
+
+def _candidate_summary(metrics: RunMetrics, paper_target: dict[str, float]) -> dict[str, Any]:
+    wi_gap = _metric_gap(metrics.wi_validity_pct, paper_target["wi_validity_pct"])
+    lo_gap = _metric_gap(metrics.lo_validity_pct, paper_target["lo_validity_pct"])
+    cost_gap = _metric_gap(metrics.cost, paper_target["cost"])
+    lof_gap = _metric_gap(metrics.lof, paper_target["lof"])
+    return {
+        "metrics": metrics,
+        "wi_gap": wi_gap,
+        "lo_gap": lo_gap,
+        "cost_gap": cost_gap,
+        "lof_gap": lof_gap,
+        "validity_gap_sum": wi_gap + lo_gap,
+    }
+
+
+def choose_tau(
+    *,
+    norm: int,
+    tau_grid: list[float],
+    paper_target: dict[str, float],
+    target_model: MlpModel,
+    trainset: FrameDataset,
+    pilot_factuals: FrameDataset,
+    pilot_wi_bundles: list[ModelBundle],
+    pilot_lo_bundles: list[ModelBundle],
+    device: str,
+    method_cfg: dict[str, Any],
+    lof_n_neighbors: int,
+) -> tuple[float, list[dict[str, Any]]]:
+    candidate_results: list[dict[str, Any]] = []
+
+    for tau in tqdm(
+        tau_grid,
+        desc=f"Tuning tau (L{norm})",
+        unit="tau",
+        leave=False,
+    ):
+        metrics = evaluate_run(
+            target_model=target_model,
+            trainset=trainset,
+            factuals=pilot_factuals,
+            wi_bundles=pilot_wi_bundles,
+            lo_bundles=pilot_lo_bundles,
+            norm=norm,
+            tau=tau,
+            device=device,
+            method_cfg=method_cfg,
+            lof_n_neighbors=lof_n_neighbors,
+        )
+        candidate_results.append(_candidate_summary(metrics, paper_target))
+
+    valid_candidates = [
+        item
+        for item in candidate_results
+        if item["wi_gap"] <= 3.0 and item["lo_gap"] <= 3.0
+    ]
+    if valid_candidates:
+        best = min(
+            valid_candidates,
+            key=lambda item: (
+                item["cost_gap"],
+                item["validity_gap_sum"],
+                item["lof_gap"],
+                item["metrics"].tau,
+            ),
+        )
+    else:
+        best = min(
+            candidate_results,
+            key=lambda item: (
+                item["validity_gap_sum"],
+                item["cost_gap"],
+                item["lof_gap"],
+                item["metrics"].tau,
+            ),
+        )
+
+    serialized_candidates = []
+    for item in candidate_results:
+        payload = item["metrics"].to_dict()
+        payload["gaps"] = {
+            "wi_validity_pct": float(item["wi_gap"]),
+            "lo_validity_pct": float(item["lo_gap"]),
+            "cost": float(item["cost_gap"]),
+            "lof": float(item["lof_gap"]),
+            "validity_gap_sum": float(item["validity_gap_sum"]),
+        }
+        serialized_candidates.append(payload)
+
+    return float(best["metrics"].tau), serialized_candidates
+
+
+def _pilot_subset(factuals: FrameDataset, limit: int) -> FrameDataset:
+    features = factuals.get(target=False)
+    target = factuals.get(target=True).iloc[:, 0]
+    selected_index = sorted(features.index.tolist())[: min(limit, len(features))]
+    pilot_features = features.loc[selected_index].copy(deep=True)
+    pilot_target = target.loc[selected_index].copy(deep=True)
+    return _make_dataset(
+        pilot_features,
+        pilot_target,
+        target_column=factuals.target_column,
+        name=f"{factuals.name}_pilot",
+        testset=True,
+    )
+
+
+def _subset_factuals(factuals: FrameDataset, limit: int | None, *, name: str) -> FrameDataset:
+    if limit is None or limit >= len(factuals):
+        return factuals
+
+    features = factuals.get(target=False)
+    target = factuals.get(target=True).iloc[:, 0]
+    selected_index = sorted(features.index.tolist())[:limit]
+    subset_features = features.loc[selected_index].copy(deep=True)
+    subset_target = target.loc[selected_index].copy(deep=True)
+    return _make_dataset(
+        subset_features,
+        subset_target,
+        target_column=factuals.target_column,
+        name=name,
+        testset=True,
+    )
+
+
+def _report_row(
+    metrics: RunMetrics,
+    paper_target: dict[str, float] | None,
+) -> dict[str, Any]:
+    payload = metrics.to_dict()
+    if paper_target is None:
+        payload["paper_target"] = None
+        payload["gaps"] = None
+        return payload
+
+    payload["paper_target"] = dict(paper_target)
+    payload["gaps"] = {
+        "cost": _metric_gap(metrics.cost, paper_target["cost"]),
+        "lof": _metric_gap(metrics.lof, paper_target["lof"]),
+        "wi_validity_pct": _metric_gap(
+            metrics.wi_validity_pct, paper_target["wi_validity_pct"]
+        ),
+        "lo_validity_pct": _metric_gap(
+            metrics.lo_validity_pct, paper_target["lo_validity_pct"]
+        ),
+    }
+    return payload
+
+
+def _print_summary(
+    *,
+    output: dict[str, Any],
+) -> None:
+    baseline = output["baseline"]
+    data = output["data"]
+    model_cfg = output["model"]
+    method_cfg = output["method"]
+    evaluation_cfg = output["evaluation"]
+
+    print(f"TreX reproduction ({data['data_name']})")
+    print(f"config: {output['config_path']}")
+    print(f"device: {output['device']}")
+    print(
+        f"processed_dim: {data['input_dim']} | train/test: "
+        f"{data['train_size']}/{data['test_size']} | rejected: {data['num_rejected_factuals']}"
+    )
+    print(
+        f"baseline accuracy: {baseline['test_accuracy']:.4f} | "
+        f"baseline auc: {baseline['test_auc']:.4f}"
+    )
+    print(
+        "model cfg: "
+        f"layers={model_cfg['layers']} | epochs={model_cfg['epochs']} | "
+        f"lr={model_cfg['learning_rate']:.4f} | batch={model_cfg['batch_size']}"
+    )
+    print(
+        "trex cfg: "
+        f"tau_l1={method_cfg['tau_l1']} | tau_l2={method_cfg['tau_l2']} | "
+        f"sigma={method_cfg['sigma']:.4f} | k={method_cfg['k']} | "
+        f"cf_steps={method_cfg['cf_steps']} | cf_step_size={method_cfg['cf_step_size']:.4f} | "
+        f"trex_steps={method_cfg['trex_max_steps']} | trex_step_size={method_cfg['trex_step_size']:.4f}"
+    )
+    print(
+        "eval cfg: "
+        f"wi_models={evaluation_cfg['wi_models']} | "
+        f"lo_models={evaluation_cfg['lo_models']} | "
+        f"factual_limit={evaluation_cfg['factual_limit']}"
+    )
+    print("")
+
+    rows = []
+    for norm_key in [key for key in ["l1", "l2"] if key in output]:
+        row = output[norm_key]
+        rows.append(
+            {
+                "norm": norm_key,
+                "tau": row["tau"],
+                "current_validity_pct": row["current_validity_pct"],
+                "cost": row["cost"],
+                "lof": row["lof"],
+                "wi_validity_pct": row["wi_validity_pct"],
+                "lo_validity_pct": row["lo_validity_pct"],
+            }
+        )
+    summary_df = pd.DataFrame(rows)
+    print(summary_df.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
+    print("")
+
+    for norm_key in [key for key in ["l1", "l2"] if key in output]:
+        row = output[norm_key]
+        gaps = row["gaps"]
+        if gaps is None:
+            print(f"{norm_key} target gaps | not available for this dataset")
+        else:
+            print(
+                f"{norm_key} target gaps | cost: {gaps['cost']:.4f} | lof: {gaps['lof']:.4f} | "
+                f"wi: {gaps['wi_validity_pct']:.4f} | lo: {gaps['lo_validity_pct']:.4f}"
+            )
+
+
+def _run_single_dataset_reproduction(
+    settings: dict[str, Any],
+) -> dict[str, Any]:
+    start_time = time.perf_counter()
+
+    with tqdm(total=5, desc="Reproduction stages", unit="stage") as stage_bar:
+        stage_bar.set_postfix_str("load data")
+        data = load_processed_reproduction_data(
+            train_path=settings["train_path"],
+            test_path=settings["test_path"],
+            target_column=settings["target_column"],
+            data_name=settings["data_name"],
+        )
+        trainset = data["trainset"]
+        testset = data["testset"]
+        stage_bar.update(1)
+
+        stage_bar.set_postfix_str("train baseline")
+        baseline_bundle = train_model_bundle(
+            trainset,
+            testset,
+            seed=settings["seed"],
+            device=settings["device"],
+            model_cfg=settings["model"],
+            variant="baseline",
+        )
+        baseline_metrics = compute_model_metrics(baseline_bundle.model, testset)
+        stage_bar.update(1)
+
+        stage_bar.set_postfix_str("select factuals")
+        factuals = select_rejected_factuals(
+            baseline_bundle.model,
+            testset,
+            desired_class=int(settings["method"]["desired_class"]),
+        )
+        if len(factuals) == 0:
+            raise RuntimeError("No rejected factuals were found for reproduction")
+        factuals = _subset_factuals(
+            factuals,
+            settings["evaluation"]["factual_limit"],
+            name=f"{settings['data_name']}_rejected_factuals_subset",
+        )
+        stage_bar.update(1)
+
+        stage_bar.set_postfix_str("train changed models")
+        wi_bundles, lo_bundles = train_changed_models(
+            trainset=trainset,
+            testset=testset,
+            train_features=data["train_features"],
+            train_target=data["train_target"],
+            wi_models=settings["evaluation"]["wi_models"],
+            lo_models=settings["evaluation"]["lo_models"],
+            device=settings["device"],
+            model_cfg=settings["model"],
+        )
+        stage_bar.update(1)
+
+        stage_bar.set_postfix_str("evaluate norms")
+        pilot_factuals = _pilot_subset(
+            factuals,
+            settings["evaluation"]["pilot_factual_limit"],
+        )
+        pilot_wi_bundles = wi_bundles[
+            : min(settings["evaluation"]["pilot_model_count"], len(wi_bundles))
+        ]
+        pilot_lo_bundles = lo_bundles[
+            : min(settings["evaluation"]["pilot_model_count"], len(lo_bundles))
+        ]
+
+        norm_results: dict[str, dict[str, Any]] = {}
+        manual_taus = {
+            "l1": settings["method"]["tau_l1"],
+            "l2": settings["method"]["tau_l2"],
+        }
+        for norm_key, norm in tqdm(
+            [("l1", 1), ("l2", 2)],
+            desc="Final norm evaluations",
+            unit="norm",
+            leave=False,
+        ):
+            paper_target = settings["evaluation"]["paper_targets"].get(norm_key)
+            tau_override = manual_taus[norm_key]
+            if tau_override is not None:
+                tau = float(tau_override)
+                pilot_candidates = []
+            elif paper_target is not None and settings["method"]["tau_grid"]:
+                tau, pilot_candidates = choose_tau(
+                    norm=norm,
+                    tau_grid=[float(value) for value in settings["method"]["tau_grid"]],
+                    paper_target=paper_target,
+                    target_model=baseline_bundle.model,
+                    trainset=trainset,
+                    pilot_factuals=pilot_factuals,
+                    pilot_wi_bundles=pilot_wi_bundles,
+                    pilot_lo_bundles=pilot_lo_bundles,
+                    device=settings["device"],
+                    method_cfg=settings["method"],
+                    lof_n_neighbors=settings["evaluation"]["lof_n_neighbors"],
+                )
+            elif settings["method"]["tau_l1"] is not None:
+                tau = float(settings["method"]["tau_l1"])
+                pilot_candidates = []
+            elif settings["method"]["tau_grid"]:
+                tau = float(settings["method"]["tau_grid"][0])
+                pilot_candidates = []
+            else:
+                raise ValueError(f"No tau available for {norm_key}")
+
+            metrics = evaluate_run(
+                target_model=baseline_bundle.model,
+                trainset=trainset,
+                factuals=factuals,
+                wi_bundles=wi_bundles,
+                lo_bundles=lo_bundles,
+                norm=norm,
+                tau=tau,
+                device=settings["device"],
+                method_cfg=settings["method"],
+                lof_n_neighbors=settings["evaluation"]["lof_n_neighbors"],
+            )
+            report = _report_row(metrics, paper_target)
+            report["pilot_candidates"] = pilot_candidates
+            norm_results[norm_key] = report
+        stage_bar.update(1)
+
+    elapsed_seconds = time.perf_counter() - start_time
+    return {
+        "config_path": settings["config_path"],
+        "experiment_name": settings["experiment_name"],
+        "device": settings["device"],
+        "elapsed_seconds": elapsed_seconds,
+        "baseline": baseline_metrics,
+        "model": {
+            "epochs": int(settings["model"]["epochs"]),
+            "learning_rate": float(settings["model"]["learning_rate"]),
+            "batch_size": int(settings["model"]["batch_size"]),
+            "layers": [int(value) for value in settings["model"]["layers"]],
+        },
+        "method": {
+            "tau_l1": settings["method"]["tau_l1"],
+            "tau_l2": settings["method"]["tau_l2"],
+            "sigma": float(settings["method"]["sigma"]),
+            "k": int(settings["method"]["k"]),
+            "cf_steps": int(settings["method"]["cf_steps"]),
+            "cf_step_size": float(settings["method"]["cf_step_size"]),
+            "trex_max_steps": int(settings["method"]["trex_max_steps"]),
+            "trex_step_size": float(settings["method"]["trex_step_size"]),
+        },
+        "evaluation": {
+            "wi_models": int(settings["evaluation"]["wi_models"]),
+            "lo_models": int(settings["evaluation"]["lo_models"]),
+            "factual_limit": settings["evaluation"]["factual_limit"],
+        },
+        "data": {
+            "data_name": settings["data_name"],
+            "train_path": str(settings["train_path"]),
+            "test_path": str(settings["test_path"]),
+            "target_column": settings["target_column"],
+            "input_dim": data["input_dim"],
+            "train_size": int(len(trainset)),
+            "test_size": int(len(testset)),
+            "full_target_counts": data["full_target_counts"],
+            "train_target_counts": data["train_target_counts"],
+            "test_target_counts": data["test_target_counts"],
+            "num_rejected_factuals": int(len(factuals)),
+            "num_pilot_factuals": int(len(pilot_factuals)),
+            "factual_limit": settings["evaluation"]["factual_limit"],
+            "label_transform": "identity",
+        },
+        "l1": norm_results["l1"],
+        "l2": norm_results["l2"],
+    }
+
+
+def _build_report_experiments(outputs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    experiments_data: dict[str, dict[str, Any]] = {}
+    for output in outputs:
+        for norm_key in ("l1", "l2"):
+            norm_output = output[norm_key]
+            experiments_data[f"{output['data']['data_name']}_{norm_key}"] = {
+                "configuration": {
+                    "dataset": output["data"]["data_name"],
+                    "norm": norm_key,
+                    "tau": norm_output["tau"],
+                },
+                "metrics": {
+                    key: {
+                        "original": norm_output.get("paper_target", {}).get(key)
+                        if norm_output.get("paper_target")
+                        else None,
+                        "reproduced": value,
+                    }
+                    for key, value in norm_output.items()
+                    if isinstance(value, (int, float, np.floating, np.integer))
+                },
+            }
+    return experiments_data
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH))
+    parser.add_argument("--dataset", default=None)
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default=None)
+    parser.add_argument("--wi-models", type=int, default=None)
+    parser.add_argument("--lo-models", type=int, default=None)
+    parser.add_argument("--pilot-model-count", type=int, default=None)
+    parser.add_argument("--pilot-factual-limit", type=int, default=None)
+    parser.add_argument("--factual-limit", type=int, default=None)
+    parser.add_argument(
+        "--tau-grid",
+        type=float,
+        nargs="+",
+        default=None,
+    )
+    parser.add_argument("--tau-l1", type=float, default=None)
+    parser.add_argument("--tau-l2", type=float, default=None)
+    parser.add_argument("--train-batch-size", type=int, default=None)
+    parser.add_argument("--learning-rate", type=float, default=None)
+    parser.add_argument("--k", type=int, default=None)
+    parser.add_argument("--sigma", type=float, default=None)
+    parser.add_argument("--cf-confidence", type=float, default=None)
+    parser.add_argument("--cf-steps", type=int, default=None)
+    parser.add_argument("--cf-step-size", type=float, default=None)
+    parser.add_argument("--trex-step-size", type=float, default=None)
+    parser.add_argument("--trex-max-steps", type=int, default=None)
+    parser.add_argument("--trex-epsilon", type=float, default=None)
+    return parser.parse_args()
+
+@pytest.mark.slow
+def test_reproduce() -> None:
+    args = parse_args()
+    config = _load_config(Path(args.config).resolve())
+    data_items = _resolve_data_configs(config, args.dataset)
+    outputs: list[dict[str, Any]] = []
+    for data_item in data_items:
+        settings = _resolve_settings(config, args, data_item)
+        output = _run_single_dataset_reproduction(settings)
+        outputs.append(output)
+        _print_summary(output=output)
+        print("")
+
+    report_path = write_reproduction_report(
+        output_path=REPORT_PATH,
+        paper_id="trex_recourse_robustness",
+        reproduction_metadata={
+            "timestamp": datetime.now(timezone.utc),
+            "framework_version": "1.0.0",
+            "source_script": Path(__file__).name,
+            "config_path": str(Path(args.config).resolve()),
+            "device": outputs[0]["device"] if outputs else "unknown",
+            "elapsed_seconds": float(sum(output["elapsed_seconds"] for output in outputs)),
+            "datasets": [output["data"]["data_name"] for output in outputs],
+        },
+        experiments_data=_build_report_experiments(outputs),
+    )
+    print(f"reproduction_report_path: {report_path}")
+
+
+if __name__ == "__main__":
+    test_reproduce()

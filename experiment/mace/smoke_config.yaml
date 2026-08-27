@@ -1,0 +1,34 @@
+name: mace_smoke
+logger:
+  level: INFO
+  path: ./logs/mace_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: compas
+  path: ./dataset/compas/
+preprocess:
+- name: mace_encode
+  seed: 0
+- name: split
+  seed: 0
+  split: 0.2
+  sample: 2
+model:
+  name: randomforest
+  seed: 0
+  device: cpu
+  n_estimators: 20
+  max_depth: null
+  min_samples_split: 2
+  n_jobs: -1
+  max_features: sqrt
+method:
+  name: mace
+  seed: 0
+  device: cpu
+  norm_type: zero_norm
+  epsilon: 1.0e-3
+evaluation:
+  - name: validity
+  - name: distance

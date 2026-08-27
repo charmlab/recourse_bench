@@ -1,0 +1,518 @@
+{
+  "paper_id": "sns_stable_neighbor_search",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-03T07:22:40.541165Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_sns_reproduce.py",
+    "config_path": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/sns/config.yaml",
+    "stdout_log": "/mnt/c/Users/hashi/OneDrive/Desktop/UniversityOfWaterloo/ECE_masters/recourse_bench/experiment/sns/reproduce_stdout.txt",
+    "max_factuals": null,
+    "max_related_models": null
+  },
+  "experiments": {
+    "german_credit": {
+      "configuration": {
+        "dataset": "german_credit",
+        "display_name": "German Credit",
+        "feature_count": 61,
+        "class_count": 2,
+        "max_factuals": null,
+        "max_related_models": null
+      },
+      "metrics": {
+        "baseline_accuracy": {
+          "original": null,
+          "reproduced": 0.695,
+          "delta": null,
+          "cv_star": null
+        },
+        "base_loo_invalidation": {
+          "original": 0.36,
+          "reproduced": 0.4487500000000001,
+          "delta": 0.1977715877437328,
+          "cv_star": 0.17459089380919796
+        },
+        "base_rs_invalidation": {
+          "original": 0.56,
+          "reproduced": 0.5976499999999999,
+          "delta": 0.06299673722078115,
+          "cv_star": 0.05174343126270045
+        },
+        "base_l2_cost": {
+          "original": 4.49,
+          "reproduced": 4.122022845321706,
+          "delta": 0.08195482286821691,
+          "cv_star": 0.06798031991476028
+        },
+        "sns_loo_invalidation": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0,
+          "cv_star": null
+        },
+        "sns_rs_invalidation": {
+          "original": 0.06,
+          "reproduced": 0.009550000000000001,
+          "delta": 0.8408333333333333,
+          "cv_star": 1.1540684183959449
+        },
+        "sns_l2_cost": {
+          "original": 6.23,
+          "reproduced": 5.047246670631855,
+          "delta": 0.18984804644753533,
+          "cv_star": 0.1668624513775689
+        },
+        "baseline_model_cache_hit": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "seizure": {
+      "configuration": {
+        "dataset": "seizure",
+        "display_name": "Seizure",
+        "feature_count": 178,
+        "class_count": 2,
+        "max_factuals": null,
+        "max_related_models": null
+      },
+      "metrics": {
+        "baseline_accuracy": {
+          "original": null,
+          "reproduced": 0.9736231884057971,
+          "delta": null,
+          "cv_star": null
+        },
+        "base_loo_invalidation": {
+          "original": 0.64,
+          "reproduced": 0.7958347826086958,
+          "delta": 0.1958129828126879,
+          "cv_star": 0.17267419896741953
+        },
+        "base_rs_invalidation": {
+          "original": 0.77,
+          "reproduced": 0.9013014492753624,
+          "delta": 0.14567983817281938,
+          "cv_star": 0.1249920094939138
+        },
+        "base_l2_cost": {
+          "original": 8.23,
+          "reproduced": 7.175149158864848,
+          "delta": 0.1281714266263855,
+          "cv_star": 0.10894132826847713
+        },
+        "sns_loo_invalidation": {
+          "original": 0.02,
+          "reproduced": 0.04294782608695653,
+          "delta": 0.534318687993521,
+          "cv_star": 0.5800004544813404
+        },
+        "sns_rs_invalidation": {
+          "original": 0.13,
+          "reproduced": 0.273263768115942,
+          "delta": 0.5242691671263099,
+          "cv_star": 0.5652163109381722
+        },
+        "sns_l2_cost": {
+          "original": 9.6,
+          "reproduced": 7.5952294080933225,
+          "delta": 0.20883026999027887,
+          "cv_star": 0.1854915921671311
+        },
+        "baseline_model_cache_hit": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "ctg": {
+      "configuration": {
+        "dataset": "ctg",
+        "display_name": "CTG",
+        "feature_count": 21,
+        "class_count": 2,
+        "max_factuals": null,
+        "max_related_models": null
+      },
+      "metrics": {
+        "baseline_accuracy": {
+          "original": null,
+          "reproduced": 0.9530516431924883,
+          "delta": null,
+          "cv_star": null
+        },
+        "base_loo_invalidation": {
+          "original": 0.48,
+          "reproduced": 0.5206807511737089,
+          "delta": 0.07812993102204595,
+          "cv_star": 0.0646786487260233
+        },
+        "base_rs_invalidation": {
+          "original": 0.49,
+          "reproduced": 0.545868544600939,
+          "delta": 0.10234798314268526,
+          "cv_star": 0.08580848470934478
+        },
+        "base_l2_cost": {
+          "original": 0.06,
+          "reproduced": 2.0615535610765745,
+          "delta": 0.9708957355594161,
+          "cv_star": 1.5010001511633062
+        },
+        "sns_loo_invalidation": {
+          "original": 0.0,
+          "reproduced": 0.019953051643192492,
+          "delta": 1.0,
+          "cv_star": 1.590990257669732
+        },
+        "sns_rs_invalidation": {
+          "original": 0.0,
+          "reproduced": 0.04368544600938968,
+          "delta": 1.0,
+          "cv_star": 1.5909902576697321
+        },
+        "sns_l2_cost": {
+          "original": 0.21,
+          "reproduced": 2.344881698747181,
+          "delta": 0.9104432432083042,
+          "cv_star": 1.32944550256465
+        },
+        "baseline_model_cache_hit": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "warfarin": {
+      "configuration": {
+        "dataset": "warfarin",
+        "display_name": "Warfarin",
+        "feature_count": 17,
+        "class_count": 3,
+        "max_factuals": null,
+        "max_related_models": null
+      },
+      "metrics": {
+        "baseline_accuracy": {
+          "original": null,
+          "reproduced": 0.6879668049792531,
+          "delta": null,
+          "cv_star": null
+        },
+        "base_loo_invalidation": {
+          "original": 0.35,
+          "reproduced": 0.4837804878048781,
+          "delta": 0.27653138391731796,
+          "cv_star": 0.2552751663980835
+        },
+        "base_rs_invalidation": {
+          "original": 0.3,
+          "reproduced": 0.49065410199556536,
+          "delta": 0.3885712994554533,
+          "cv_star": 0.38364288263873103
+        },
+        "base_l2_cost": {
+          "original": 0.54,
+          "reproduced": 0.5667837033819426,
+          "delta": 0.04725559895622767,
+          "cv_star": 0.038501299770476664
+        },
+        "sns_loo_invalidation": {
+          "original": 0.0,
+          "reproduced": 0.0008647450110864745,
+          "delta": 1.0,
+          "cv_star": 1.590990257669732
+        },
+        "sns_rs_invalidation": {
+          "original": 0.0,
+          "reproduced": 0.00605321507760532,
+          "delta": 1.0,
+          "cv_star": 1.5909902576697321
+        },
+        "sns_l2_cost": {
+          "original": 0.9,
+          "reproduced": 0.7961738325932707,
+          "delta": 0.11536240822969926,
+          "cv_star": 0.09738767198332522
+        },
+        "baseline_model_cache_hit": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "heloc": {
+      "configuration": {
+        "dataset": "heloc",
+        "display_name": "HELOC",
+        "feature_count": 39,
+        "class_count": 2,
+        "max_factuals": null,
+        "max_related_models": null
+      },
+      "metrics": {
+        "baseline_accuracy": {
+          "original": null,
+          "reproduced": 0.7124282982791587,
+          "delta": null,
+          "cv_star": null
+        },
+        "base_loo_invalidation": {
+          "original": 0.55,
+          "reproduced": 0.6173412394797245,
+          "delta": 0.10908268421607072,
+          "cv_star": 0.09178057994369937
+        },
+        "base_rs_invalidation": {
+          "original": 0.61,
+          "reproduced": 0.5885271614384086,
+          "delta": 0.0352013746911335,
+          "cv_star": 0.028504215886944278
+        },
+        "base_l2_cost": {
+          "original": 0.11,
+          "reproduced": 0.10870384521072264,
+          "delta": 0.011783225357066905,
+          "cv_star": 0.009429050688090686
+        },
+        "sns_loo_invalidation": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0,
+          "cv_star": null
+        },
+        "sns_rs_invalidation": {
+          "original": 0.0,
+          "reproduced": 7.651109410864575e-06,
+          "delta": 1.0,
+          "cv_star": 1.5909902576697321
+        },
+        "sns_l2_cost": {
+          "original": 1.71,
+          "reproduced": 1.9957926012561353,
+          "delta": 0.14319754521399664,
+          "cv_star": 0.12269797402004541
+        },
+        "baseline_model_cache_hit": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "taiwanese_credit": {
+      "configuration": {
+        "dataset": "taiwanese_credit",
+        "display_name": "Taiwanese Credit",
+        "feature_count": 32,
+        "class_count": 2,
+        "max_factuals": null,
+        "max_related_models": null
+      },
+      "metrics": {
+        "baseline_accuracy": {
+          "original": null,
+          "reproduced": 0.8176,
+          "delta": null,
+          "cv_star": null
+        },
+        "base_loo_invalidation": {
+          "original": 0.27,
+          "reproduced": 0.563568,
+          "delta": 0.5209096329103142,
+          "cv_star": 0.5603188077800345
+        },
+        "base_rs_invalidation": {
+          "original": 0.72,
+          "reproduced": 0.7927093333333335,
+          "delta": 0.09172256497547672,
+          "cv_star": 0.07647195560041148
+        },
+        "base_l2_cost": {
+          "original": 2.65,
+          "reproduced": 2.381460430250896,
+          "delta": 0.1013356866977751,
+          "cv_star": 0.08491447864737381
+        },
+        "sns_loo_invalidation": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0,
+          "cv_star": null
+        },
+        "sns_rs_invalidation": {
+          "original": 0.04,
+          "reproduced": 0.00042666666666666667,
+          "delta": 0.9893333333333334,
+          "cv_star": 1.557407349856123
+        },
+        "sns_l2_cost": {
+          "original": 4.68,
+          "reproduced": 3.172253084684691,
+          "delta": 0.32216814429814294,
+          "cv_star": 0.305493293125889
+        },
+        "baseline_model_cache_hit": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "rs_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_hits": {
+          "original": null,
+          "reproduced": 0,
+          "delta": null,
+          "cv_star": null
+        },
+        "loo_cache_misses": {
+          "original": null,
+          "reproduced": 100,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

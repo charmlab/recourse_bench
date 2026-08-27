@@ -1,0 +1,80 @@
+{
+  "paper_id": "clue_compas_uncertainty",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-26T00:00:00Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_clue_reproduce.py",
+    "device": "cuda",
+    "output_dir": "experiment/clue/compas_reproduce",
+    "assert_paper": false,
+    "result_source": "teammate_supplied_temporary_report"
+  },
+  "experiments": {
+    "compas_table1": {
+      "configuration": {
+        "dataset": "compas_clue",
+        "target_model": "mlp_bayesian",
+        "device": "cuda"
+      },
+      "metrics": {
+        "table1_epistemic": {
+          "original": 0.71,
+          "reproduced": 0.7071067811865475,
+          "delta": 0.004075748188095066,
+          "cv_star": 0.003248225897031937
+        },
+        "table1_aleatoric": {
+          "original": 0.18,
+          "reproduced": 0.22027550834858148,
+          "delta": 0.1828397663383535,
+          "cv_star": 0.16008459190934704
+        },
+        "epistemic_selected_count": {
+          "original": null,
+          "reproduced": 103,
+          "delta": null,
+          "cv_star": null
+        },
+        "aleatoric_selected_count": {
+          "original": null,
+          "reproduced": 327,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    },
+    "compas_table2": {
+      "configuration": {
+        "dataset": "compas_clue",
+        "target_model": "mlp_bayesian",
+        "device": "cuda"
+      },
+      "metrics": {
+        "table2_epistemic": {
+          "original": 0.707,
+          "reproduced": 0.7071067811865475,
+          "delta": 0.0001510101648488045,
+          "cv_star": 0.00012013790596275713
+        },
+        "table2_aleatoric": {
+          "original": 0.044,
+          "reproduced": 0.0,
+          "delta": 1.0,
+          "cv_star": 1.590990257669732
+        },
+        "epistemic_selected_count": {
+          "original": null,
+          "reproduced": 103,
+          "delta": null,
+          "cv_star": null
+        },
+        "aleatoric_selected_count": {
+          "original": null,
+          "reproduced": 327,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

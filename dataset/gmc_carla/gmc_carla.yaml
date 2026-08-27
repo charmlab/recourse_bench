@@ -1,0 +1,50 @@
+name: gmc_carla
+target_column: SeriousDlqin2yrs
+feature_order:
+- RevolvingUtilizationOfUnsecuredLines
+- age
+- NumberOfTime30-59DaysPastDueNotWorse
+- DebtRatio
+- MonthlyIncome
+- NumberOfOpenCreditLinesAndLoans
+- NumberOfTimes90DaysLate
+- NumberRealEstateLoansOrLines
+- NumberOfTime60-89DaysPastDueNotWorse
+- NumberOfDependents
+- SeriousDlqin2yrs
+raw_feature_type:
+  RevolvingUtilizationOfUnsecuredLines: numerical
+  age: numerical
+  NumberOfTime30-59DaysPastDueNotWorse: numerical
+  DebtRatio: numerical
+  MonthlyIncome: numerical
+  NumberOfOpenCreditLinesAndLoans: numerical
+  NumberOfTimes90DaysLate: numerical
+  NumberRealEstateLoansOrLines: numerical
+  NumberOfTime60-89DaysPastDueNotWorse: numerical
+  NumberOfDependents: numerical
+  SeriousDlqin2yrs: binary
+raw_feature_mutability:
+  RevolvingUtilizationOfUnsecuredLines: true
+  age: true
+  NumberOfTime30-59DaysPastDueNotWorse: true
+  DebtRatio: true
+  MonthlyIncome: true
+  NumberOfOpenCreditLinesAndLoans: true
+  NumberOfTimes90DaysLate: true
+  NumberRealEstateLoansOrLines: true
+  NumberOfTime60-89DaysPastDueNotWorse: true
+  NumberOfDependents: true
+  SeriousDlqin2yrs: false
+raw_feature_actionability:
+  RevolvingUtilizationOfUnsecuredLines: any
+  age: same-or-increase
+  NumberOfTime30-59DaysPastDueNotWorse: any
+  DebtRatio: any
+  MonthlyIncome: any
+  NumberOfOpenCreditLinesAndLoans: any
+  NumberOfTimes90DaysLate: any
+  NumberRealEstateLoansOrLines: any
+  NumberOfTime60-89DaysPastDueNotWorse: any
+  NumberOfDependents: any
+  SeriousDlqin2yrs: none

@@ -1,0 +1,61 @@
+{
+  "paper_id": "Endogenous Macrodynamics in Algorithmic Recourse",
+  "reproduction_metadata": {
+    "source_script": "test_gravitational_reproduce.py",
+    "paper_reference": "reference/gravitaional-claproar.pdf",
+    "paper_anchor": "Gravitational counterfactual penalty, Eq. 7 and Section VII mitigation results",
+    "scope": "Scoped deterministic toy check; not the full repeated-retraining simulation.",
+    "timestamp_utc": "2026-08-12T20:43:18.816315Z"
+  },
+  "experiments": {
+    "gravitational_target_domain_penalty": {
+      "configuration": {
+        "boundary_only_grav_penalty_lambda": 0.0,
+        "gravitational_grav_penalty_lambda": 0.5,
+        "target_center": [
+          1.0,
+          0.0
+        ],
+        "num_factuals": 4
+      },
+      "metrics": {
+        "boundary_only_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "gravitational_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "boundary_only_mean_target_center_distance": {
+          "original": null,
+          "reproduced": 2.052888553431714,
+          "delta": null,
+          "cv_star": null
+        },
+        "gravitational_mean_target_center_distance": {
+          "original": null,
+          "reproduced": 0.0010691243191355184,
+          "delta": null,
+          "cv_star": null
+        },
+        "boundary_only_mean_recourse_distance": {
+          "original": null,
+          "reproduced": 0.9628292409097974,
+          "delta": null,
+          "cv_star": null
+        },
+        "gravitational_mean_recourse_distance": {
+          "original": null,
+          "reproduced": 2.2855073214558095,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

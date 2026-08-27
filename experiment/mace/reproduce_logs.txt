@@ -1,0 +1,22 @@
+**Scope of Reproducibility**
+
+We aim to reproduce the MACE claims represented by `experiment/mace/test_mace_reproduce.py`:
+
+1. We improve over minimum-observable/action baselines on tabular recourse cost metrics : [Quantitative] : [Table 3-style Adult/Credit comparisons]
+2. We evaluate improvement under zero, one, and infinity norm objectives : [Quantitative] : [Adult and Credit norm targets in the reproduction script]
+3. We produce actionable counterfactual explanations under the MACE optimization setup : [Quantitative] : [MACE recourse experiment]
+
+**Methodology**
+
+We reproduce MACE with `experiment/mace/test_mace_reproduce.py` in the RecourseBench environment. The project artifact list says code/experiments and data are available, but the original MACE PDF was not included in the PDF-backed pass used for this log, and no current `reproduction_report.json` is present.
+
+**Results**
+
+Claims 1-3 are attempted by the script but not verified by current run artifacts. The bundled targets are Adult `zero_norm = 62.0`, `one_norm = 92.0`, `infty_norm = 86.0`, and Credit `zero_norm = 80.0`, `one_norm = 82.0`, `infty_norm = 80.0`. Without a current report, we cannot compute deltas or claim successful reproduction.
+
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Add or identify the original MACE PDF in `reference/`.
+- Run the Adult and Credit reproduction paths and write `reproduction_report.json`.
+- Confirm whether original code/data or RecourseBench wrappers are used.
+- Add raw scalar values in addition to rounded improvement checks.

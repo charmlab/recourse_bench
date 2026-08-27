@@ -1,41 +1,22 @@
-Level Badge
-Level 1: Congruent Reproduction
-Reason: The benchmark TreX implementation reproduces the qualitative German Credit behavior from the paper and matches the robustness-oriented metrics closely, but it does not reproduce the exact numerical cost. The strongest identified cause is that the reconstructed benchmark German split / encoding does not match the reference processed German arrays in `reference/TReX-Counterfactuals/dataset/data/`.
+**Scope of Reproducibility**
 
-Method
-TreX German reproduction for the benchmark implementation under `method/trex/`, using the reproduction harness in `experiment/trex/`, a 61-feature processed German Credit input, and WI / LO changed-model evaluation.
+We aim to reproduce the TreX claims from `reference/trex.pdf`:
 
-Reproduction Summary
-Reference setting:
-- dataset: German Credit
-- processed features: 61
-- model: MLP with hidden layers [128, 128]
-- training: 50 epochs, Adam, learning rate 0.001, batch size 256
-- TreX hyperparameters: tau_l1 0.80, sigma 0.15, k 1000, cf_steps 60, cf_step_size 0.02, trex_steps 200, trex_step_size 0.01
-- evaluation: 50 WI models and 50 LO models
+1. We provide theoretical support for future-valid recourse under related models : [Qualitative] : [Theorem / guarantee section]
+2. We improve future validity while controlling cost and likeness/LOF metrics : [Quantitative] : [German, HELOC, and CTG L1/L2 experiments]
+3. We evaluate within-instance validity, leave-one-out validity, cost, and LOF across datasets : [Quantitative] : [Empirical tables]
 
-Observed result:
-- processed_dim = 61
-- train/test = 670/330
-- rejected_factuals = 197
-- baseline_accuracy = 0.7364
-- baseline_auc = 0.7593
-- current_validity_pct = 100.0000
-- cost = 3.0869
-- lof = 0.7157
-- wi_validity_pct = 97.6244
-- lo_validity_pct = 96.6802
+**Methodology**
 
-Paper / reference comparison:
-- paper cost target = 4.81 versus reproduced 3.0869
-- paper LOF target = 0.72 versus reproduced 0.7157
-- paper WI validity target = 98.0 versus reproduced 97.6244
-- paper LO validity target = 96.5 versus reproduced 96.6802
-- the largest gap is counterfactual cost, while robustness metrics are already close to the paper regime
-- the benchmark reconstruction matches the reference shape but not the reference German `X` / `y` arrays, so the current run is not using a paper-identical processed dataset path
+We reproduce TreX with `experiment/trex/test_trex_reproduce.py` and `experiment/trex/config.yaml`. Code/experiments and data are available. The current run covers German, HELOC, and CTG with L1/L2 settings in the RecourseBench environment.
 
-Next Steps
-- Align the reproduction with the exact reference German processed arrays or reconstruct the preprocessing pipeline so the resulting `X_train`, `X_test`, `y_train`, and `y_test` match the reference code exactly.
-- Recheck split seed, label convention, and one-hot category ordering before changing TreX hyperparameters.
-- After data parity is established, rerun the same German L1 setting and reassess whether the cost gap closes while WI / LO validity remains stable.
-- If the data path is confirmed identical and cost still drifts, inspect changed-model construction and the TreX refinement port for smaller implementation differences.
+**Results**
+
+Claims 2 and 3 are partially reproduced: 16 of 24 scalar comparisons are within the 15% relative-delta threshold. Future-validity values are often close, including HELOC L2 leave-one-out validity, reference 98.2 versus reproduced 99.10, relative delta 0.009. Cost and LOF drift more: German L1 cost has relative delta 0.324, HELOC L1 LOF has relative delta 1.731, and CTG L1 LOF has relative delta 1.509. Claim 1 is proof-level evidence.
+
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Confirm exact L1/L2 cost and LOF/likeness definitions.
+- Investigate LOF sign/magnitude mismatches and German L1 cost drift.
+- Add proof-inspection notes for theoretical future-validity guarantees.
+- Add any missing ablations if required by the paper.

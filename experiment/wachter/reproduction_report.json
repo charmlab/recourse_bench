@@ -1,0 +1,64 @@
+{
+  "paper_id": "Counterfactual Explanations Without Opening the Black Box",
+  "reproduction_metadata": {
+    "source_script": "test_wachter_reproduce.py",
+    "paper_reference": "reference/wachter.pdf",
+    "paper_anchor": "Section III optimization objective and MAD-weighted L1 distance",
+    "scope": "Scoped deterministic optimizer check; original LSAT/Pima experiment data are unavailable.",
+    "timestamp_utc": "2026-08-12T20:43:19.111634Z"
+  },
+  "experiments": {
+    "mad_weighted_l1_counterfactual": {
+      "configuration": {
+        "factual": [
+          0.20000000298023224,
+          0.20000000298023224
+        ],
+        "feature_cost": [
+          1.0,
+          8.0
+        ],
+        "decision_threshold": 0.5,
+        "norm": 1
+      },
+      "metrics": {
+        "unweighted_target_probability": {
+          "original": null,
+          "reproduced": 0.5553454756736755,
+          "delta": null,
+          "cv_star": null
+        },
+        "mad_weighted_target_probability": {
+          "original": null,
+          "reproduced": 0.5456575155258179,
+          "delta": null,
+          "cv_star": null
+        },
+        "unweighted_changed_feature_count": {
+          "original": null,
+          "reproduced": 2,
+          "delta": null,
+          "cv_star": null
+        },
+        "mad_weighted_changed_feature_count": {
+          "original": null,
+          "reproduced": 2,
+          "delta": null,
+          "cv_star": null
+        },
+        "unweighted_second_feature_change": {
+          "original": null,
+          "reproduced": 0.23832859098911285,
+          "delta": null,
+          "cv_star": null
+        },
+        "mad_weighted_second_feature_change": {
+          "original": null,
+          "reproduced": 0.003382578492164612,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

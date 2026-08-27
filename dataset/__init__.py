@@ -1,4 +1,5 @@
 from dataset.adult.adult import AdultDataset
+from dataset.adult_carla.adult_carla import AdultCarlaDataset
 from dataset.adult_cfrl.adult_cfrl import AdultCfrlDataset
 from dataset.adult_cfvae.adult_cfvae import AdultCfvaeDataset
 from dataset.adult_cogs.adult_cogs import AdultCoGSDataset
@@ -7,14 +8,28 @@ from dataset.breast_cancer.breast_cancer import BreastCancerDataset
 from dataset.compas.compas import CompasDataset
 from dataset.compas_carla.compas_carla import CompasCarlaDataset
 from dataset.compas_clue.compas_clue import CompasClueDataset
+from dataset.ctg_sns.ctg_sns import CtgSnsDataset
+from dataset.ctg_trex.ctg_trex import CtgTrexDataset
 from dataset.credit.credit import CreditDataset
 from dataset.credit_cchvae.credit_cchvae import CreditCchvaeDataset
 from dataset.dataset_object import DatasetObject
 from dataset.diabetes.diabetes import DiabetesDataset
 from dataset.german.german import GermanDataset
 from dataset.german_roar.german_roar import GermanRoarDataset
+from dataset.gmc_carla.gmc_carla import GmcCarlaDataset
+from dataset.german_trex.german_trex import GermanTrexDataset
 from dataset.hepatitis.hepatitis import HepatitisDataset
+from dataset.heloc_carla.heloc_carla import HelocCarlaDataset
+from dataset.heloc_sns.heloc_sns import HelocSnsDataset
+from dataset.heloc_trex.heloc_trex import HelocTrexDataset
 from dataset.german_sns.german_sns import GermanSnsDataset
 from dataset.news_popularity.news_popularity import NewsPopularityDataset
+from dataset.sba_roar.sba_roar import SbaRoarDataset
+from dataset.seizure_sns.seizure_sns import SeizureSnsDataset
+from dataset.student_roar.student_roar import StudentRoarDataset
 from dataset.synthetic_face.synthetic_face import SyntheticFaceDataset
+from dataset.taiwanese_credit_sns.taiwanese_credit_sns import (
+    TaiwaneseCreditSnsDataset,
+)
 from dataset.toydata.toydata import ToydataDataset
+from dataset.warfarin_sns.warfarin_sns import WarfarinSnsDataset

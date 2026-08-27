@@ -196,3 +196,36 @@ class DiverseDistMethod(MethodObject):
 
         self._last_explanation_sets = traces
         return validated
+
+    def counterfactual_set_metadata(
+        self,
+        factual_index: pd.Index,
+        feature_columns: pd.Index,
+    ) -> dict[str, object] | None:
+        if not self._last_explanation_sets:
+            return None
+
+        sets = []
+        validity = []
+        for trace in self._last_explanation_sets:
+            counterfactuals = [
+                counterfactual.astype(np.float64, copy=False)
+                for counterfactual in trace.counterfactuals
+            ]
+            counterfactual_set = pd.DataFrame(
+                counterfactuals,
+                columns=feature_columns,
+            )
+            sets.append(counterfactual_set)
+            validity.append(
+                pd.Series(
+                    [trace.status == "success"] * counterfactual_set.shape[0],
+                    index=counterfactual_set.index,
+                    dtype=bool,
+                )
+            )
+        return {
+            "counterfactual_sets": sets,
+            "counterfactual_set_validity": validity,
+            "counterfactual_set_source": self.__class__.__name__,
+        }

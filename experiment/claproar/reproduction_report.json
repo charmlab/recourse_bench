@@ -1,0 +1,60 @@
+{
+  "paper_id": "Endogenous Macrodynamics in Algorithmic Recourse",
+  "reproduction_metadata": {
+    "source_script": "test_claproar_reproduce.py",
+    "paper_reference": "reference/gravitaional-claproar.pdf",
+    "paper_anchor": "ClaPROAR external classifier-preserving penalty, Eq. 6 and Section VII mitigation results",
+    "scope": "Scoped deterministic toy check; not the full repeated-retraining simulation.",
+    "timestamp_utc": "2026-08-12T20:43:18.308023Z"
+  },
+  "experiments": {
+    "claproar_classifier_preserving_penalty": {
+      "configuration": {
+        "baseline_external_cost_lambda": 0.0,
+        "claproar_external_cost_lambda": 0.5,
+        "individual_cost_lambda": 0.05,
+        "learning_rate": 0.03,
+        "max_iter": 300,
+        "num_factuals": 4
+      },
+      "metrics": {
+        "baseline_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "claproar_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "baseline_mean_recourse_distance": {
+          "original": null,
+          "reproduced": 1.448598129612524,
+          "delta": null,
+          "cv_star": null
+        },
+        "claproar_mean_recourse_distance": {
+          "original": null,
+          "reproduced": 0.814101853622065,
+          "delta": null,
+          "cv_star": null
+        },
+        "baseline_mean_positive_logit": {
+          "original": null,
+          "reproduced": 1.923628330230713,
+          "delta": null,
+          "cv_star": null
+        },
+        "claproar_mean_positive_logit": {
+          "original": null,
+          "reproduced": 0.31763455271720886,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

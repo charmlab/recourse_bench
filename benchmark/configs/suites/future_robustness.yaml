@@ -1,0 +1,40 @@
+name: future_robustness
+base_config: base.yaml
+output_csv: ./benchmark/results/future_robustness_results.csv
+
+datasets:
+  - german
+
+models:
+  - mlp
+  - linear
+
+methods:
+  # - roar
+  # - rbr
+  # - cvas_proj
+  # - larr
+  - trex
+  - probe
+  - apas
+
+evaluation:
+  - name: validity
+  - name: future_validity
+    future_dataset: german_roar
+    desired_class: 1
+    prediction_batch_size: 512
+  - name: distance
+    metrics: [l1]
+
+benchmark:
+  device: cpu
+  desired_class: 1
+  sample_target: 50
+  min_factuals: 25
+  allow_partial_factuals: true
+  sample_seed: 0
+  factual_filter: prediction_not_equal_desired_class
+  prediction_batch_size: 512
+  method_batch_size: 20
+  continue_on_error: true

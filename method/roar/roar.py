@@ -7,6 +7,7 @@ import pandas as pd
 import torch
 from lime.lime_tabular import LimeTabularExplainer
 from sklearn.linear_model import LogisticRegression
+from tqdm import tqdm
 
 from dataset.dataset_object import DatasetObject
 from method.method_object import MethodObject
@@ -34,9 +35,16 @@ class RoarMethod(MethodObject):
         lime_seed: int = 0,
         discretize_continuous: bool = False,
         enforce_encoding: bool = False,
-        sample_around_instance: bool = True,
+        sample_around_instance: bool = False,
+        feature_cost: list[float] | None = None,
+        return_best_effort: bool = False,
+        show_progress: bool = False,
+        progress_desc: str | None = None,
         **kwargs,
     ):
+        feature_costs = kwargs.pop("feature_costs", None)
+        if feature_cost is None and feature_costs is not None:
+            feature_cost = feature_costs
         self._target_model = target_model
         self._seed = seed
         self._device = device.lower()
@@ -55,6 +63,14 @@ class RoarMethod(MethodObject):
         self._discretize_continuous = bool(discretize_continuous)
         self._enforce_encoding = bool(enforce_encoding)
         self._sample_around_instance = bool(sample_around_instance)
+        self._feature_cost = (
+            None
+            if feature_cost is None
+            else np.asarray(feature_cost, dtype=np.float32).reshape(-1)
+        )
+        self._return_best_effort = bool(return_best_effort)
+        self._show_progress = bool(show_progress)
+        self._progress_desc = progress_desc
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
@@ -114,6 +130,13 @@ class RoarMethod(MethodObject):
                 )
 
             self._training_array = training_array
+            if (
+                self._feature_cost is not None
+                and self._feature_cost.shape[0] != self._training_array.shape[1]
+            ):
+                raise ValueError(
+                    "feature_cost must match the finalized feature dimension"
+                )
             self._categorical_groups = infer_categorical_groups(self._feature_names)
             self._lime_explainer = LimeTabularExplainer(
                 training_data=self._training_array,
@@ -138,6 +161,13 @@ class RoarMethod(MethodObject):
         if isinstance(prediction, torch.Tensor):
             return prediction.detach().cpu().numpy()
         return np.asarray(prediction, dtype=np.float32)
+
+    def _predict_lime_array(self, X: np.ndarray) -> np.ndarray:
+        prediction = self._predict_label_array(X)
+        prediction = np.asarray(prediction, dtype=np.float32)
+        if prediction.ndim != 2:
+            raise ValueError("LIME prediction wrapper expected a 2D one-hot array")
+        return prediction
 
     def _get_target_index(self, original_prediction: int) -> int:
         if self._desired_class is not None:
@@ -171,13 +201,17 @@ class RoarMethod(MethodObject):
     def _get_lime_coefficients(
         self, factual: np.ndarray, target_index: int
     ) -> tuple[np.ndarray, float]:
+        local_regressor = LogisticRegression(
+            random_state=self._lime_seed,
+            max_iter=1000,
+        )
         with seed_context(self._lime_seed):
             explanation = self._lime_explainer.explain_instance(
                 data_row=factual.astype(np.float64, copy=False),
-                predict_fn=self._predict_label_array,
+                predict_fn=self._predict_lime_array,
                 labels=(target_index,),
                 num_features=len(self._feature_names),
-                model_regressor=LogisticRegression(random_state=self._lime_seed),
+                model_regressor=local_regressor,
             )
 
         coefficients = np.zeros(len(self._feature_names), dtype=np.float32)
@@ -213,6 +247,8 @@ class RoarMethod(MethodObject):
         intercept = float(
             np.asarray(explanation.intercept[target_index]).reshape(-1)[0]
         )
+        coefficients = np.round(coefficients, 4).astype(np.float32, copy=False)
+        intercept = float(np.round(intercept, 4))
         return coefficients, intercept
 
     def _get_surrogate(
@@ -247,7 +283,13 @@ class RoarMethod(MethodObject):
             )
 
             counterfactual_rows: list[pd.Series] = []
-            for row_index, (_, row) in enumerate(factuals.iterrows()):
+            row_iterator = tqdm(
+                list(factuals.iterrows()),
+                desc=self._progress_desc or "roar factuals",
+                leave=False,
+                disable=not self._show_progress,
+            )
+            for row_index, (_, row) in enumerate(row_iterator):
                 factual_array = row.to_numpy(dtype="float32")
                 original_prediction = int(original_predictions[row_index])
                 target_index = self._get_target_index(original_prediction)
@@ -270,6 +312,11 @@ class RoarMethod(MethodObject):
                     coeff=coefficients,
                     intercept=intercept,
                     cat_feature_indices=self._categorical_groups,
+                    feature_weights=(
+                        None
+                        if self._feature_cost is None
+                        else self._feature_cost.copy()
+                    ),
                     lr=self._lr,
                     lambda_param=self._lambda,
                     delta_max=self._delta_max,
@@ -302,6 +349,10 @@ class RoarMethod(MethodObject):
                     original_prediction=original_prediction,
                     target_index=target_index,
                 ):
+                    counterfactual_rows.append(
+                        pd.Series(candidate, index=self._feature_names)
+                    )
+                elif self._return_best_effort:
                     counterfactual_rows.append(
                         pd.Series(candidate, index=self._feature_names)
                     )

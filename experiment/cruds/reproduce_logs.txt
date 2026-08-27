@@ -1,0 +1,33 @@
+**Scope of Reproducibility**
+
+We aim to reproduce the CRUDS claims from `reference/cruds.pdf`:
+
+1. We show that gradient-based optimization over learned manifolds can fail through low-density outputs, boundary sensitivity, and topology traps : [Quantitative] : [Section 3 and Figure 1]
+2. We generate counterfactuals by using a CSVAE to separate label-predictive `w` from label-unrelated `z` and sampling target-class `w` : [Quantitative] : [Section 4 and Tables 1-2]
+3. We improve causal/actionability constraint satisfaction compared with distance-minimizing baselines : [Quantitative] : [Section 6 and Tables 3a-3c]
+4. We summarize sampled recourse candidates as interpretable decision-tree rules : [Qualitative] : [Figure 2 and Section 4]
+5. We require only a labeled dataset, not classifier gradients, SCMs, prior counterfactual examples, or external oracles : [Qualitative] : [Introduction and Section 4]
+
+**Methodology**
+
+We run two levels of coverage:
+
+1. `experiment/cruds/smoke.py` with `experiment/cruds/smoke_config.yaml`, which remains a small Credit + linear-model executability check with short VAE training.
+2. `experiment/cruds/test_cruds_reproduce.py`, a deterministic scoped synthetic mixture check anchored to Section 3/Figure 1 low-density failure modes and Section 5 target-class sampling. The script compares a nearest-boundary counterfactual against a CRUDS-style target-support sample and writes `experiment/cruds/reproduction_report.json`.
+
+The project artifact list marks CRUDS as having no original code/experiments and no original data, so strict same-tools reproducibility is not possible from local artifacts. The new script is a targeted generalization-style check rather than a reproduction of Tables 1-3.
+
+**Results**
+
+Claim 1 is partially validated by the scoped mixture check. Both the nearest-boundary counterfactual and the CRUDS-style target-support counterfactual achieved validity 1.0, but the nearest-boundary point had target-density proxy 1.775e-13 while the CRUDS-style point had density 0.5. This reproduces the paper's qualitative trend that boundary/minimum-distance recourse can land in low-density regions, while target-support sampling can avoid that failure.
+
+Claim 2 is only partially validated at concept level. The scoped script models the target-support sampling trend, but it does not train the paper's CSVAE or verify disentangled `w`/`z` behavior from Tables 1-2.
+
+Claim 3 is not reproduced. The scoped script does not run the Credit Default causal-constraint experiment or Table 3a-3c comparisons.
+
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Recover original CRUDS code/data if available; otherwise keep future runs labeled as scoped/generalization-style.
+- Implement the full mixture, S-shaped, C-shaped/topology, nonlinear, overlap, and hidden-confounding synthetic experiments.
+- Add the Credit Default causal-constraint experiment with the 1.00 versus 0.69 feasibility comparison.
+- Add CSVAE `w`/`z` diagnostics and decision-tree recourse summaries.

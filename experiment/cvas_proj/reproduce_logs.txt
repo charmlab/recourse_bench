@@ -1,34 +1,22 @@
-Level Badge
-Level 2: Partial Reproduction
-Reason: The implementation reproduces a specific subset of the original CVAS experiments with close quantitative agreement, but the full set of experiments from the paper has not been validated in this repository.
+**Scope of Reproducibility**
 
-Method
-CVAS-PROJ / FR-CVAS-PROJ aggregate reproduction for the German setting.
+We aim to reproduce the CVAS-PROJ claims from `reference/cvas_proj.pdf`:
 
-Reproduction Summary
-Reference setting:
-- mode: aggregate_table1
-- device: cuda
-- method: fr_rmpm
-- rho_neg: 10.0
-- num_future_models: 100
-- max_ins: 200
+1. We construct a coverage-validity-aware surrogate for robust recourse under black-box model shifts : [Quantitative] : [Methodology and Figure 6]
+2. We generate feasible recourses with strong current and future validity : [Quantitative] : [Table 1]
+3. We evaluate cost, feasibility, current validity, and future validity on German, SBA, and Student : [Quantitative] : [Table 1]
 
-Observed result:
-- cost_mean = 0.985806
-- cost_std = 0.045377
-- current_mean = 0.924000
-- current_std = 0.018815
-- future_mean = 0.776120
-- future_std = 0.040042
-- feasible_mean = 0.995000
+**Methodology**
 
-Paper comparison:
-- German FR-CVAS-PROJ in reference/cvas.pdf is approximately: cost 1.04 +- 0.02, current validity 0.94 +- 0.03, future validity 0.79 +- 0.01.
-- The reproduced result is close numerically and matches the expected qualitative behavior for this experiment.
+We reproduce CVAS-PROJ with `experiment/cvas_proj/test_cvas_proj_reproduce.py`. Code/experiments and data are available. The current run targets Table 1 aggregate results in the RecourseBench environment.
 
-Next Steps
-- Extend aggregate validation to the remaining CVAS datasets and reported settings.
-- Check whether fold-specific shifted-model pools change the aggregate metrics slightly.
-- Reconfirm seed and training-randomness alignment for any remaining small deviations.
-- Document any remaining paper-versus-implementation differences after additional runs.
+**Results**
+
+Claims 2 and 3 are partially to strongly reproduced: 13 of 18 scalar comparisons are within the 15% relative-delta threshold, and main means are generally close. Examples include German future-validity mean, reference 0.79 versus reproduced 0.7834, relative delta 0.008, and SBA cost mean, reference 1.72 versus reproduced 1.7218, relative delta 0.001. Several standard deviations diverge, and Claim 1/Figure 6 surrogate fidelity is not reproduced.
+
+**Next Steps Needed to Satisfy Claim Requirements**
+
+- Add Figure 6 surrogate fidelity and sensitivity experiments.
+- Investigate nonzero reproduced standard deviations where the reference is zero.
+- Record black-box, surrogate, projection, and seed settings.
+- Add proof-level notes for guarantee-style claims.

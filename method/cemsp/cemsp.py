@@ -39,6 +39,7 @@ class CemspMethod(MethodObject):
         explicit_upper_bounds: dict[str, object] | list[object] | None = None,
         max_counterfactuals: int = 1,
         return_mode: str = "first",
+        enumerate_all_features: bool = False,
         **kwargs,
     ):
         ensure_supported_target_model(target_model, BlackBoxModelTypes, "CemspMethod")
@@ -57,6 +58,9 @@ class CemspMethod(MethodObject):
         self._explicit_upper_bounds = explicit_upper_bounds
         self._max_counterfactuals = int(max_counterfactuals)
         self._return_mode = str(return_mode).lower()
+        self._last_counterfactual_sets: list[pd.DataFrame] = []
+        self._last_counterfactual_validity: list[pd.Series] = []
+        self._enumerate_all_features = bool(enumerate_all_features)
 
         if self._device != self._target_model._device:
             raise ValueError("Method device must match target model device")
@@ -275,9 +279,12 @@ class CemspMethod(MethodObject):
         desired_class: int | str,
     ) -> tuple[np.ndarray, np.ndarray]:
         replacement = self._build_replacement_vector(factual, desired_class)
-        candidate_indices = np.flatnonzero(build_change_mask(factual, replacement)).astype(
-            np.int64
-        )
+        if self._enumerate_all_features:
+            candidate_indices = np.arange(len(self._feature_names), dtype=np.int64)
+        else:
+            candidate_indices = np.flatnonzero(
+                build_change_mask(factual, replacement)
+            ).astype(np.int64)
         return replacement, candidate_indices
 
     def _enumerate_counterfactuals(
@@ -359,6 +366,8 @@ class CemspMethod(MethodObject):
             raise ValueError("Input factuals cannot contain NaN")
 
         factuals = factuals.loc[:, self._feature_names].copy(deep=True)
+        self._last_counterfactual_sets = []
+        self._last_counterfactual_validity = []
         with seed_context(self._seed):
             original_predictions = self._adapter.predict_label_indices(factuals)
             desired_classes = resolve_target_classes(
@@ -375,6 +384,14 @@ class CemspMethod(MethodObject):
                     factual,
                     desired_class,
                 )
+                counterfactual_set = pd.DataFrame(
+                    counterfactuals_list,
+                    columns=self._feature_names,
+                )
+                self._last_counterfactual_sets.append(counterfactual_set)
+                self._last_counterfactual_validity.append(
+                    pd.Series(True, index=counterfactual_set.index, dtype=bool)
+                )
                 candidate = self._select_counterfactual(factual, counterfactuals_list)
                 if candidate is None:
                     rows.append(
@@ -390,3 +407,22 @@ class CemspMethod(MethodObject):
             candidates=candidates,
             desired_class=self._desired_class,
         )
+
+    def counterfactual_set_metadata(
+        self,
+        factual_index: pd.Index,
+        feature_columns: pd.Index,
+    ) -> dict[str, object] | None:
+        if not self._last_counterfactual_sets:
+            return None
+        return {
+            "counterfactual_sets": [
+                counterfactual_set.reindex(columns=feature_columns).copy(deep=True)
+                for counterfactual_set in self._last_counterfactual_sets
+            ],
+            "counterfactual_set_validity": [
+                validity_mask.copy(deep=True)
+                for validity_mask in self._last_counterfactual_validity
+            ],
+            "counterfactual_set_source": self.__class__.__name__,
+        }

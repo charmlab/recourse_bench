@@ -1,0 +1,67 @@
+--- STDOUT ---
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Experiment config:
+name: cvas_proj_smoke
+logger:
+  level: INFO
+  path: ./logs/cvas_proj_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: cvas_proj
+  seed: 0
+  device: cpu
+  num_samples: 250
+  line_search_steps: 40
+  num_boundary_neighbors: 10
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Starting preprocess: ScalePreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Completed preprocess: ScalePreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Starting preprocess: EncodePreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Completed preprocess: EncodePreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Starting preprocess: SplitPreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Completed preprocess: SplitPreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Starting preprocess: FinalizePreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Completed preprocess: FinalizePreProcess
+2026-06-11 12:23:02 | INFO | cvas_proj_smoke | Training target model: MlpModel
+2026-06-11 12:23:04 | INFO | cvas_proj_smoke | Completed target model training
+2026-06-11 12:23:04 | INFO | cvas_proj_smoke | Training recourse method: CvasProjMethod
+2026-06-11 12:23:04 | INFO | cvas_proj_smoke | Completed recourse method training
+2026-06-11 12:23:04 | INFO | cvas_proj_smoke | Generating counterfactuals
+2026-06-11 12:23:11 | INFO | cvas_proj_smoke | Completed counterfactual generation
+2026-06-11 12:23:11 | INFO | cvas_proj_smoke | Starting evaluation: ValidityEvaluation
+2026-06-11 12:23:11 | INFO | cvas_proj_smoke | Completed evaluation: ValidityEvaluation
+2026-06-11 12:23:11 | INFO | cvas_proj_smoke | Starting evaluation: DistanceEvaluation
+2026-06-11 12:23:11 | INFO | cvas_proj_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+ 0.947368          1.0     0.216355     0.216355       0.216355

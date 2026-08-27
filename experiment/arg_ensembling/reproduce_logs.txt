@@ -1,37 +1,22 @@
-Level Badge
-Level 1: Congruent Reproduction
-Reason: Restored original badge from the pre-standardization reproduction log.
+**Scope of Reproducibility**
 
-Method
-Argumentative ensembling benchmark reproduction
+We aim to reproduce the argumentative ensembling claims from `reference/arg_ensembling.pdf`:
 
-Summary
-- Restored original badge: `Level 1: Congruent Reproduction`
-- Current extracted scalar-result coverage under the standardized criterion: `R = 66`, `R_rep = 64`
-- Average raw delta across extracted scalar results: `0.045748`
-- Average variance-adjusted delta across extracted scalar results: `0.045748`
+1. Arg_ensembling defines ensemble recourse through argumentation-style properties such as coherence and non-emptiness : [Qualitative] : [Formal definitions and propositions in the paper]
+2. Arg_ensembling shows that the proposed aggregation properties hold under the stated assumptions : [Qualitative] : [Proofs / theoretical results]
+3. Arg_ensembling empirically evaluates accuracy and simplicity across datasets, methods, and ensemble sizes : [Quantitative] : [Table 4]
 
-Scalar Result Coverage
-- `R = 66` total extracted scalar results
-- `R_rep = 64` extracted scalar results with `Δ <= 0.15`
-- `R - R_rep = 2` extracted scalar results outside the threshold
+**Methodology**
 
-Reproducibility Criterion
-- A result is treated as one scalar `(dataset, model, metric)` value.
-- The symmetric relative error is `Δ(m, m̂) = |m̂ - m| / max(|m|, |m̂|, ε0)`.
-- Numerical-stability constant: `ε0 = 1e-12`.
-- Fixed reproduction tolerance: `δ = 0.15`.
+We reproduce the Table 4-style empirical evaluation with `experiment/arg_ensembling/test_arg_ensembling_reproduce.py` and `experiment/arg_ensembling/config.yaml`. Code/experiments and data are available, but the run is executed inside the current RecourseBench environment rather than a frozen copy of the original paper environment.
 
-Reference Scope
-- Current reproduction log only reports a COMPAS Table 4-style local variant; additional paper datasets/settings are not covered.
+**Results**
 
-Observed Result Highlights
-- Most extracted COMPAS scalar targets are within the 15% threshold.
-- The current script/log does not establish full paper-wide coverage beyond this variant.
+Claim 3 is partially reproduced: 170 of 198 scalar accuracy/simplicity comparisons are within the 15% relative-delta threshold. The largest discrepancies are simplicity metrics on COMPAS for `Sa,s-A` and `Sa,d-A` at `|M|=10`, where the reference is 0.436 and the reproduced value is about 0.766. Claims 1 and 2 remain proof-level evidence and are not mechanically verified by the reproduction script.
 
-Notes / Caveats
-- Level 2 follows directly from scalar-result counts and remains capped by limited experiment coverage.
+**Next Steps Needed to Satisfy Claim Requirements**
 
-Next Steps
-- Reproduce the remaining paper datasets and model-pool constructions.
-- Add standardized scalar comparisons for all original Table 4 settings.
+- Align Table 4 seeds, model sizes, preprocessing, and ensemble settings with the original release.
+- Investigate the COMPAS simplicity drift.
+- Add a proof-inspection note for coherence and non-emptiness claims.
+- Record whether the implementation path is original code or a RecourseBench reimplementation.

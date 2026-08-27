@@ -1,0 +1,62 @@
+{
+  "paper_id": "cfrl_adult_rf",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-23T18:08:42.302580Z",
+    "framework_version": "1.0.0",
+    "source_script": "test_cfrl_reproduce.py",
+    "experiment_name": "adult_cfrl_rf_reproduce"
+  },
+  "experiments": {
+    "adult_cfrl_rf_reproduce": {
+      "configuration": {
+        "dataset": "adult_cfrl",
+        "model": "random_forest",
+        "method": "cfrl"
+      },
+      "metrics": {
+        "accuracy": {
+          "original": 0.86,
+          "reproduced": 0.8596652848149854,
+          "delta": 0.00038920370350534905,
+          "cv_star": 0.0003096699126014189
+        },
+        "validity": {
+          "original": 0.9859,
+          "reproduced": 0.988,
+          "delta": 0.0021255060728744848,
+          "cv_star": 0.0016926285734365585
+        },
+        "sparsity_cat_l0": {
+          "original": 0.11,
+          "reproduced": 0.027960526315789474,
+          "delta": 0.7458133971291866,
+          "cv_star": 0.9460967340553913
+        },
+        "sparsity_num_l1": {
+          "original": 0.19,
+          "reproduced": 0.283032777193471,
+          "delta": 0.3286996584493715,
+          "cv_star": 0.31290483301590144
+        },
+        "immutability_violation_rate": {
+          "original": 0.0,
+          "reproduced": 0.0,
+          "delta": 0.0,
+          "cv_star": null
+        },
+        "target_conditional_mmd_cls_0": {
+          "original": 0.36,
+          "reproduced": 0.05969993660197703,
+          "delta": 0.834166842772286,
+          "cv_star": 1.1383715687738007
+        },
+        "target_conditional_mmd_cls_1": {
+          "original": 0.43,
+          "reproduced": 0.0628266621025253,
+          "delta": 0.8538914834824993,
+          "cv_star": 1.1853441552426216
+        }
+      }
+    }
+  }
+}

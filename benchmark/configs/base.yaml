@@ -14,6 +14,7 @@ evaluation:
     k: 5
 
 benchmark:
+  device: cpu
   desired_class: 1
   sample_target: 50
   min_factuals: 25

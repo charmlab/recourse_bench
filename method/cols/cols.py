@@ -712,3 +712,24 @@ class ColsMethod(MethodObject):
             index=factuals.index,
             columns=self._feature_names,
         )
+
+    def counterfactual_set_metadata(
+        self,
+        factual_index: pd.Index,
+        feature_columns: pd.Index,
+    ) -> dict[str, object] | None:
+        if not self._last_counterfactual_sets:
+            return None
+        sets = [
+            counterfactual_set.reindex(columns=feature_columns).copy(deep=True)
+            for counterfactual_set in self._last_counterfactual_sets
+        ]
+        validity = [
+            validity_mask.copy(deep=True)
+            for validity_mask in self._last_counterfactual_validity
+        ]
+        return {
+            "counterfactual_sets": sets,
+            "counterfactual_set_validity": validity,
+            "counterfactual_set_source": self.__class__.__name__,
+        }

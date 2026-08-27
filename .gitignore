@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 cache/
+.venv/
+.vscode/
 logs/
 tmp/
 /reference/
@@ -8,6 +10,7 @@ AGENTS.md
 .omx/
 webapp/benchmark-live/data/runtime_results.csv
 _runs/
+benchmark/results/figures/
 
 # Python packaging build artifacts
 build/

@@ -3,6 +3,8 @@ dataset:
   path: ./dataset/credit/
 
 preprocess:
+  - name: normalize_binary
+    seed: 0
   - name: scale
     seed: 0
     scaling: normalize
@@ -10,9 +12,14 @@ preprocess:
   - name: encode
     seed: 0
     encoding: onehot
+  - name: balance
+    seed: 0
+    strategy: downsample
+    shuffle: true
   - name: split
     seed: 0
     split: 0.2
+    stratify: true
 
 benchmark:
   desired_class: 1

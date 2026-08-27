@@ -1,0 +1,9 @@
+method:
+  name: feature_tweak
+  seed: 0
+  device: auto
+  desired_class: 1
+  eps: 0.1
+
+compatibility:
+  allowed_models: [randomforest]

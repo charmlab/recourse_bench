@@ -1,0 +1,17 @@
+method:
+  name: cruds
+  seed: 0
+  device: auto
+  desired_class: 1
+  lambda_param: 0.001
+  optimizer: rmsprop
+  learning_rate: 0.008
+  max_iter: 100
+  vae_hidden_dim: 64
+  vae_latent_dim: 6
+  vae_epochs: 1
+  vae_learning_rate: 1.0e-3
+  vae_batch_size: 32
+
+compatibility:
+  allowed_models: [linear, mlp]

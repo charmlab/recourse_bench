@@ -1,0 +1,699 @@
+{
+  "paper_id": "cogs_tables_4_5",
+  "reproduction_metadata": {
+    "timestamp": "2026-07-09T17:55:37.203301+00:00",
+    "framework_version": "1.0.0",
+    "source_script": "test_cogs_reproduce.py",
+    "arguments": {
+      "table": "table5",
+      "datasets": [
+        "adult"
+      ],
+      "blackboxes": [
+        "rf"
+      ],
+      "folds": 5,
+      "model_cv_folds": 5,
+      "fast_model_grid": false,
+      "fast_search": true,
+      "population_size": 1000,
+      "n_generations": 100,
+      "n_reps": 1,
+      "max_factuals_per_fold": 1,
+      "run_only_fold": 0,
+      "seed": 42,
+      "k_robust_samples": 64,
+      "n_jobs": null,
+      "model_n_jobs": null,
+      "cf_n_jobs": null,
+      "cache_dir": "experiment/cogs/cache_probe_raw_candidates",
+      "no_cache": false,
+      "refresh_cache": true,
+      "progress": "off"
+    }
+  },
+  "paper_reference": {
+    "table4": null,
+    "table5": {
+      "rf": {
+        "C": {
+          "0.01": {
+            "credit": [
+              0.4,
+              0.06
+            ],
+            "adult": [
+              0.02,
+              0.0
+            ],
+            "boston": [
+              0.76,
+              0.1
+            ],
+            "garments": [
+              0.53,
+              0.05
+            ],
+            "compas": [
+              0.27,
+              0.06
+            ]
+          },
+          "0.05": {
+            "credit": [
+              0.42,
+              0.07
+            ],
+            "adult": [
+              0.04,
+              0.02
+            ],
+            "boston": [
+              0.84,
+              0.09
+            ],
+            "garments": [
+              0.57,
+              0.06
+            ],
+            "compas": [
+              0.37,
+              0.07
+            ]
+          },
+          "0.1": {
+            "credit": [
+              0.43,
+              0.07
+            ],
+            "adult": [
+              0.05,
+              0.02
+            ],
+            "boston": [
+              0.85,
+              0.09
+            ],
+            "garments": [
+              0.58,
+              0.06
+            ],
+            "compas": [
+              0.4,
+              0.09
+            ]
+          }
+        },
+        "K": {
+          "0.01": {
+            "credit": [
+              0.37,
+              0.01
+            ],
+            "adult": [
+              0.06,
+              0.02
+            ],
+            "boston": [
+              0.33,
+              0.24
+            ],
+            "garments": [
+              0.26,
+              0.05
+            ],
+            "compas": [
+              0.04,
+              0.04
+            ]
+          },
+          "0.05": {
+            "credit": [
+              0.44,
+              0.03
+            ],
+            "adult": [
+              0.4,
+              0.08
+            ],
+            "boston": [
+              0.63,
+              0.17
+            ],
+            "garments": [
+              0.37,
+              0.06
+            ],
+            "compas": [
+              0.08,
+              0.03
+            ]
+          },
+          "0.1": {
+            "credit": [
+              0.46,
+              0.04
+            ],
+            "adult": [
+              0.58,
+              0.07
+            ],
+            "boston": [
+              0.67,
+              0.16
+            ],
+            "garments": [
+              0.46,
+              0.07
+            ],
+            "compas": [
+              0.12,
+              0.02
+            ]
+          }
+        },
+        "CK": {
+          "0.01": {
+            "credit": [
+              0.23,
+              0.04
+            ],
+            "adult": [
+              0.0,
+              0.0
+            ],
+            "boston": [
+              0.21,
+              0.21
+            ],
+            "garments": [
+              0.19,
+              0.06
+            ],
+            "compas": [
+              0.03,
+              0.03
+            ]
+          },
+          "0.05": {
+            "credit": [
+              0.27,
+              0.03
+            ],
+            "adult": [
+              0.0,
+              0.0
+            ],
+            "boston": [
+              0.54,
+              0.21
+            ],
+            "garments": [
+              0.26,
+              0.05
+            ],
+            "compas": [
+              0.06,
+              0.04
+            ]
+          },
+          "0.1": {
+            "credit": [
+              0.3,
+              0.05
+            ],
+            "adult": [
+              0.0,
+              0.0
+            ],
+            "boston": [
+              0.6,
+              0.19
+            ],
+            "garments": [
+              0.34,
+              0.06
+            ],
+            "compas": [
+              0.08,
+              0.04
+            ]
+          }
+        }
+      },
+      "nn": {
+        "C": {
+          "0.01": {
+            "credit": [
+              0.25,
+              0.12
+            ],
+            "adult": [
+              0.01,
+              0.01
+            ],
+            "boston": [
+              0.96,
+              0.02
+            ],
+            "garments": [
+              0.87,
+              0.05
+            ],
+            "compas": [
+              0.5,
+              0.08
+            ]
+          },
+          "0.05": {
+            "credit": [
+              0.27,
+              0.12
+            ],
+            "adult": [
+              0.02,
+              0.01
+            ],
+            "boston": [
+              0.97,
+              0.02
+            ],
+            "garments": [
+              0.89,
+              0.05
+            ],
+            "compas": [
+              0.56,
+              0.05
+            ]
+          },
+          "0.1": {
+            "credit": [
+              0.29,
+              0.11
+            ],
+            "adult": [
+              0.02,
+              0.01
+            ],
+            "boston": [
+              0.97,
+              0.02
+            ],
+            "garments": [
+              0.89,
+              0.05
+            ],
+            "compas": [
+              0.57,
+              0.04
+            ]
+          }
+        },
+        "K": {
+          "0.01": {
+            "credit": [
+              0.13,
+              0.07
+            ],
+            "adult": [
+              0.35,
+              0.02
+            ],
+            "boston": [
+              0.07,
+              0.05
+            ],
+            "garments": [
+              0.08,
+              0.06
+            ],
+            "compas": [
+              0.01,
+              0.0
+            ]
+          },
+          "0.05": {
+            "credit": [
+              0.26,
+              0.08
+            ],
+            "adult": [
+              0.52,
+              0.03
+            ],
+            "boston": [
+              0.8,
+              0.12
+            ],
+            "garments": [
+              0.42,
+              0.19
+            ],
+            "compas": [
+              0.01,
+              0.01
+            ]
+          },
+          "0.1": {
+            "credit": [
+              0.39,
+              0.02
+            ],
+            "adult": [
+              0.7,
+              0.04
+            ],
+            "boston": [
+              0.93,
+              0.05
+            ],
+            "garments": [
+              0.58,
+              0.14
+            ],
+            "compas": [
+              0.02,
+              0.02
+            ]
+          }
+        },
+        "CK": {
+          "0.01": {
+            "credit": [
+              0.02,
+              0.02
+            ],
+            "adult": [
+              0.0,
+              0.0
+            ],
+            "boston": [
+              0.07,
+              0.05
+            ],
+            "garments": [
+              0.06,
+              0.06
+            ],
+            "compas": [
+              0.0,
+              0.01
+            ]
+          },
+          "0.05": {
+            "credit": [
+              0.06,
+              0.03
+            ],
+            "adult": [
+              0.0,
+              0.0
+            ],
+            "boston": [
+              0.69,
+              0.09
+            ],
+            "garments": [
+              0.38,
+              0.18
+            ],
+            "compas": [
+              0.01,
+              0.01
+            ]
+          },
+          "0.1": {
+            "credit": [
+              0.12,
+              0.08
+            ],
+            "adult": [
+              0.0,
+              0.0
+            ],
+            "boston": [
+              0.93,
+              0.04
+            ],
+            "garments": [
+              0.52,
+              0.14
+            ],
+            "compas": [
+              0.01,
+              0.02
+            ]
+          }
+        }
+      }
+    }
+  },
+  "reproduced": {
+    "table4": null,
+    "table5": {
+      "rf": {
+        "C": {
+          "0.01": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.02,
+                0.0
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 1.0,
+                "std": 0.0
+              },
+              "cv_star": {
+                "mean": 1.5909902576697321,
+                "std": null
+              }
+            }
+          },
+          "0.05": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.04,
+                0.02
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 1.0,
+                "std": 1.0
+              },
+              "cv_star": {
+                "mean": 1.5909902576697321,
+                "std": 1.5909902576697321
+              }
+            }
+          },
+          "0.1": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.05,
+                0.02
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 1.0,
+                "std": 1.0
+              },
+              "cv_star": {
+                "mean": 1.5909902576697321,
+                "std": 1.5909902576697321
+              }
+            }
+          }
+        },
+        "K": {
+          "0.01": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.06,
+                0.02
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 1.0,
+                "std": 1.0
+              },
+              "cv_star": {
+                "mean": 1.5909902576697321,
+                "std": 1.5909902576697321
+              }
+            }
+          },
+          "0.05": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.4,
+                0.08
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 1.0,
+                "std": 1.0
+              },
+              "cv_star": {
+                "mean": 1.5909902576697321,
+                "std": 1.5909902576697321
+              }
+            }
+          },
+          "0.1": {
+            "adult": {
+              "mean_match_rate": 1.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.58,
+                0.07
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 1.0
+                }
+              ],
+              "delta": {
+                "mean": 0.42000000000000004,
+                "std": 1.0
+              },
+              "cv_star": {
+                "mean": 0.4229214608995491,
+                "std": 1.5909902576697321
+              }
+            }
+          }
+        },
+        "CK": {
+          "0.01": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.0,
+                0.0
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 0.0,
+                "std": 0.0
+              },
+              "cv_star": {
+                "mean": null,
+                "std": null
+              }
+            }
+          },
+          "0.05": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.0,
+                0.0
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 0.0,
+                "std": 0.0
+              },
+              "cv_star": {
+                "mean": null,
+                "std": null
+              }
+            }
+          },
+          "0.1": {
+            "adult": {
+              "mean_match_rate": 0.0,
+              "std_match_rate": 0.0,
+              "paper": [
+                0.0,
+                0.0
+              ],
+              "folds": [
+                {
+                  "fold_idx": 0,
+                  "candidate_pool_size": 177,
+                  "evaluated_factuals": 1,
+                  "match_rate": 0.0
+                }
+              ],
+              "delta": {
+                "mean": 0.0,
+                "std": 0.0
+              },
+              "cv_star": {
+                "mean": null,
+                "std": null
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

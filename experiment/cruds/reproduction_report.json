@@ -1,0 +1,77 @@
+{
+  "paper_id": "CRUDS: Counterfactual Recourse Using Disentangled Subspaces",
+  "reproduction_metadata": {
+    "source_script": "test_cruds_reproduce.py",
+    "paper_reference": "reference/cruds.pdf",
+    "paper_anchor": "Section 3/Figure 1 low-density failure modes and Section 5 target-class sampling experiments",
+    "scope": "Scoped synthetic mixture check; original CRUDS code/data are unavailable.",
+    "timestamp_utc": "2026-08-12T20:43:18.329225Z"
+  },
+  "experiments": {
+    "mixture_low_density_failure_mode": {
+      "configuration": {
+        "factual": [
+          -1.0,
+          0.0
+        ],
+        "target_modes": [
+          [
+            1.0,
+            -1.0
+          ],
+          [
+            1.0,
+            1.0
+          ]
+        ],
+        "target_density_sigma": 0.18,
+        "nearest_boundary_counterfactual": [
+          0.05,
+          0.0
+        ],
+        "cruds_style_counterfactual": [
+          1.0,
+          -1.0
+        ]
+      },
+      "metrics": {
+        "nearest_boundary_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "cruds_style_validity": {
+          "original": null,
+          "reproduced": 1.0,
+          "delta": null,
+          "cv_star": null
+        },
+        "nearest_boundary_target_density": {
+          "original": null,
+          "reproduced": 1.7754222956770125e-13,
+          "delta": null,
+          "cv_star": null
+        },
+        "cruds_style_target_density": {
+          "original": null,
+          "reproduced": 0.5,
+          "delta": null,
+          "cv_star": null
+        },
+        "nearest_boundary_distance": {
+          "original": null,
+          "reproduced": 1.05,
+          "delta": null,
+          "cv_star": null
+        },
+        "cruds_style_distance": {
+          "original": null,
+          "reproduced": 2.23606797749979,
+          "delta": null,
+          "cv_star": null
+        }
+      }
+    }
+  }
+}

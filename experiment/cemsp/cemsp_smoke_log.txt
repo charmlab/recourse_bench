@@ -1,0 +1,69 @@
+--- STDOUT ---
+2026-06-11 12:06:22 | INFO | cemsp_smoke | Experiment config:
+name: cemsp_smoke
+logger:
+  level: INFO
+  path: ./logs/cemsp_smoke.log
+caching:
+  path: ./cache/
+dataset:
+  name: german
+  path: ./dataset/german/
+preprocess:
+- name: scale
+  seed: 0
+  scaling: normalize
+  range: true
+- name: encode
+  seed: 0
+  encoding: onehot
+- name: split
+  seed: 0
+  split: 0.2
+- name: finalize
+model:
+  name: mlp
+  seed: 0
+  device: cpu
+  epochs: 50
+  learning_rate: 0.01
+  batch_size: 32
+  layers:
+  - 64
+  - 32
+  optimizer: adam
+  criterion: cross_entropy
+  output_activation: softmax
+method:
+  name: cemsp
+  seed: 0
+  device: cpu
+  replacement_policy: positive_median
+  replacement_quantile: 0.5
+  replacement_statistic: median
+  max_counterfactuals: 1
+  return_mode: first
+evaluation:
+- name: validity
+- name: distance
+
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Starting preprocess: ScalePreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Completed preprocess: ScalePreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Starting preprocess: EncodePreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Completed preprocess: EncodePreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Starting preprocess: SplitPreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Completed preprocess: SplitPreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Starting preprocess: FinalizePreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Completed preprocess: FinalizePreProcess
+2026-06-11 12:06:23 | INFO | cemsp_smoke | Training target model: MlpModel
+2026-06-11 12:06:24 | INFO | cemsp_smoke | Completed target model training
+2026-06-11 12:06:24 | INFO | cemsp_smoke | Training recourse method: CemspMethod
+2026-06-11 12:06:24 | INFO | cemsp_smoke | Completed recourse method training
+2026-06-11 12:06:24 | INFO | cemsp_smoke | Generating counterfactuals
+2026-06-11 12:06:35 | INFO | cemsp_smoke | Completed counterfactual generation
+2026-06-11 12:06:35 | INFO | cemsp_smoke | Starting evaluation: ValidityEvaluation
+2026-06-11 12:06:35 | INFO | cemsp_smoke | Completed evaluation: ValidityEvaluation
+2026-06-11 12:06:35 | INFO | cemsp_smoke | Starting evaluation: DistanceEvaluation
+2026-06-11 12:06:35 | INFO | cemsp_smoke | Completed evaluation: DistanceEvaluation
+ validity  distance_l0  distance_l1  distance_l2  distance_linf
+     0.23     1.195652      1.01411     0.976009        0.96424

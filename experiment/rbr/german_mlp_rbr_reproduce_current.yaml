@@ -6,6 +6,7 @@ experiment:
   max_factuals: 100
   train_split: 0.8
   split_random_state: 42
+  kfold: 5
   sweep:
     epsilon_pe:
       - 0.0
